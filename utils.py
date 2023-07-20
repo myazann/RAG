@@ -1,6 +1,6 @@
 import argparse
 from transformers import AutoTokenizer, pipeline
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+from auto_gptq import AutoGPTQForCausalLM
 
 def get_args():
 
@@ -11,7 +11,6 @@ def get_args():
   
   return args
   
-
 def available_repos():
 
   return {
@@ -24,9 +23,7 @@ def available_repos():
     "8": "TheBloke/Llama-2-7b-Chat-GPTQ"
   }
   
-  
 def the_bloke_repos(repo_id, model_basename, cfg):
-
     
     tokenizer = AutoTokenizer.from_pretrained(repo_id, use_fast=True)
     

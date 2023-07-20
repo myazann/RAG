@@ -98,10 +98,9 @@ for i, sample in enumerate(coqa_dev["data"]):
   
   retriever = db.as_retriever(search_type="similarity", search_kwargs={"k":1})
 
-  qa = ConversationalRetrievalChain.from_llm(llm, retriever, 
-                                            combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT},
-                                            # condense_question_prompt=CONDENSE_PROMPT
-                                             )
+  qa = ConversationalRetrievalChain.from_llm(llm, retriever, combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}, 
+  # condense_question_prompt=CONDENSE_PROMPT
+  )
 
   chat_history = []
   

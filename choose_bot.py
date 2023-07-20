@@ -1,17 +1,7 @@
-import os
 import torch
-
 import transformers
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
-
-from langchain.llms import CTransformers
-from langchain import PromptTemplate, LLMChain, HuggingFaceHub, HuggingFacePipeline
-from langchain.document_loaders import PyPDFLoader
-
-from huggingface_hub import hf_hub_download
-
 from utils import available_repos, the_bloke_repos
-
 
 def menu():
 
@@ -49,7 +39,6 @@ def choose_bot(device, repo_id=None):
     config = AutoConfig.from_pretrained(repo_id, trust_remote_code=True)
     tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
     
-    
     #config.attn_config['attn_impl'] = 'triton'
     config.init_device = device 
     config.max_seq_len = 8192
@@ -84,7 +73,6 @@ def choose_bot(device, repo_id=None):
                     max_new_tokens=512,  
                     repetition_penalty=1.1)
     
-  
   elif repo_id == "tiiuae/falcon-7b-instruct":
   
     tokenizer = AutoTokenizer.from_pretrained(repo_id)
@@ -109,7 +97,6 @@ def choose_bot(device, repo_id=None):
 
     )
     
-  
   elif repo_id == "TheBloke/GPT4All-13B-Snoozy-SuperHOT-8K-GPTQ":
   
     model_basename = "gpt4all-snoozy-13b-superhot-8k-GPTQ-4bit-128g.no-act.order"
@@ -172,10 +159,4 @@ def choose_bot(device, repo_id=None):
     
     pipe = the_bloke_repos(repo_id, model_basename, cfg)
     
-  return pipe 
-  
-  
-"""
-    
-"""
-  
+  return pipe   
