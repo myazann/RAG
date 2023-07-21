@@ -1,41 +1,42 @@
 import torch
 import transformers
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
-from utils import available_repos, the_bloke_repos
+from utils import the_bloke_repos
+from enums import REPO_ID
 
 def menu():
 
-  repos = available_repos()
-  
+  repos = REPO_ID.__members__    
+  repo_dict = dict((str(k), v) for k, v in enumerate(repos.keys()))
+
   print("\nChoose a model from the list: (Use their number id for choosing)\n")
-  
-  for key, value in repos.items():
-    print(f"{key}: {value}") 
+
+  for i, repo in repo_dict.items():
+      repo_name = repo.replace("_", "-")
+      print(f"{i}: {repo_name}")  
     
-  
   while True:
 
     model_id = input()
-    repo_id = repos.get(model_id)
+    repo_id = repo_dict.get(model_id)
     
     if repo_id is None:
       print("Please select from one of the options!")
     else:
       break
       
-  return repo_id
+  return repos[repo_id].value
   
 
 def choose_bot(device, repo_id=None):
 
   if repo_id is None:
     repo_id = menu()
-    
+
   device = f"cuda:{device}"
 
   if repo_id == "mosaicml/mpt-7b-chat":
   
-    
     config = AutoConfig.from_pretrained(repo_id, trust_remote_code=True)
     tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
     
@@ -158,5 +159,26 @@ def choose_bot(device, repo_id=None):
     }
     
     pipe = the_bloke_repos(repo_id, model_basename, cfg)
+
+  elif repo_id == "meta-llama/Llama-2-7b-chat-hf":
+
+    tokenizer = AutoTokenizer.from_pretrained(repo_id)
+    
+    model = AutoModelForCausalLM.from_pretrained(
+      repo_id,
+      # torch_dtype=torch.bfloat16, 
+      trust_remote_code=True,
+      pad_token_id=tokenizer.eos_token_id,
+      eos_token_id=tokenizer.eos_token_id,
+      use_auth_token=True
+      )
+    
+    pipe = transformers.pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        device=device,
+        max_new_tokens=512,
+    )
     
   return pipe   
