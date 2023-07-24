@@ -4,12 +4,12 @@ from auto_gptq import AutoGPTQForCausalLM
 
 def get_args():
 
-  parser = argparse.ArgumentParser()
-  parser.add_argument("-d", "--device", default="0", type=str, choices=["0", "1"])
-  
-  args = parser.parse_args()
-  
-  return args
+   parser = argparse.ArgumentParser()
+   parser.add_argument("-d", "--device", default="0", type=str, choices=["0", "1"])
+
+   args = parser.parse_args()
+
+   return args
 
 def gptq_model_config():
    
