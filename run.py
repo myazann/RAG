@@ -7,18 +7,15 @@ from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain import HuggingFacePipeline
 
-from choose_bot import choose_bot
-from utils import get_args
+from chatbots import choose_bot
+from utils import get_device
 
 ## ls__7eb356bde9434566bcbcac0b9ee5844b
 
-
-args = get_args()
-device = args.device
+device = get_device()
 
 pipe = choose_bot(device)
 llm = HuggingFacePipeline(pipeline=pipe)
-
 
 loader = PyPDFLoader("LESSEN_Project_Proposal.pdf")
 documents = loader.load()

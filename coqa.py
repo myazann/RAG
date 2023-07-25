@@ -10,8 +10,8 @@ from langchain.chains import RetrievalQA, ConversationalRetrievalChain
 from langchain import HuggingFacePipeline
 from langchain.prompts import PromptTemplate
 
-from utils import get_args
-from choose_bot import choose_bot
+from utils import get_device
+from chatbots import choose_bot
 
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
@@ -19,9 +19,8 @@ os.environ["LANGCHAIN_API_KEY"] = "ls__7eb356bde9434566bcbcac0b9ee5844b"
 os.environ["LANGCHAIN_PROJECT"] = "coqa"
 
 huggingface_hub.login(new_session=False)
-args = get_args()
-device = args.device
 
+device = get_device()
 
 with open("coqa/coqa-dev-v1.0.json", "rb") as f:
   coqa_dev = json.load(f)
