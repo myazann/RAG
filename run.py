@@ -1,13 +1,10 @@
 import time
-import PyPDF2
 
-from langchain.indexes import VectorstoreIndexCreator
-from langchain.embeddings import HuggingFaceEmbeddings, SentenceTransformerEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.document_loaders import PyPDFLoader
 from langchain.chains import ConversationalRetrievalChain
-from langchain.text_splitter import CharacterTextSplitter, SentenceTransformersTokenTextSplitter
-from langchain.vectorstores import Chroma, DeepLake
-from langchain.memory import ConversationBufferMemory
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.vectorstores import Chroma
 from langchain import HuggingFacePipeline
 
 from choose_bot import choose_bot
