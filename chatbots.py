@@ -40,7 +40,6 @@ def choose_bot(device):
     else:
         print("Chatbot isn't implemented yet!")
 
-
 class Chatbot:
 
     def __init__(self, repo, device) -> None:
@@ -49,10 +48,10 @@ class Chatbot:
         self.device = device
         self.is_gptq = self.check_is_gptq()
         self.prompt_template = self.get_prompt_template()
+        self.tokenizer = self.init_tokenizer()
+
         self.model_params = self.gptq_model_params() if self.is_gptq else self.get_model_params()
         self.gen_params = self.get_gen_params()
-        
-        self.tokenizer = self.init_tokenizer()
         self.model = self.init_model()
         self.pipe = self.init_pipe()
 
@@ -94,7 +93,6 @@ class Chatbot:
     def init_pipe(self):
         return pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
 
-
 class Vicuna(Chatbot):
 
     def __init__(self, repo, device) -> None:
@@ -106,6 +104,7 @@ class Vicuna(Chatbot):
     def get_gen_params(self):
         return {
         "max_new_tokens": 512,
+        "temperature": 0.7
     }
 
 class GPT4ALL(Chatbot):
@@ -126,19 +125,6 @@ class MPT(Chatbot):
     def __init__(self, repo, device) -> None:
         super().__init__(repo, device)
 
-    def stopping_criteria(self):
-
-        stop_token_ids = self.tokenizer.convert_tokens_to_ids(["<|endoftext|>"])
-        
-        class StopOnTokens(StoppingCriteria):
-            def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
-                for stop_id in stop_token_ids:
-                    if input_ids[0][-1] == stop_id:
-                        return True
-                return False
-        
-        return StoppingCriteriaList([StopOnTokens()])
-
     def init_tokenizer(self):
         return AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
 
@@ -157,10 +143,22 @@ class MPT(Chatbot):
                 }
 
     def get_gen_params(self):
+
+        stop_token_ids = self.tokenizer.convert_tokens_to_ids(["<|endoftext|>"])
+        
+        class StopOnTokens(StoppingCriteria):
+            def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+                for stop_id in stop_token_ids:
+                    if input_ids[0][-1] == stop_id:
+                        return True
+                return False
+        
+        stopping_criteria = StoppingCriteriaList([StopOnTokens()])
+
         return {
                 "device": self.device,
                 "return_full_text": True,
-                "stopping_criteria": self.stopping_criteria,  
+                "stopping_criteria": stopping_criteria, 
                 "max_new_tokens": 512,  
                 "repetition_penalty": 1.1
                 }
@@ -214,4 +212,3 @@ class LLaMA2(Chatbot):
                 "device": self.device,
                 "max_new_tokens": 512,
                 } 
-    
