@@ -1,7 +1,23 @@
-import argparse
-from transformers import AutoTokenizer, pipeline
-from auto_gptq import AutoGPTQForCausalLM
 import GPUtil
+import huggingface_hub
+import os
+import time
+
+def init_env(project_name):
+
+   os.environ["LANGCHAIN_TRACING_V2"] = "true"
+   os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
+   os.environ["LANGCHAIN_API_KEY"] = "ls__7eb356bde9434566bcbcac0b9ee5844b"
+
+   timestamp = time.time()
+   os.environ["LANGCHAIN_PROJECT"] = f"{project_name}_{timestamp}"
+
+   huggingface_hub.login(new_session=False)
+
+   device = get_device()
+   print("Initialized huggingface hub, langsmith project and chose the suitable device!")
+
+   return device
 
 def get_device():
 
@@ -24,12 +40,15 @@ def get_device():
    else:
       deviceID = GPUtil.getFirstAvailable(order="memory")
       device = f"cuda:{deviceID[0]}"
-
+   
+   print(f"\nChosen device: {device}")
    return device
 
 def get_args():
 
    """
+   Not utilized yet, but can be useful for later.
+
 
    parser = argparse.ArgumentParser()
    parser.add_argument("-d", "--device", default="0", type=str, choices=["0", "1", "cpu"])

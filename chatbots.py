@@ -91,7 +91,10 @@ class Chatbot:
                     )
         
     def init_pipe(self):
-        return pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
+        if self.is_gptq:
+            return pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
+        else:
+            return pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, device=self.device, **self.gen_params)
 
 class Vicuna(Chatbot):
 
@@ -156,7 +159,6 @@ class MPT(Chatbot):
         stopping_criteria = StoppingCriteriaList([StopOnTokens()])
 
         return {
-                "device": self.device,
                 "return_full_text": True,
                 "stopping_criteria": stopping_criteria, 
                 "max_new_tokens": 512,  
@@ -184,7 +186,6 @@ class Falcon(Chatbot):
 
     def get_gen_params(self):
         return {
-                "device": self.device,
                 "max_new_tokens": 512,
                 }
     
@@ -209,6 +210,5 @@ class LLaMA2(Chatbot):
 
     def get_gen_params(self):
         return {
-                "device": self.device,
                 "max_new_tokens": 512,
                 } 
