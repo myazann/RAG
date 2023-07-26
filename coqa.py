@@ -1,40 +1,30 @@
 import json
 import os
-import huggingface_hub
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.document_loaders import TextLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import Chroma
-from langchain.chains import RetrievalQA, ConversationalRetrievalChain
+from langchain.chains import ConversationalRetrievalChain
 from langchain import HuggingFacePipeline
 from langchain.prompts import PromptTemplate
 
-from utils import get_device
+from utils import init_env
 from chatbots import choose_bot
 
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
-os.environ["LANGCHAIN_API_KEY"] = "ls__7eb356bde9434566bcbcac0b9ee5844b"
-os.environ["LANGCHAIN_PROJECT"] = "coqa"
-
-huggingface_hub.login(new_session=False)
-
-device = get_device()
+device = init_env("COQA")
 
 with open("coqa/coqa-dev-v1.0.json", "rb") as f:
   coqa_dev = json.load(f)
-  
   
 out_dir = os.path.join("coqa", "dev")
 os.makedirs(out_dir, exist_ok=True)
 text_splitter = CharacterTextSplitter(chunk_size=5000, chunk_overlap=0)
 
-
 embeddings = HuggingFaceEmbeddings()
 
-pipe = choose_bot(device)
-llm = HuggingFacePipeline(pipeline=pipe)
+chatbot = choose_bot(device)
+lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
 
 
 template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say unknown, don't try to make up an answer. Keep it as short as possible, you don't need to form a sentence,  use a couple of words.
@@ -93,7 +83,7 @@ for i, sample in enumerate(coqa_dev["data"]):
   
   retriever = db.as_retriever(search_type="similarity", search_kwargs={"k":1})
 
-  qa = ConversationalRetrievalChain.from_llm(llm, retriever, combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}, 
+  qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever, combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}, 
   # condense_question_prompt=CONDENSE_PROMPT
   )
 
