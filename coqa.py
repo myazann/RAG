@@ -19,8 +19,8 @@ with open("coqa/coqa-dev-v1.0.json", "rb") as f:
   
 out_dir = os.path.join("coqa", "dev")
 os.makedirs(out_dir, exist_ok=True)
-text_splitter = CharacterTextSplitter(chunk_size=5000, chunk_overlap=0)
 
+text_splitter = CharacterTextSplitter(chunk_size=5000, chunk_overlap=0)
 embeddings = HuggingFaceEmbeddings()
 
 chatbot = choose_bot(device)

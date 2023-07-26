@@ -1,24 +1,25 @@
 import time
 
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.document_loaders import PyPDFLoader
 from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain import HuggingFacePipeline
 
 from chatbots import choose_bot
-from utils import init_env
+from utils import init_env, get_args
+from doc_loader import DocumentLoader
 
-device = init_env("Document_QA")
+args, device = init_env("Document_QA")
 
 chatbot = choose_bot(device)
 lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
 
-loader = PyPDFLoader("LESSEN_Project_Proposal.pdf")
-documents = loader.load()
+loader = DocumentLoader(args.document)
+doc = loader.load_doc()
+
 text_splitter = CharacterTextSplitter(chunk_size=100, chunk_overlap=0)
-texts = text_splitter.split_documents(documents)
+texts = text_splitter.split_documents(doc)
 
 embeddings = HuggingFaceEmbeddings()
 

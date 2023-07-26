@@ -1,3 +1,4 @@
+import argparse
 import GPUtil
 import huggingface_hub
 import os
@@ -15,9 +16,12 @@ def init_env(project_name):
    huggingface_hub.login(new_session=False)
 
    device = get_device()
-   print("Initialized huggingface hub, langsmith project and chose the suitable device!")
+   print("Initialized huggingface hub and langsmith!")
+   print("Returning command line arguments and device!")
 
-   return device
+   args = get_args()
+
+   return args, device
 
 def get_device():
 
@@ -39,23 +43,17 @@ def get_device():
       print("There are either no GPUS, or they are too busy. Setting device to CPU!")
    else:
       deviceID = GPUtil.getFirstAvailable(order="memory")
+      print(f"\nChosen GPU: {device}")
       device = f"cuda:{deviceID[0]}"
-   
-   print(f"\nChosen device: {device}")
+
    return device
 
 def get_args():
 
-   """
-   Not utilized yet, but can be useful for later.
-
-
    parser = argparse.ArgumentParser()
-   parser.add_argument("-d", "--device", default="0", type=str, choices=["0", "1", "cpu"])
+   parser.add_argument("-doc", "--document", default="LESSEN_Project_Proposal.pdf", type=str)
 
    args = parser.parse_args()
 
    return args
 
-   """
-   pass
