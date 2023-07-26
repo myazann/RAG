@@ -38,7 +38,7 @@ def choose_bot(device):
     elif "GPT4ALL" in repo.name:
         return GPT4ALL(repo, device)  
     else:
-        print("Chatbot isn't implemented yet!")
+        print("Chatbot not implemented yet! (or it doesn't exist?)")
 
 class Chatbot:
 
