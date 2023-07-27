@@ -72,6 +72,7 @@ class Chatbot:
     
     def gptq_model_params(self):
         return {
+                "device": self.device,
                 "use_safetensors": True,
                 "trust_remote_code": True,
                 "use_triton": False,
@@ -91,10 +92,8 @@ class Chatbot:
                     )
         
     def init_pipe(self):
-        if self.is_gptq:
-            return pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
-        else:
-            return pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, device=self.device, **self.gen_params)
+        return pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, device=self.device, **self.gen_params)
+
 
 class Vicuna(Chatbot):
 

@@ -18,9 +18,6 @@ def init_env(project_name):
    huggingface_hub.login(new_session=False)
 
    device = get_device()
-   print("Initialized huggingface hub and langsmith!")
-   print("Returning command line arguments and device!")
-
    args = get_args()
 
    return args, device
@@ -38,14 +35,14 @@ def get_device():
    
    print("GPU Usage:\n")
    GPUtil.showUtilization()
-
    devices = GPUtil.getAvailable()
+   
    if len(devices) == 0:
       device = "cpu"
       print("There are either no GPUS, or they are too busy. Setting device to CPU!")
    else:
       deviceID = GPUtil.getFirstAvailable(order="memory")
-      print(f"\nChosen GPU: {device}")
+      print(f"\nChosen GPU: {deviceID}")
       device = f"cuda:{deviceID[0]}"
 
    return device

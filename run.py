@@ -12,29 +12,32 @@ from doc_loader import DocumentLoader
 from retriever import Retriever
 
 args, device = init_env("Document_QA")
+doc_name = args.document
 
-loader = DocumentLoader(args.document)
+loader = DocumentLoader(doc_name)
 doc = loader.load_doc()
+doc = loader.trim_doc(doc)
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=500)
 texts = text_splitter.split_documents(doc)
 
 embeddings = HuggingFaceEmbeddings()
 
-db = Chroma.from_documents(texts, embeddings, persist_directory="./chroma")
-db.persist()
-
-retriever = Retriever(db)
+db = Chroma.from_documents(texts, embeddings)
 
 chatbot = choose_bot(device)
 lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
 
-qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", return_source_documents=False)
+retriever = Retriever(db, k=5)
+retriever.add_embed_filter(embeddings)
+retriever.add_doc_compressor(lc_pipeline)
 
+qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.comp_retriever, chain_type="stuff", return_source_documents=False)
 
 chat_history = []
 
-print("""\nHello, I am here to inform you about the LESSEN project. What do want to learn about LESSEN? (Press 0 if you want to quit!) \n""")
+pretty_doc_name = " ".join(doc_name.split(".")[:-1]).replace("_"," ")
+print(f"""\nHello, I am here to inform you about the {pretty_doc_name} document. What do want to learn? (Press 0 if you want to quit!) \n""")
 
 while True:
   query = input()

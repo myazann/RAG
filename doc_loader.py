@@ -1,28 +1,27 @@
 from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader
-
-from utils import get_cfg_params
+import re
 
 class DocumentLoader():
 
-    def __init__(self, doc_name, *args):
+    def __init__(self, doc_name):
 
         self.doc_name = doc_name
         self.doc_type = doc_name.split(".")[-1]
-        self.cfg_params = get_cfg_params()["doc_loader"]
-        self.loader = self.get_loader(*args)
+        self.loader = None
 
-    def get_loader(self, pdf_loader=None):
+    def load_doc(self, pdf_loader="unstructured"):
 
         if self.doc_type == "pdf":
-
-            pdf_loader = self.cfg_params["default_pdf_loader"] if pdf_loader is None else pdf_loader
-            return self.pdf_loaders()[pdf_loader](self.doc_name)
+            self.loader = self.pdf_loaders()[pdf_loader](self.doc_name)
         
         elif self.doc_type == "txt":
-            return TextLoader(self.doc_name)
+            self.loader = TextLoader(self.doc_name)
         
-        else:
-            raise Exception("No loader yet for the file extension, maybe it is incorrect?")
+        try:
+            doc = self.loader.load()
+            return doc
+        except:
+            raise Exception("File doesn't exist or No loader yet for the file extension!")
         
     def pdf_loaders(self):
 
@@ -31,9 +30,10 @@ class DocumentLoader():
             "unstructured": UnstructuredPDFLoader,
         }
 
-    def load_doc(self):
+    def trim_doc(self, doc):
     
-        doc = self.loader.load()
-        # doc[0].page_content = doc[0].page_content.replace("\n\n", "\n")
+        for page in doc:
+            page.page_content = re.sub(r'\n+', '\n', page.page_content) 
+            page.page_content = re.sub(r'\s{2,}', ' ', page.page_content)
 
         return doc
