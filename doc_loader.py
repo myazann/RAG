@@ -1,24 +1,22 @@
 from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader
 
-from configparser import ConfigParser
+from utils import get_cfg_params
 
 class DocumentLoader():
 
-    def __init__(self, doc_name):
+    def __init__(self, doc_name, *args):
 
         self.doc_name = doc_name
         self.doc_type = doc_name.split(".")[-1]
-        self.loader = self.get_loader()
+        self.cfg_params = get_cfg_params()["doc_loader"]
+        self.loader = self.get_loader(*args)
 
-    def get_loader(self):
+    def get_loader(self, pdf_loader=None):
 
         if self.doc_type == "pdf":
 
-            parser = ConfigParser()
-            parser.read("cfgs/doc_loader.cfg")
-            def_pdf_loader = parser.get("pdf", "default")
-
-            return self.pdf_loaders()[def_pdf_loader](self.doc_name)
+            pdf_loader = self.cfg_params["default_pdf_loader"] if pdf_loader is None else pdf_loader
+            return self.pdf_loaders()[pdf_loader](self.doc_name)
         
         elif self.doc_type == "txt":
             return TextLoader(self.doc_name)

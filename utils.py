@@ -1,8 +1,10 @@
 import argparse
-import GPUtil
-import huggingface_hub
 import os
 import time
+from configparser import ConfigParser
+
+import GPUtil
+import huggingface_hub
 
 def init_env(project_name):
 
@@ -47,6 +49,13 @@ def get_device():
       device = f"cuda:{deviceID[0]}"
 
    return device
+
+def get_cfg_params():
+
+   parser = ConfigParser()
+   parser.read("config.cfg")
+   
+   return parser
 
 def get_args():
 

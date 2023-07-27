@@ -2,23 +2,21 @@ import time
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import ConversationalRetrievalChain
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain import HuggingFacePipeline
 
 from chatbots import choose_bot
-from utils import init_env, get_args
+from utils import init_env
 from doc_loader import DocumentLoader
+from retriever import Retriever
 
 args, device = init_env("Document_QA")
-
-chatbot = choose_bot(device)
-lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
 
 loader = DocumentLoader(args.document)
 doc = loader.load_doc()
 
-text_splitter = CharacterTextSplitter(chunk_size=100, chunk_overlap=0)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=500)
 texts = text_splitter.split_documents(doc)
 
 embeddings = HuggingFaceEmbeddings()
@@ -26,8 +24,13 @@ embeddings = HuggingFaceEmbeddings()
 db = Chroma.from_documents(texts, embeddings, persist_directory="./chroma")
 db.persist()
 
-retriever = db.as_retriever(search_type="similarity", search_kwargs={"k":2})
-qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever, chain_type="stuff", return_source_documents=False)
+retriever = Retriever(db)
+
+chatbot = choose_bot(device)
+lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
+
+qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", return_source_documents=False)
+
 
 chat_history = []
 
