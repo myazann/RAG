@@ -1,11 +1,9 @@
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainExtractor, EmbeddingsFilter, DocumentCompressorPipeline
 
-from utils import get_cfg_params
-
 class Retriever():
 
-    def __init__(self, database, search_type="similarity", k=5) -> None:
+    def __init__(self, database, search_type="mmr", k=5) -> None:
         self.database = database
         self.base_retriever = self.init_retriever(search_type, k)
         self.comp_retriever = None

@@ -28,11 +28,11 @@ db = Chroma.from_documents(texts, embeddings)
 chatbot = choose_bot(device)
 lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
 
-retriever = Retriever(db, k=5)
+retriever = Retriever(db, k=3, search_type="mmr")
 retriever.add_embed_filter(embeddings)
 retriever.add_doc_compressor(lc_pipeline)
 
-qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.comp_retriever, chain_type="stuff", return_source_documents=False)
+qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", return_source_documents=False)
 
 chat_history = []
 
@@ -54,4 +54,4 @@ while True:
     print("Bye!")
     break
 
-## Who are the leaders of each work package in the LESSEN project?
+## Who are the leaders of work packages?

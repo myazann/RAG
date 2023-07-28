@@ -5,27 +5,28 @@ from auto_gptq import AutoGPTQForCausalLM
 
 from enums import GPTQ_MODELNAMES, REPO_ID
 
-def choose_bot(device):
+def choose_bot(device, repo=None):
   
-    repos = REPO_ID.__members__    
-    repo_dict = dict((str(k), v) for k, v in enumerate(repos.keys()))
+    if repo is None:
+        repos = REPO_ID.__members__    
+        repo_dict = dict((str(k), v) for k, v in enumerate(repos.keys()))
 
-    print("\nChoose a model from the list: (Use their number id for choosing)\n")
+        print("\nChoose a model from the list: (Use their number id for choosing)\n")
 
-    for i, repo in repo_dict.items():
-        repo_name = repo.replace("_", "-")
-        print(f"{i}: {repo_name}")  
+        for i, repo in repo_dict.items():
+            repo_name = repo.replace("_", "-")
+            print(f"{i}: {repo_name}")  
 
-    while True:
+        while True:
 
-        model_id = input()
-        repo_id = repo_dict.get(model_id)
+            model_id = input()
+            repo_id = repo_dict.get(model_id)
 
-        if repo_id is None:
-            print("Please select from one of the options!")
-        else:
-            repo = repos[repo_id]
-            break
+            if repo_id is None:
+                print("Please select from one of the options!")
+            else:
+                repo = repos[repo_id]
+                break
 
     if "FALCON" in repo.name:
         return Falcon(repo, device)
@@ -149,7 +150,7 @@ class MPT(Chatbot):
         stop_token_ids = self.tokenizer.convert_tokens_to_ids(["<|endoftext|>"])
         
         class StopOnTokens(StoppingCriteria):
-            def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
+            def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs):
                 for stop_id in stop_token_ids:
                     if input_ids[0][-1] == stop_id:
                         return True
@@ -210,4 +211,5 @@ class LLaMA2(Chatbot):
     def get_gen_params(self):
         return {
                 "max_new_tokens": 512,
+                "temperature": 0.7
                 } 
