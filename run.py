@@ -11,7 +11,7 @@ from utils import init_env
 from doc_loader import DocumentLoader
 from retriever import Retriever
 
-args, device = init_env("Document_QA")
+args, device, _ = init_env("Document_QA")
 doc_name = args.document
 
 loader = DocumentLoader(doc_name)

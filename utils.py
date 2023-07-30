@@ -12,15 +12,15 @@ def init_env(project_name):
    os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
    os.environ["LANGCHAIN_API_KEY"] = "ls__7eb356bde9434566bcbcac0b9ee5844b"
 
-   timestamp = time.time()
-   os.environ["LANGCHAIN_PROJECT"] = f"{project_name}_{timestamp}"
+   ls_name = f"{project_name}_{time.time()}"
+   os.environ["LANGCHAIN_PROJECT"] = ls_name
 
    huggingface_hub.login(new_session=False)
 
    device = get_device()
    args = get_args()
 
-   return args, device
+   return args, device, ls_name
 
 def get_device():
 

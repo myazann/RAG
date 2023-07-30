@@ -5,6 +5,8 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain import HuggingFacePipeline
+from langsmith import Client
+from langchain.smith import RunEvalConfig, run_on_dataset
 import GPUtil
 import torch
 
@@ -14,7 +16,19 @@ from doc_loader import DocumentLoader
 from retriever import Retriever
 from enums import REPO_ID
 
-args, device = init_env("Perturbations")
+args, device, ls_project_name = init_env("Perturbations")
+client = Client()
+
+dataset = client.create_dataset(ls_project_name)
+
+evaluation_config = RunEvalConfig(
+    evaluators=[
+        "qa",
+        "context_qa",
+        "cot_qa",
+    ]
+)
+
 doc_name = args.document
 
 loader = DocumentLoader(doc_name)
@@ -53,6 +67,9 @@ queries = ["Who is responsible for each work package in the LESSEN project?",
 
 chatbots = [REPO_ID.GPT4ALL_13B_GPTQ, REPO_ID.VICUNA_7B_GPTQ, REPO_ID.VICUNA_13B_GPTQ, REPO_ID.LLAMA2_7B_GPTQ, REPO_ID.LLAMA2_13B_GPTQ] 
 
+def get_chain(pipeline, retriever):
+    return ConversationalRetrievalChain(pipeline, retriever)
+
 res = {}
 for bot in chatbots:
 
@@ -80,13 +97,34 @@ for bot in chatbots:
         res[bot.name]["Questions"].append(query)
         res[bot.name]["Answers"].append(answer)
 
+    runs = client.list_runs(
+    project_name=ls_project_name,
+    execution_order=1,
+    error=False,
+    )
+    
+    for run in runs:
+        client.create_example(
+            inputs=run.inputs,
+            outputs=run.outputs,
+            dataset_id=dataset.id,
+        )
+
+    run_on_dataset(
+    client,
+    ls_project_name,
+    lc_pipeline,
+    #get_chain(lc_pipeline, retriever.base_retriever),
+    evaluation=evaluation_config,
+    )
+
     del lc_pipeline
     del chatbot
     chatbot = []
     lc_pipeline = []
     torch.cuda.empty_cache()
-
     GPUtil.showUtilization()
+
 
 with open("perturb_res.json", "w") as f:
     json.dump(res, f)
