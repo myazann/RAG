@@ -62,3 +62,31 @@ def get_args():
    args = parser.parse_args()
 
    return args
+
+def add_line_breaks(text, max_length):
+   """
+   If a line is too long, splits into shorter lines.
+   Courtesy of Claude 2.0 :)
+   """
+
+   lines = text.split('\n')
+
+   for i, line in enumerate(lines):
+      if len(line) > max_length:
+            
+         words = line.split(' ')
+         length = 0
+         formatted = ""
+
+         for word in words:
+            if length + len(word) <= max_length:
+               formatted += word + " "
+               length += len(word) + 1
+            else:
+               formatted += "\n" + word + " "
+               length = len(word) + 1
+            
+         lines[i] = formatted
+      
+   output = "\n".join(lines)
+   return output

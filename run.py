@@ -44,7 +44,6 @@ while True:
   if query != "0":
     start_time = time.time()
     result = qa({"question": query, "chat_history": chat_history})
-
     answer = result["answer"].strip()
     print(f"\n{answer}\n")
     end_time = time.time()

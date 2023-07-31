@@ -38,6 +38,8 @@ def choose_bot(device, repo=None):
         return MPT(repo, device)
     elif "GPT4ALL" in repo.name:
         return GPT4ALL(repo, device)  
+    elif "BELUGA" in repo.name:
+        return StableBeluga(repo, device)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
@@ -48,7 +50,6 @@ class Chatbot:
         self.repo = repo
         self.device = device
         self.is_gptq = self.check_is_gptq()
-        self.prompt_template = self.get_prompt_template()
         self.tokenizer = self.init_tokenizer()
 
         self.model_params = self.gptq_model_params() if self.is_gptq else self.get_model_params()
@@ -56,8 +57,8 @@ class Chatbot:
         self.model = self.init_model()
         self.pipe = self.init_pipe()
 
-    def get_prompt_template(self):
-        pass
+    def prompt_template(self):
+        return None
 
     def get_gen_params(self):
         pass
@@ -101,9 +102,6 @@ class Vicuna(Chatbot):
     def __init__(self, repo, device) -> None:
         super().__init__(repo, device)
 
-    def get_prompt_template(self):
-        return None
-
     def get_gen_params(self):
         return {
         "max_new_tokens": 512,
@@ -115,12 +113,10 @@ class GPT4ALL(Chatbot):
     def __init__(self, repo, device) -> None:
         super().__init__(repo, device)
 
-    def get_prompt_template(self):
-        return None
-
     def get_gen_params(self):
         return {
         "max_new_tokens": 512,
+        "temperature": 0.7
     }
 
 class MPT(Chatbot):
@@ -130,9 +126,6 @@ class MPT(Chatbot):
 
     def init_tokenizer(self):
         return AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
-
-    def get_prompt_template(self):
-        return None
     
     def get_model_params(self):
         config = AutoConfig.from_pretrained(self.repo.value, trust_remote_code=True)
@@ -140,7 +133,9 @@ class MPT(Chatbot):
         config.max_seq_len = 8192
 
         return {
-                "config": config,
+                #"config": config,
+                "init_device": self.device,
+                "max_seq_len": 4096,
                 "torch_dtype": torch.bfloat16, 
                 "trust_remote_code": True,
                 }
@@ -169,9 +164,6 @@ class Falcon(Chatbot):
 
     def __init__(self, repo, device) -> None:
         super().__init__(repo, device)
-
-    def get_prompt_template(self):
-        return None
     
     def get_model_params(self):
         return {
@@ -187,6 +179,7 @@ class Falcon(Chatbot):
     def get_gen_params(self):
         return {
                 "max_new_tokens": 512,
+                "temperature": 0.7
                 }
     
 class LLaMA2(Chatbot):
@@ -194,8 +187,8 @@ class LLaMA2(Chatbot):
     def __init__(self, repo, device) -> None:
         super().__init__(repo, device)
 
-    def get_prompt_template(self):
-        return """[INST] <<SYS>>
+    def prompt_template(self, prompt):
+        return f"""[INST] <<SYS>>
                   You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.
                   If you don't know the answer to a question, please don't share false information.<</SYS>>
                   {prompt}[/INST]"""
@@ -213,3 +206,24 @@ class LLaMA2(Chatbot):
                 "max_new_tokens": 512,
                 "temperature": 0.7
                 } 
+    
+class StableBeluga(Chatbot):
+
+    def __init__(self, repo, device) -> None:
+        super().__init__(repo, device)
+
+    def prompt_template(self, prompt):
+        return f"""### System:
+                       This is a system prompt, please behave and help the user.
+
+                       ### User:
+                       {prompt}
+
+                       ### Assistant:
+                       """
+
+    def get_gen_params(self):
+        return {
+                "max_new_tokens": 512,
+                "temperature": 0.7
+                }     
