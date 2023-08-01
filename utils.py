@@ -90,3 +90,6 @@ def add_line_breaks(text, max_length):
       
    output = "\n".join(lines)
    return output
+
+def strip_all(text):
+   return "\n".join([line.strip() for line in text.splitlines()])

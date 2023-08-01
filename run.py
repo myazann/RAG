@@ -11,7 +11,7 @@ from chatbots import choose_bot
 from utils import init_env
 from doc_loader import DocumentLoader
 from retriever import Retriever
-from prompts import Prompter
+from prompter import Prompter
 
 args, device, _ = init_env("Document_QA")
 doc_name = args.document
@@ -37,7 +37,6 @@ retriever.add_doc_compressor(lc_pipeline)
 prompter = Prompter()
 qa_prompt = prompter.merge_with_template(chatbot, "qa")
 condense_prompt = prompter.merge_with_template(chatbot, "condense")
-
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
 CONDENSE_PROMPT = PromptTemplate.from_template(condense_prompt)
 
@@ -55,7 +54,7 @@ while True:
   query = input()
   if query != "0":
     start_time = time.time()
-    result = qa({"question": query, "chat_history": chat_history})
+    result = qa({"question": query.strip(), "chat_history": chat_history})
     answer = result["answer"].strip()
     print(f"\n{answer}\n")
     end_time = time.time()

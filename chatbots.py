@@ -4,6 +4,7 @@ from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCrit
 from auto_gptq import AutoGPTQForCausalLM
 
 from enums import GPTQ_MODELNAMES, REPO_ID
+from utils import strip_all
 
 def choose_bot(device, repo=None):
   
@@ -102,6 +103,14 @@ class Vicuna(Chatbot):
     def __init__(self, repo, device) -> None:
         super().__init__(repo, device)
 
+    def prompt_template(self):
+        return strip_all("""
+        A chat between a curious user and an artificial intelligence assistant.
+        The assistant gives helpful, detailed, and polite answers to the user's questions.
+        USER: 
+        {prompt}
+        ASSISTANT:""")
+
     def get_gen_params(self):
         return {
         "max_new_tokens": 512,
@@ -188,9 +197,9 @@ class LLaMA2(Chatbot):
         super().__init__(repo, device)
 
     def prompt_template(self):
-        return """
+        return strip_all("""
         [INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. 
-        If you don't know the answer to a question, please don't share false information.<</SYS>>{prompt}[/INST]"""
+        If you don't know the answer to a question, please don't share false information.<</SYS>>{prompt}[/INST]""")
     
     def get_model_params(self):
         return {
@@ -212,12 +221,13 @@ class StableBeluga(Chatbot):
         super().__init__(repo, device)
 
     def prompt_template(self):
-        return """
-        ### System: This is a system prompt, please behave and help the user.
+        return strip_all("""
+        ### System: 
+        You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. 
+        If you don't know the answer to a question, please don't share false information and say I am sorry but I dont know the answer to that question.
         ### User: 
         {prompt}
-        ### Assistant:
-        """
+        ### Assistant:""")
 
     def get_gen_params(self):
         return {
