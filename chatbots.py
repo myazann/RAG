@@ -187,11 +187,10 @@ class LLaMA2(Chatbot):
     def __init__(self, repo, device) -> None:
         super().__init__(repo, device)
 
-    def prompt_template(self, prompt):
-        return f"""[INST] <<SYS>>
-                  You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.
-                  If you don't know the answer to a question, please don't share false information.<</SYS>>
-                  {prompt}[/INST]"""
+    def prompt_template(self):
+        return """
+        [INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. 
+        If you don't know the answer to a question, please don't share false information.<</SYS>>{prompt}[/INST]"""
     
     def get_model_params(self):
         return {
@@ -212,15 +211,13 @@ class StableBeluga(Chatbot):
     def __init__(self, repo, device) -> None:
         super().__init__(repo, device)
 
-    def prompt_template(self, prompt):
-        return f"""### System:
-                       This is a system prompt, please behave and help the user.
-
-                       ### User:
-                       {prompt}
-
-                       ### Assistant:
-                       """
+    def prompt_template(self):
+        return """
+        ### System: This is a system prompt, please behave and help the user.
+        ### User: 
+        {prompt}
+        ### Assistant:
+        """
 
     def get_gen_params(self):
         return {

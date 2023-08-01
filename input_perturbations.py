@@ -6,6 +6,8 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain import HuggingFacePipeline
+from langchain.prompts import PromptTemplate
+
 import GPUtil
 import torch
 
@@ -14,6 +16,7 @@ from utils import init_env
 from doc_loader import DocumentLoader
 from retriever import Retriever
 from enums import REPO_ID
+from prompter import Prompter
 
 args, device, ls_project_name = init_env("Perturbations")
 
@@ -50,7 +53,6 @@ Output 1: Insights and algorithms for compute-efficient architectures; • Outpu
   "Q": "Which companies are involved in LESSEN?",
   "A": "Achmea, Ahold Delhaize, Albert Heijn, Bol.com, Rasa, and KPN"
  }]
-
 
 queries = [
     [
@@ -89,7 +91,8 @@ queries = [
     ]
 
 
-chatbots = [REPO_ID.VICUNA_7B_GPTQ, REPO_ID.VICUNA_13B_GPTQ, REPO_ID.LLAMA2_7B_GPTQ, REPO_ID.LLAMA2_13B_GPTQ] 
+chatbots = [REPO_ID.VICUNA_7B_GPTQ, REPO_ID.VICUNA_13B_GPTQ, REPO_ID.LLAMA2_7B_GPTQ,
+            REPO_ID.LLAMA2_13B_GPTQ, REPO_ID.STABLE_BELUGA_7B_GPTQ, REPO_ID.STABLE_BELUGA_13B_GPTQ] 
 
 def get_chain(pipeline, retriever):
     return ConversationalRetrievalChain(pipeline, retriever)
@@ -111,8 +114,15 @@ for bot in chatbots:
     # retriever.add_embed_filter(embeddings)
     # retriever.add_doc_compressor(lc_pipeline)
 
-    chat_history = []
-    qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", return_source_documents=True)
+    prompter = Prompter()
+    qa_prompt = prompter.merge_with_template(chatbot, "qa")
+    condense_prompt = prompter.merge_with_template(chatbot, "condense")
+    QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
+    CONDENSE_PROMPT = PromptTemplate.from_template(condense_prompt)
+
+    qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", return_source_documents=True,
+                                               combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}, 
+                                               condense_question_prompt=CONDENSE_PROMPT)
 
     start_time = time.time()
     for i, query in enumerate(queries):
@@ -122,10 +132,10 @@ for bot in chatbots:
 
         for question in query:
 
-            print(f"\nQuestion: {question}\n")
-            result = qa({"question": question, "chat_history": chat_history})
+            #print(f"\nQuestion: {question}\n")
+            result = qa({"question": question, "chat_history": []})
             answer = result["answer"].strip()
-            print(f"Answer: {answer}\n")
+            #print(f"Answer: {answer}\n")
             all_qs.append(question)
             all_as.append(answer)
             source_docs = " \n".join([page.page_content for page in result["source_documents"]])

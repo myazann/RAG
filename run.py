@@ -5,11 +5,13 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain import HuggingFacePipeline
+from langchain.prompts import PromptTemplate
 
 from chatbots import choose_bot
 from utils import init_env
 from doc_loader import DocumentLoader
 from retriever import Retriever
+from prompts import Prompter
 
 args, device, _ = init_env("Document_QA")
 doc_name = args.document
@@ -32,7 +34,17 @@ retriever = Retriever(db, k=3, search_type="mmr")
 retriever.add_embed_filter(embeddings)
 retriever.add_doc_compressor(lc_pipeline)
 
-qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", return_source_documents=False)
+prompter = Prompter()
+qa_prompt = prompter.merge_with_template(chatbot, "qa")
+condense_prompt = prompter.merge_with_template(chatbot, "condense")
+
+QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
+CONDENSE_PROMPT = PromptTemplate.from_template(condense_prompt)
+
+qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", 
+                                           combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}, 
+                                           condense_question_prompt=CONDENSE_PROMPT
+                                           )
 
 chat_history = []
 
