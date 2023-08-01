@@ -65,3 +65,4 @@ while True:
     break
 
 ## Who are the leaders of work packages?
+## Give me a summary of each lessen work package

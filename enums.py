@@ -13,6 +13,8 @@ class REPO_ID(str, Enum):
     LLAMA2_13B_GPTQ = "TheBloke/Llama-2-13B-chat-GPTQ"
     STABLE_BELUGA_7B_GPTQ = "TheBloke/StableBeluga-7B-GPTQ"
     STABLE_BELUGA_13B_GPTQ = "TheBloke/StableBeluga-13B-GPTQ"
+    OPEN_CHAT_GPTQ = "TheBloke/OpenChat_v3.2-GPTQ"
+    BTLM_3B_8K = "cerebras/btlm-3b-8k-base"
 
 class GPTQ_MODELNAMES(str, Enum):
 
@@ -24,3 +26,4 @@ class GPTQ_MODELNAMES(str, Enum):
     LLAMA2_13B_GPTQ = "gptq_model-4bit-128g"
     STABLE_BELUGA_7B_GPTQ = "gptq_model-4bit-128g"
     STABLE_BELUGA_13B_GPTQ = "gptq_model-4bit-128g"
+    OPEN_CHAT_GPTQ = "gptq_model-4bit-128g"
