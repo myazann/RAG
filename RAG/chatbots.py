@@ -3,8 +3,8 @@ import torch
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
 from auto_gptq import AutoGPTQForCausalLM
 
-from enums import GPTQ_MODELNAMES, REPO_ID
-from utils import strip_all
+from RAG.enums import GPTQ_MODELNAMES, REPO_ID
+from RAG.utils import strip_all
 
 def choose_bot(device, repo=None, gen_params=None):
   

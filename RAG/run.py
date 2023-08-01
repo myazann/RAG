@@ -7,11 +7,11 @@ from langchain.vectorstores import Chroma
 from langchain import HuggingFacePipeline
 from langchain.prompts import PromptTemplate
 
-from chatbots import choose_bot
-from utils import init_env
-from doc_loader import DocumentLoader
-from retriever import Retriever
-from prompter import Prompter
+from RAG.chatbots import choose_bot
+from RAG.utils import init_env
+from RAG.doc_loader import DocumentLoader
+from RAG.retriever import Retriever
+from RAG.prompter import Prompter
 
 args, device, _ = init_env("Document_QA")
 doc_name = args.document

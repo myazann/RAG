@@ -2,8 +2,8 @@ import json
 
 from langchain import HuggingFacePipeline
 
-from chatbots import choose_bot
-from utils import init_env
+from RAG.chatbots import choose_bot
+from RAG.utils import init_env
 
 args, device, _ = init_env("Eval")
 
@@ -32,6 +32,3 @@ for model in models:
             print(f"Generated Answer: {gen_a}")
             print(f"Real Answer: {real_answer}")
             print(res)
-
-
-
