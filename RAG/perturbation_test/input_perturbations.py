@@ -11,12 +11,12 @@ from langchain.prompts import PromptTemplate
 import GPUtil
 import torch
 
-from chatbots import choose_bot
-from utils import init_env
-from doc_loader import DocumentLoader
-from retriever import Retriever
-from enums import REPO_ID
-from prompter import Prompter
+from RAG.chatbots import choose_bot
+from RAG.utils import init_env
+from RAG.doc_loader import DocumentLoader
+from RAG.retriever import Retriever
+from RAG.enums import REPO_ID
+from RAG.prompter import Prompter
 
 args, device, ls_project_name = init_env("Perturbations")
 
@@ -100,5 +100,5 @@ for bot in chatbots:
     torch.cuda.empty_cache()
     GPUtil.showUtilization()
 
-with open("perturb_res.json", "w") as f:
+with open("test1_res.json", "w") as f:
     json.dump(res, f)

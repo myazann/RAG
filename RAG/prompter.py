@@ -6,11 +6,21 @@ class Prompter():
 
         self.prompt_dict = {
             "condense": self.get_condense_q_prompt(),
-            "qa": self.get_qa_prompt()
+            "qa": self.get_qa_prompt(),
+            "eval_qa": self.eval_qa_prompt()
         }
 
     def stripped_prompts(self, prompt):
         return strip_all(prompt)
+    
+    def eval_qa_prompt(self):
+        return self.stripped_prompts("""
+        I want you to act as an evaluator. I will give you a question, the real answer, and the generated answer, and you will give a score between 0 and 100
+        to the generated answer compared to the real answer. Your output will be a Python dictionary with the score you give and a brief explanation about why
+        you have given that score, with explanation and score as keys. You are not going to output anything besides the dictionary.
+        Question: {question}
+        Real answer: {real_answer}
+        Generated answer: {gen_answer}""")
     
     def gen_sim_queries(self):
 

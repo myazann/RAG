@@ -21,7 +21,7 @@ class DocumentLoader():
             doc = self.loader.load()
             return doc
         except:
-            raise Exception("File doesn't exist or No loader yet for the file extension!")
+            raise Exception("File doesn't exist or no loader yet for the file extension!")
         
     def pdf_loaders(self):
 
