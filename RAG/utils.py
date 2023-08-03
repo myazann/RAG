@@ -1,6 +1,7 @@
 import argparse
 import os
 import time
+import difflib
 from configparser import ConfigParser
 
 import GPUtil
@@ -93,3 +94,28 @@ def add_line_breaks(text, max_length):
 
 def strip_all(text):
    return "\n".join([line.strip() for line in text.splitlines()])
+
+def find_best_substring_match(str1, str2):
+
+    if len(str1) == len(str2):
+        print("Strings have the same length, one string must be longer than the other!")
+        return None
+    
+    if len(str1) > len(str2):
+        db_str = str1
+        query_str = str2
+    else:
+        db_str = str2
+        query_str = str1
+    
+    n = len(query_str)
+    best_ratio = 0
+    best_match = ""
+    for j in range(len(db_str)-n+1):
+        substring = db_str[j:j+n]
+        ratio = difflib.SequenceMatcher(None, query_str, substring).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best_match = substring
+
+    return best_ratio, best_match

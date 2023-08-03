@@ -106,8 +106,7 @@ class Vicuna(Chatbot):
 
     def prompt_template(self):
         return strip_all("""
-        A chat between a curious user and an artificial intelligence assistant.
-        The assistant gives helpful, detailed, and polite answers to the user's questions.
+        A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.
         USER: 
         {prompt}
         ASSISTANT:""")
@@ -199,8 +198,7 @@ class LLaMA2(Chatbot):
 
     def prompt_template(self):
         return strip_all("""
-        [INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. 
-        If you don't know the answer to a question, please don't share false information.<</SYS>>{prompt}[/INST]""")
+        [INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don't know the answer to a question, please don't share false information.<</SYS>>{prompt}[/INST]""")
     
     def get_model_params(self):
         return {
@@ -224,8 +222,7 @@ class StableBeluga(Chatbot):
     def prompt_template(self):
         return strip_all("""
         ### System: 
-        You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. 
-        If you don't know the answer to a question, please don't share false information.
+        You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don't know the answer to a question, please don't share false information.
         ### User: 
         {prompt}
         ### Assistant:""")

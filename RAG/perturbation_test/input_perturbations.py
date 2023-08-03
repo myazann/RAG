@@ -36,69 +36,70 @@ db = Chroma.from_documents(texts, embeddings)
 with open("original_queries.json", "r") as f:
     original_queries = json.load(f)["original_queries"]
 
-with open("test1.json", "r") as f:
-    test1_queries = json.load(f)["questions"]
 
-chatbots = [REPO_ID.VICUNA_7B_GPTQ, REPO_ID.VICUNA_13B_GPTQ, REPO_ID.LLAMA2_7B_GPTQ, REPO_ID.LLAMA2_13B_GPTQ, 
+tests = ["test1", "test2"]
+chatbots = [REPO_ID.VICUNA_13B_GPTQ, REPO_ID.LLAMA2_7B_GPTQ, REPO_ID.LLAMA2_13B_GPTQ, 
             REPO_ID.STABLE_BELUGA_7B_GPTQ, REPO_ID.STABLE_BELUGA_13B_GPTQ] 
 
-res = {}
-for bot in chatbots:
+for test in tests:
+    with open(f"{test}.json", "r") as f:
+        test_queries = json.load(f)["questions"]
 
-    print(bot.name)
-    res[bot.name] = {
-        "Questions": [],
-        "Generated Answers": [],
-        "Source Docs": []
-    }
+    res = {}
+    for bot in chatbots:
 
-    chatbot = choose_bot(device, bot, gen_params={"max_new_tokens": 512, "temperature": 0})
-    lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
+        print(bot.name)
+        res[bot.name] = {
+            "Questions": [],
+            "Generated Answers": [],
+            "Source Docs": []
+        }
 
-    retriever = Retriever(db, k=2, search_type="mmr")
+        chatbot = choose_bot(device, bot, gen_params={"max_new_tokens": 512, "temperature": 0})
+        lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
 
-    prompter = Prompter()
-    qa_prompt = prompter.merge_with_template(chatbot, "qa")
-    QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
+        retriever = Retriever(db, k=3, search_type="mmr")
 
-    qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", return_source_documents=True,
-                                               combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT})
+        prompter = Prompter()
+        qa_prompt = prompter.merge_with_template(chatbot, "qa")
+        QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
 
-    start_time = time.time()
-    real_as = []
+        qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", return_source_documents=True,
+                                                   combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT})
 
-    for i, query in enumerate(test1_queries):
-        all_qs = []
-        all_as = []
-        all_sdocs = []
+        start_time = time.time()
+        real_as = []
 
-        for question in query:
+        for i, query in enumerate(test_queries):
+            all_qs = []
+            all_as = []
+            all_sdocs = []
 
-            #print(f"\nQuestion: {question}\n")
-            result = qa({"question": question, "chat_history": []})
-            answer = result["answer"].strip()
-            #print(f"Answer: {answer}\n")
-            all_qs.append(question)
-            all_as.append(answer)
-            source_docs = " \n".join([page.page_content for page in result["source_documents"]])
-            all_sdocs.append(source_docs)
+            for question in query:
 
-        res[bot.name]["Questions"].append(all_qs)
-        res[bot.name]["Source Docs"].append(all_sdocs)
-        res[bot.name]["Generated Answers"].append(all_as)
-        real_as.append(original_queries[i]["A"])
-        
-    end_time = time.time()
-    res[bot.name]["Real Answer"] = real_as
-    res[bot.name]["Elapsed Time"] = end_time - start_time
-    print(f"Took {end_time - start_time} secs!\n")
+                result = qa({"question": question, "chat_history": []})
+                answer = result["answer"].strip()
+                all_qs.append(question)
+                all_as.append(answer)
+                source_docs = " \n".join([page.page_content for page in result["source_documents"]])
+                all_sdocs.append(source_docs)
 
-    del lc_pipeline
-    del chatbot
-    chatbot = []
-    lc_pipeline = []
-    torch.cuda.empty_cache()
-    GPUtil.showUtilization()
+            res[bot.name]["Questions"].append(all_qs)
+            res[bot.name]["Source Docs"].append(all_sdocs)
+            res[bot.name]["Generated Answers"].append(all_as)
+            real_as.append(original_queries[i]["A"])
+            
+        end_time = time.time()
+        res[bot.name]["Real Answer"] = real_as
+        res[bot.name]["Elapsed Time"] = end_time - start_time
+        print(f"Took {end_time - start_time} secs!\n")
 
-with open("test1_res.json", "w") as f:
-    json.dump(res, f)
+        del lc_pipeline
+        del chatbot
+        chatbot = []
+        lc_pipeline = []
+        torch.cuda.empty_cache()
+        GPUtil.showUtilization()
+
+    with open(f"{test}_res.json", "w") as f:
+        json.dump(res, f)
