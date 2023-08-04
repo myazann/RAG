@@ -7,21 +7,13 @@ from configparser import ConfigParser
 import GPUtil
 import huggingface_hub
 
-def init_env(project_name):
+def init_env():
 
+   # os.environ["LANGCHAIN_WANDB_TRACING"] = "true"
    os.environ["LANGCHAIN_TRACING_V2"] = "true"
    os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
    os.environ["LANGCHAIN_API_KEY"] = "ls__7eb356bde9434566bcbcac0b9ee5844b"
-
-   ls_name = f"{project_name}_{time.time()}"
-   os.environ["LANGCHAIN_PROJECT"] = ls_name
-
    huggingface_hub.login(new_session=False)
-
-   device = get_device()
-   args = get_args()
-
-   return args, device, ls_name
 
 def get_device():
 
@@ -59,6 +51,7 @@ def get_args():
 
    parser = argparse.ArgumentParser()
    parser.add_argument("-doc", "--document", default="LESSEN_Project_Proposal.pdf", type=str)
+   parser.add_argument("-pt", "--perturb_test_type", default="test1", type=str)
 
    args = parser.parse_args()
 

@@ -1,6 +1,6 @@
 {
-    "questions":
-    [   [
+    "1": {
+        "questions": [
             "Who are the leaders of each work package in the LESSEN project?",
             "Who Are The LeaderS of Each Work package In thE LesSen project???",
             "WHo aRe the LEADERS of eaCh WORK PACKage in THE leSsEn ProjEcT?",
@@ -13,7 +13,10 @@
             "who are THE LEADERS of EAcH work PACKAGE in the LESSEn project???",
             "WHO arE the leaderS of each WORK package in the leSSen project..."
         ],
-        [
+        "answer": "Work package leadership o WP1.1: Jan van Rijn (UL, male, junior) o WP1.2: Arianna Bisazza (RUG, female, junior) o WP2.1: Suzan Verberne (UL, female, medior) o WP2.2: Faegheh Hasibi (RUN, female, junior) o WP3.1: Fatih Turkmen (RUG, male, junior) o WP3.2: Frederik Situmeang (HvA, male, medior) o WP4: Evangelos Kanoulas (UvA, male, senior) Dutch Research Agenda Research along routes by Consortia (NWA-ORC) 2020/21 Full proposal form IMPACT PLAN APPROACH Page 11 o WP5: Frederik Situmeang (HvA, male, medior) o WP6: Maarten de Rijke (UvA, male, senior) o WP7: Maarten de Rijke (UvA, male, senior) and Suzan Verberne (UL, female, medior)"
+    },
+    "2": {
+        "questions": [
             "What are the research lines in the LESSEN project?",
             "What Are the reseArch lines in the LEssen project????",
             "WHAT are the Research LINES in the lesseN project???",
@@ -26,7 +29,10 @@
             "what are the research Lines in the leSSen project????",            
             "What ARE the Research lines in the LesseN project?"
         ],
-        [
+        "answer": "In RL1 on efficiency, WP1.1 covers compute efficiency, WP1.2 covers data efficiency. In RL2 on increasing data availability, WP2.1 covers data adaption, WP2.2 covers data augmentation. In RL3, on safety and transparency, WP3.1 covers safe selection and generation, WP3.2 covers transparency and explainability. The added value of combining the research lines into a single project rather than keeping them separate is to maximize the potential for impact of the project. One by one, we directly address the three main hindrances listed in Section 2 that constitute the main challenge: steep computational costs, lack of training material, and lack of safety and transparency guarantees. Dropping any of the research lines from the project will significantly reduce the potential for impact."
+    },
+    "3": {
+        "questions": [
             "Which companies are involved in LESSEN?",
             "WHIch compaNies are INVOLVED in Lessen???",
             "Which COMPANIES are involved in lessEn????",
@@ -38,6 +44,7 @@
             "Which companieS are involved in lessEn???",            
             "wHICH COMPanies are INVOLved in LESSen????",            
             "which companies ARE INVOLVED in lesseN????"
-        ]
-    ]
+        ],
+        "answer": "Achmea, Ahold Delhaize, Albert Heijn, Bol.com, Rasa, and KPN"
+    }
 }

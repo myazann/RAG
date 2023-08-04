@@ -1,4 +1,5 @@
 import time
+import os
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import ConversationalRetrievalChain
@@ -8,12 +9,13 @@ from langchain import HuggingFacePipeline
 from langchain.prompts import PromptTemplate
 
 from RAG.chatbots import choose_bot
-from RAG.utils import init_env
+from RAG.utils import init_env, get_args, get_device
 from RAG.doc_loader import DocumentLoader
 from RAG.retriever import Retriever
 from RAG.prompter import Prompter
 
-args, device, _ = init_env("Document_QA")
+init_env()
+args = get_args()
 doc_name = args.document
 
 loader = DocumentLoader(doc_name)
@@ -27,8 +29,11 @@ embeddings = HuggingFaceEmbeddings()
 
 db = Chroma.from_documents(texts, embeddings)
 
-chatbot = choose_bot(device)
+chatbot = choose_bot(get_device())
 lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
+
+test_name = f"QA_{chatbot.repo.name}_{time.time()}"
+os.environ["LANGCHAIN_PROJECT"] = test_name
 
 retriever = Retriever(db, k=3, search_type="mmr")
 retriever.add_embed_filter(embeddings)

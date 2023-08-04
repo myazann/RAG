@@ -13,8 +13,12 @@ class Prompter():
     def stripped_prompts(self, prompt):
         return strip_all(prompt)
     
+    #Your output will be a Python dictionary with the score and explanation as keys and the score you give and a brief explanation about why you have given that score as values.
+    #Do not output anything besides the dictionary, and remember to include score and explanation as keys, surrounded with double quotes. Do not include any quotes inside your explanation
     def eval_qa_prompt(self):
-        return self.stripped_prompts("""I want you to act as an evaluator. I will give you a question, the solution, and the prediction, and you will give a score between 0 and 100 to the prediction. You will evaluate whether the prediction is relevant to the question by using the solution as the reference. You should take into account whether the prediction goes off topic, or contains unrelated, not mentioned or false information. Factuality and mention of unrelated information should be your priority, those answers should have a low score. If the prediction does not answer the question but is still trying to be helpful or polite, give it a score of 25. Your output will be a Python dictionary with the score and explanation as keys and the score you give and a brief explanation about why you have given that score as values.                    
+        return self.stripped_prompts("""I want you to act as an evaluator. I will give you a question, the solution, and the prediction, and you will give a score between 0 and 100 to the prediction. You will evaluate whether the prediction is similar to the solution and relevant to the question. The prediction does not have to exactly be the same as the solution, but the general meaning and context should be similar. You should take into account whether the prediction goes off topic, repeats the same sentences over and over again, or contains unrelated, not mentioned or false information. False information and mention of unrelated information should be your priority, those answers should have a low score. If the prediction does not answer the question but is still trying to be helpful or polite, give it a score of 25. Your output will be as follows:
+        Score: <score>
+        Explanation: <your explanation about why you gave that score> 
         Question: 
         {question}
         Solution: 
