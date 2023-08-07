@@ -3,13 +3,12 @@ import re
 import os
 import time
 
-from langchain.chat_models import ChatAnthropic
-from langchain.schema import HumanMessage
-from langchain import HuggingFacePipeline
 from langsmith import Client
+from langchain import LLMChain, PromptTemplate
+import huggingface_hub
 
 from RAG.chatbots import choose_bot
-from RAG.utils import get_args, get_device, init_env, find_best_substring_match
+from RAG.utils import get_args, get_device, find_best_substring_match
 from RAG.prompter import Prompter
 
 def format_output(output):
@@ -21,14 +20,11 @@ def format_output(output):
 
     return {k.lower(): v for k, v in eval_dict.items()}
 
-os.environ["ANTHROPIC_API_KEY"] = "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"
-chat = ChatAnthropic()
-
 args = get_args()
 device = get_device()
 test = args.perturb_test_type
 
-init_env()
+huggingface_hub.login(new_session=False)
 client = Client()
 perturb_tests = [x for x in client.list_projects() if x.name[:2] == "PT"]
 
@@ -42,7 +38,7 @@ with open(f"{test}.json", "r") as f:
 
 all_test_res = {}
 prompter = Prompter()
-eval_prompt = prompter.eval_qa_prompt()
+
 for perturb_test in perturb_tests:
 
     pt_test_name = perturb_test.name
@@ -58,6 +54,13 @@ for perturb_test in perturb_tests:
 
     runs.reverse()
 
+    chatbot = choose_bot(device)
+    eval_prompt = prompter.merge_with_template(chatbot, "eval_qa")
+    llm_chain = LLMChain(
+            llm=chatbot.pipe,
+            prompt=PromptTemplate.from_template(eval_prompt)
+        )
+
     for run in runs:
         
         question = run.inputs["question"]
@@ -65,10 +68,7 @@ for perturb_test in perturb_tests:
         gen_answer = run.outputs["answer"]
         source_docs = " \n".join([page["page_content"] for page in run.outputs["source_documents"]])
 
-        messages = [
-        HumanMessage(content=eval_prompt.format(question=question, real_answer=real_answer, gen_answer=gen_answer))
-        ]
-        eval_res = chat(messages).content
+        eval_res = llm_chain.predict(question=question, real_answer=real_answer, gen_answer=gen_answer)
 
         score_match = re.search(r"Score: (\d+)", eval_res)
         if score_match:

@@ -6,19 +6,19 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
-from langchain import HuggingFacePipeline
 from langchain.prompts import PromptTemplate
+import huggingface_hub
 
 import torch
 
 from RAG.chatbots import choose_bot
-from RAG.utils import init_env, get_device, get_args
+from RAG.utils import get_device, get_args
 from RAG.doc_loader import DocumentLoader
 from RAG.retriever import Retriever
 from RAG.enums import REPO_ID
 from RAG.prompter import Prompter
 
-init_env()
+huggingface_hub.login(new_session=False)
 args = get_args()
 doc_name = args.document
 test = args.perturb_test_type
@@ -34,8 +34,7 @@ embeddings = HuggingFaceEmbeddings()
 
 db = Chroma.from_documents(texts, embeddings)
 
-chatbots = [REPO_ID.VICUNA_13B_GPTQ, REPO_ID.LLAMA2_7B_GPTQ, REPO_ID.LLAMA2_13B_GPTQ, 
-            REPO_ID.STABLE_BELUGA_7B_GPTQ, REPO_ID.STABLE_BELUGA_13B_GPTQ] 
+chatbots = [REPO_ID.LLAMA2_7B_GPTQ, REPO_ID.LLAMA2_13B_GPTQ, REPO_ID.STABLE_BELUGA_7B_GPTQ, REPO_ID.STABLE_BELUGA_13B_GPTQ, REPO_ID.CLAUDE_V1, REPO_ID.CLAUDE_V2] 
 
 with open(f"{test}.json", "r") as f:
     test_queries = json.load(f)
@@ -46,7 +45,6 @@ for bot in chatbots:
 
     device = get_device()
     chatbot = choose_bot(device, bot, gen_params={"max_new_tokens": 512, "temperature": 0})
-    lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
 
     test_name = f"PT_{test}_{bot.name}_{time.time()}"
     os.environ["LANGCHAIN_PROJECT"] = test_name
@@ -56,7 +54,7 @@ for bot in chatbots:
     qa_prompt = prompter.merge_with_template(chatbot, "qa")
     QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
 
-    qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", return_source_documents=True,
+    qa = ConversationalRetrievalChain.from_llm(chatbot.pipe, retriever.base_retriever, chain_type="stuff", return_source_documents=True,
                                                 combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT})
 
     start_time = time.time()

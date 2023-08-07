@@ -1,6 +1,8 @@
 import torch
 
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
+from langchain import HuggingFacePipeline
+from langchain.chat_models import ChatAnthropic
 from auto_gptq import AutoGPTQForCausalLM
 
 from RAG.enums import GPTQ_MODELNAMES, REPO_ID
@@ -44,6 +46,8 @@ def choose_bot(device, repo=None, gen_params=None):
         return OpenChat(repo, device, gen_params)
     elif "BTLM" in repo.name:
         return BTLM(repo, device, gen_params)
+    elif "CLAUDE" in repo.name:
+        return Claude(repo, gen_params)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
@@ -97,7 +101,7 @@ class Chatbot:
                     )
         
     def init_pipe(self):
-        return pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, device=self.device, **self.gen_params)
+        return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, device=self.device, **self.gen_params))
 
 class Vicuna(Chatbot):
 
@@ -270,3 +274,30 @@ class BTLM(Chatbot):
                 "no_repeat_ngram_size": 2,
                 "temperature": 0.7
                 }    
+
+class Claude(Chatbot):
+    def __init__(self, repo, gen_params=None) -> None:
+
+        self.repo = repo
+        self.gen_params = self.get_gen_params() if gen_params is None else gen_params
+        self.model_params = self.gen_params
+        self.model = self.init_model()
+        self.pipe = self.init_pipe()
+
+    def prompt_template(self):
+        return strip_all("""Human: {prompt}
+        Assistant:
+        """)
+    
+    def get_gen_params(self):
+        return {
+            "model": self.repo.value,
+            "max_tokens_to_sample": 256,
+            "temperature": None
+        }
+    
+    def init_model(self):
+        return ChatAnthropic(**self.gen_params)
+    
+    def init_pipe(self):
+        return self.model

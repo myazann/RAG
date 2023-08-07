@@ -5,16 +5,16 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
-from langchain import HuggingFacePipeline
 from langchain.prompts import PromptTemplate
+import huggingface_hub
 
 from RAG.chatbots import choose_bot
-from RAG.utils import init_env, get_args, get_device
+from RAG.utils import get_args, get_device
 from RAG.doc_loader import DocumentLoader
 from RAG.retriever import Retriever
 from RAG.prompter import Prompter
 
-init_env()
+huggingface_hub.login(new_session=False)
 args = get_args()
 doc_name = args.document
 
@@ -30,14 +30,13 @@ embeddings = HuggingFaceEmbeddings()
 db = Chroma.from_documents(texts, embeddings)
 
 chatbot = choose_bot(get_device())
-lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
 
 test_name = f"QA_{chatbot.repo.name}_{time.time()}"
 os.environ["LANGCHAIN_PROJECT"] = test_name
 
-retriever = Retriever(db, k=3, search_type="mmr")
-retriever.add_embed_filter(embeddings)
-retriever.add_doc_compressor(lc_pipeline)
+retriever = Retriever(db, k=5, search_type="mmr")
+# retriever.add_embed_filter(embeddings)
+# retriever.add_doc_compressor(chatbot.pipe)
 
 prompter = Prompter()
 qa_prompt = prompter.merge_with_template(chatbot, "qa")
@@ -45,7 +44,7 @@ condense_prompt = prompter.merge_with_template(chatbot, "condense")
 QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
 CONDENSE_PROMPT = PromptTemplate.from_template(condense_prompt)
 
-qa = ConversationalRetrievalChain.from_llm(lc_pipeline, retriever.base_retriever, chain_type="stuff", 
+qa = ConversationalRetrievalChain.from_llm(chatbot.pipe, retriever.base_retriever, chain_type="stuff", 
                                            combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}, 
                                            condense_question_prompt=CONDENSE_PROMPT
                                            )

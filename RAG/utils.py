@@ -1,19 +1,8 @@
 import argparse
-import os
-import time
 import difflib
 from configparser import ConfigParser
 
 import GPUtil
-import huggingface_hub
-
-def init_env():
-
-   # os.environ["LANGCHAIN_WANDB_TRACING"] = "true"
-   os.environ["LANGCHAIN_TRACING_V2"] = "true"
-   os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
-   os.environ["LANGCHAIN_API_KEY"] = "ls__7eb356bde9434566bcbcac0b9ee5844b"
-   huggingface_hub.login(new_session=False)
 
 def get_device():
 

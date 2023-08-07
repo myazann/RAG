@@ -15,6 +15,8 @@ class REPO_ID(str, Enum):
     STABLE_BELUGA_13B_GPTQ = "TheBloke/StableBeluga-13B-GPTQ"
     OPEN_CHAT_GPTQ = "TheBloke/OpenChat_v3.2-GPTQ"
     BTLM_3B_8K = "cerebras/btlm-3b-8k-base"
+    CLAUDE_V1 = "claude-1.1"
+    CLAUDE_V2 = "claude-2.0"
 
 class GPTQ_MODELNAMES(str, Enum):
 
