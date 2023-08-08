@@ -15,15 +15,21 @@ class Prompter():
         return strip_all(prompt)
     
     def eval_qa_prompt(self):
-        return self.stripped_prompts("""I want you to act as an evaluator. I will give you a question, the solution, and the prediction, and you will give a score between 0 and 100 to the prediction. You will evaluate whether the prediction is similar to the solution and relevant to the question. The prediction does not have to exactly be the same as the solution, but the general meaning and context should be similar, and it should include include the information given in the solution. You should take into account whether the prediction goes off topic, repeats the same sentences over and over again, or contains unrelated, not mentioned or false information. False information and mention of unrelated information should be your priority, those answers should have a low score. If the prediction does not answer the question but is still trying to be helpful or polite, give it a score of 25. Your output will be as follows:
-        Score: <score>
-        Explanation: <your explanation about why you gave that score> 
+        return self.stripped_prompts("""Your job is to evaluate an answer given the question and the solution. You will output a score between 0 and 100 for the following categories:
+        -Correctness: How correct is the answer given the solution? The answer does not have to exactly be the same as the solution but the context should be similar and it should include most of the information given in the solution. If the answer does not mention most of the solution, give it a low score. Also, the answer should not include any false information.
+        -Relevance: How relevant is the answer for the question, given the solution? You will check if the answer goes of topic and starts mentioning unrelated information to the question.
+        -Coherence: Is the answer coherent? Does it repeats the same sentence over and over or starts talking about completely unrelated and illogical things? How relevant is the answer for the question (This should be a priority, give a low score to answers with irrelevant information)?
+        You are a very strict evaluator and would only give a score above 75 if the answer is perfect. If the answer is not perfect but still acceptable, give a score between 50-100. If the answer does not resemble the solution and talks about irrelevant stuff, give a score below 50. Finally, you are going to give a brief explanation about the scores you gave. Your output will be as follows:
+        Correctness: <correctness_score>
+        Relevance: <relevance_score>
+        Coherence: <coherence_score>
+        Explanation: <your explanation about why you gave those score>
         Question: 
         {question}
         Solution: 
-        {real_answer}
-        Prediction:
-        {gen_answer}""")
+        {solution}
+        Answer:
+        {answer}""")
     
     def gen_sim_queries(self, test_id):
 

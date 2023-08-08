@@ -13,12 +13,26 @@ from RAG.prompter import Prompter
 
 def format_output(output):
 
-    start = output.find("{")
-    end = output.find("}")
-    output = output[start: end+1].strip().replace("'", '"')
-    eval_dict = json.loads(output, strict=False)
+    result_dict = {
+        "Correctness": "",
+        "Relevance": "",
+        "Coherence": "",
+        "Explanation": ""
+    }
 
-    return {k.lower(): v for k, v in eval_dict.items()}
+    for key in result_dict.keys():
+        match = None
+        if key != "Explanation":
+            key_match = re.search(fr"{key}: (\d+)", output)
+            if key_match:
+                match = int(key_match.group(1))
+        else:
+            key_match = re.search(r"Explanation:\s*(.+)", output, re.DOTALL)
+            if key_match:
+                match = key_match.group(1)
+        result_dict[key] = match
+
+    return result_dict
 
 args = get_args()
 device = get_device()
@@ -38,7 +52,7 @@ with open(f"{test}.json", "r") as f:
 
 all_test_res = {}
 prompter = Prompter()
-chatbot = choose_bot(device)
+chatbot = choose_bot(device, gen_params={"max_new_tokens": 512, "temperature": 0})
 
 for perturb_test in perturb_tests:
 
@@ -65,30 +79,26 @@ for perturb_test in perturb_tests:
     for run in runs:
         
         question = run.inputs["question"]
-        real_answer = all_qas[question]
-        gen_answer = run.outputs["answer"]
+        solution = all_qas[question]
+        answer = run.outputs["answer"]
         source_docs = " \n".join([page["page_content"] for page in run.outputs["source_documents"]])
 
-        eval_res = llm_chain.predict(question=question, real_answer=real_answer, gen_answer=gen_answer)
+        eval_res = llm_chain.predict(question=question, solution=solution, answer=answer)
 
-        score_match = re.search(r"Score: (\d+)", eval_res)
-        if score_match:
-            score = int(score_match.group(1))
+        out_dict = format_output(eval_res)
 
-        exp_match = re.search(r"Explanation:\s*(.+)", eval_res, re.DOTALL)
-        if exp_match:
-            explanation = exp_match.group(1)
-
-        source_doc_match_ratio, _ = find_best_substring_match(source_docs, real_answer)
+        source_doc_match_ratio, _ = find_best_substring_match(source_docs, solution)
         print()
-        print(f"""Score: {score}\nExplanation: {explanation} \nSource doc match ratio: {source_doc_match_ratio}""")
+        print(f"""Scores: {out_dict} \nSource doc match ratio: {source_doc_match_ratio}""")
 
         all_test_res[pt_test_name].append({
-            "Q": question,
-            "RA": real_answer,
-            "GA": gen_answer,
-            "Score": score,
-            "Explanation": explanation,
+            "Question": question,
+            "Solution": solution,
+            "Answer": answer,
+            "Correctness Score": out_dict["Correctness"],
+            "Relevance Score": out_dict["Relevance"],
+            "Coherence Score": out_dict["Coherence"],
+            "Explanation": out_dict["Explanation"],
             "Source Doc Match Ratio": source_doc_match_ratio 
         })
 
