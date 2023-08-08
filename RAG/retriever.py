@@ -1,5 +1,6 @@
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainExtractor, EmbeddingsFilter, DocumentCompressorPipeline
+from langchain.retrievers.multi_query import MultiQueryRetriever
 
 class Retriever():
 
@@ -40,3 +41,17 @@ class Retriever():
 
         pipeline_compressor = DocumentCompressorPipeline(transformers=self.filters)
         self.comp_retriever = ContextualCompressionRetriever(base_compressor=pipeline_compressor, base_retriever=self.base_retriever)
+
+class MultiQueryCondenseRetriever(Retriever):
+    def __init__(self, database, llm, prompt, search_type="mmr", k=5):
+        super().__init__(database, search_type, k)
+        self.mq_retriever = self.init_mq_retriever(search_type, k, llm, prompt)
+
+    def init_mq_retriever(self, search_type, k, llm, prompt):
+        return MultiQueryRetriever.from_llm(retriever=self.database.as_retriever(search_type=search_type, search_kwargs={"k": k}),
+                                             llm=llm, prompt=prompt)
+    
+    def init_comp_retriever(self):
+
+        pipeline_compressor = DocumentCompressorPipeline(transformers=self.filters)
+        self.comp_retriever = ContextualCompressionRetriever(base_compressor=pipeline_compressor, base_retriever=self.mq_retriever)

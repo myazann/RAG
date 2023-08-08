@@ -245,8 +245,7 @@ class OpenChat(Chatbot):
     def prompt_template(self):
         return strip_all("""
         GPT4 User: {prompt}<|end_of_turn|>
-        GPT4 Assistant:
-        """)
+        GPT4 Assistant:""")
 
     def get_gen_params(self):
         return {
@@ -279,25 +278,29 @@ class Claude(Chatbot):
     def __init__(self, repo, gen_params=None) -> None:
 
         self.repo = repo
-        self.gen_params = self.get_gen_params() if gen_params is None else gen_params
+        self.gen_params = self.get_gen_params() if gen_params is None else self.reformat_params(gen_params)
         self.model_params = self.gen_params
         self.model = self.init_model()
         self.pipe = self.init_pipe()
 
     def prompt_template(self):
         return strip_all("""Human: {prompt}
-        Assistant:
-        """)
+        Assistant:""")
+    
+    def reformat_params(self, gen_params):
+        if "max_new_tokens" in gen_params.keys():
+            value = gen_params.pop("max_new_tokens")
+            gen_params["max_tokens_to_sample"] = value
+        return gen_params
     
     def get_gen_params(self):
         return {
-            "model": self.repo.value,
-            "max_tokens_to_sample": 256,
+            "max_tokens_to_sample": 512,
             "temperature": None
         }
     
     def init_model(self):
-        return ChatAnthropic(**self.gen_params)
+        return ChatAnthropic(model=self.repo.value,**self.gen_params)
     
     def init_pipe(self):
         return self.model

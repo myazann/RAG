@@ -33,7 +33,6 @@ texts = text_splitter.split_documents(doc)
 embeddings = HuggingFaceEmbeddings()
 
 db = Chroma.from_documents(texts, embeddings)
-
 chatbots = [REPO_ID.LLAMA2_7B_GPTQ, REPO_ID.LLAMA2_13B_GPTQ, REPO_ID.STABLE_BELUGA_7B_GPTQ, REPO_ID.STABLE_BELUGA_13B_GPTQ, REPO_ID.CLAUDE_V1, REPO_ID.CLAUDE_V2] 
 
 with open(f"{test}.json", "r") as f:
@@ -55,7 +54,7 @@ for bot in chatbots:
     QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
 
     qa = ConversationalRetrievalChain.from_llm(chatbot.pipe, retriever.base_retriever, chain_type="stuff", return_source_documents=True,
-                                                combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT})
+                                               combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT})
 
     start_time = time.time()
     real_as = []
@@ -69,9 +68,9 @@ for bot in chatbots:
     end_time = time.time()
     print(f"Took {end_time - start_time} secs!\n")
 
-    del lc_pipeline
     del chatbot
+    del qa
     chatbot = []
-    lc_pipeline = []
+    qa = []
     torch.cuda.empty_cache()
     time.sleep(5)

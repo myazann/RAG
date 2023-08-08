@@ -7,16 +7,15 @@ class Prompter():
         self.prompt_dict = {
             "condense": self.get_condense_q_prompt(),
             "qa": self.get_qa_prompt(),
-            "eval_qa": self.eval_qa_prompt()
+            "eval_qa": self.eval_qa_prompt(),
+            "multi_query": self.multi_query_prompt()
         }
 
     def stripped_prompts(self, prompt):
         return strip_all(prompt)
     
-    #Your output will be a Python dictionary with the score and explanation as keys and the score you give and a brief explanation about why you have given that score as values.
-    #Do not output anything besides the dictionary, and remember to include score and explanation as keys, surrounded with double quotes. Do not include any quotes inside your explanation
     def eval_qa_prompt(self):
-        return self.stripped_prompts("""I want you to act as an evaluator. I will give you a question, the solution, and the prediction, and you will give a score between 0 and 100 to the prediction. You will evaluate whether the prediction is similar to the solution, relevant to the question. The prediction does not have to exactly be the same as the solution, but the general meaning and context should be similar. You should take into account whether the prediction goes off topic, repeats the same sentences over and over again, or contains unrelated, not mentioned or false information. False information and mention of unrelated information should be your priority, those answers should have a low score. If the prediction does not answer the question but is still trying to be helpful or polite, give it a score of 25. Your output will be as follows:
+        return self.stripped_prompts("""I want you to act as an evaluator. I will give you a question, the solution, and the prediction, and you will give a score between 0 and 100 to the prediction. You will evaluate whether the prediction is similar to the solution and relevant to the question. The prediction does not have to exactly be the same as the solution, but the general meaning and context should be similar. You should take into account whether the prediction goes off topic, repeats the same sentences over and over again, or contains unrelated, not mentioned or false information. False information and mention of unrelated information should be your priority, those answers should have a low score. If the prediction does not answer the question but is still trying to be helpful or polite, give it a score of 25. Your output will be as follows:
         Score: <score>
         Explanation: <your explanation about why you gave that score> 
         Question: 
@@ -52,6 +51,10 @@ class Prompter():
         {chat_history}
         {question}
         Standalone question:""")
+    
+    def multi_query_prompt(self):
+        return self.stripped_prompts("""You are an AI language model assistant. Your task is to generate three different versions of the given user question to retrieve relevant documents from a vector database. By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitations of the distance-based similarity search. Provide these alternative questions seperated by newlines. Do not output anything besides the questions, and don't put a blank line between the questions.
+        Original question: {question}""")
 
     def merge_with_template(self, chatbot, prompt_type):
 

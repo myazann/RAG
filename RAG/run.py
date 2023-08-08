@@ -34,7 +34,7 @@ chatbot = choose_bot(get_device())
 test_name = f"QA_{chatbot.repo.name}_{time.time()}"
 os.environ["LANGCHAIN_PROJECT"] = test_name
 
-retriever = Retriever(db, k=5, search_type="mmr")
+retriever = Retriever(db, k=3, search_type="mmr")
 # retriever.add_embed_filter(embeddings)
 # retriever.add_doc_compressor(chatbot.pipe)
 

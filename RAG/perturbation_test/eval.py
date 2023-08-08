@@ -38,9 +38,11 @@ with open(f"{test}.json", "r") as f:
 
 all_test_res = {}
 prompter = Prompter()
+chatbot = choose_bot(device)
 
 for perturb_test in perturb_tests:
 
+    print(perturb_test)
     pt_test_name = perturb_test.name
     all_test_res[pt_test_name] = []
     ls_name = f"Eval_{pt_test_name}_{time.time()}"
@@ -53,8 +55,7 @@ for perturb_test in perturb_tests:
     ))
 
     runs.reverse()
-
-    chatbot = choose_bot(device)
+    
     eval_prompt = prompter.merge_with_template(chatbot, "eval_qa")
     llm_chain = LLMChain(
             llm=chatbot.pipe,
