@@ -42,8 +42,8 @@ chatbot = choose_bot(device)
 
 for perturb_test in perturb_tests:
 
-    print(perturb_test)
     pt_test_name = perturb_test.name
+    print(pt_test_name)
     all_test_res[pt_test_name] = []
     ls_name = f"Eval_{pt_test_name}_{time.time()}"
     os.environ["LANGCHAIN_PROJECT"] = ls_name

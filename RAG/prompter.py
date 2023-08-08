@@ -5,8 +5,8 @@ class Prompter():
     def __init__(self):
 
         self.prompt_dict = {
-            "condense": self.get_condense_q_prompt(),
-            "qa": self.get_qa_prompt(),
+            "condense": self.condense_q_prompt(),
+            "qa": self.qa_prompt(),
             "eval_qa": self.eval_qa_prompt(),
             "multi_query": self.multi_query_prompt()
         }
@@ -15,7 +15,7 @@ class Prompter():
         return strip_all(prompt)
     
     def eval_qa_prompt(self):
-        return self.stripped_prompts("""I want you to act as an evaluator. I will give you a question, the solution, and the prediction, and you will give a score between 0 and 100 to the prediction. You will evaluate whether the prediction is similar to the solution and relevant to the question. The prediction does not have to exactly be the same as the solution, but the general meaning and context should be similar. You should take into account whether the prediction goes off topic, repeats the same sentences over and over again, or contains unrelated, not mentioned or false information. False information and mention of unrelated information should be your priority, those answers should have a low score. If the prediction does not answer the question but is still trying to be helpful or polite, give it a score of 25. Your output will be as follows:
+        return self.stripped_prompts("""I want you to act as an evaluator. I will give you a question, the solution, and the prediction, and you will give a score between 0 and 100 to the prediction. You will evaluate whether the prediction is similar to the solution and relevant to the question. The prediction does not have to exactly be the same as the solution, but the general meaning and context should be similar, and it should include include the information given in the solution. You should take into account whether the prediction goes off topic, repeats the same sentences over and over again, or contains unrelated, not mentioned or false information. False information and mention of unrelated information should be your priority, those answers should have a low score. If the prediction does not answer the question but is still trying to be helpful or polite, give it a score of 25. Your output will be as follows:
         Score: <score>
         Explanation: <your explanation about why you gave that score> 
         Question: 
@@ -39,14 +39,14 @@ class Prompter():
         else:
             print("No such test id!")
 
-    def get_qa_prompt(self):
+    def qa_prompt(self):
         return self.stripped_prompts("""
         Use the following pieces of context to answer the question at the end. If you don't know the answer, just say I am sorry but I don't know the answer, don't try to make up an answer.
         {context}
         {question}
         Answer:""")
 
-    def get_condense_q_prompt(self):
+    def condense_q_prompt(self):
         return self.stripped_prompts("""Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
         {chat_history}
         {question}
