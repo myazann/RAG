@@ -13,7 +13,7 @@ import torch
 
 from RAG.chatbots import choose_bot
 from RAG.utils import get_device, get_args
-from RAG.doc_loader import DocumentLoader
+from RAG.loader import FileLoader
 from RAG.retriever import Retriever
 from RAG.enums import REPO_ID
 from RAG.prompter import Prompter
@@ -23,7 +23,7 @@ args = get_args()
 doc_name = args.document
 test = args.perturb_test_type
 
-loader = DocumentLoader(doc_name)
+loader = FileLoader(doc_name)
 doc = loader.load_doc()
 doc = loader.trim_doc(doc)
 
