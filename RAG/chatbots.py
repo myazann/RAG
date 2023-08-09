@@ -5,57 +5,80 @@ from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic
 from auto_gptq import AutoGPTQForCausalLM
 
-from RAG.enums import GPTQ_MODELNAMES, REPO_ID
 from RAG.utils import strip_all
 
-def choose_bot(device, repo=None, gen_params=None):
+def get_repos():
+    return {
+        "MPT-7B": "mosaicml/mpt-7b-chat",
+        "FALCON-7B": "tiiuae/falcon-7b-instruct",
+        "GPT4ALL-13B-GPTQ": "TheBloke/GPT4All-13B-Snoozy-SuperHOT-8K-GPTQ",
+        "VICUNA-7B-v1.5-GPTQ": "TheBloke/vicuna-7B-v1.5-GPTQ",
+        "VICUNA-13B-v1.5-GPTQ": "TheBloke/vicuna-13B-v1.5-GPTQ",
+        "LLAMA2-7B": "meta-llama/Llama-2-7b-chat-hf",
+        "LLAMA2-7B-GPTQ": "TheBloke/Llama-2-7b-Chat-GPTQ",
+        "LLAMA2-13B-GPTQ": "TheBloke/Llama-2-13B-chat-GPTQ",
+        "STABLE-BELUGA-7B-GPTQ": "TheBloke/StableBeluga-7B-GPTQ",
+        "STABLE-BELUGA-13B-GPTQ": "TheBloke/StableBeluga-13B-GPTQ",
+        "OPEN-CHAT-GPTQ": "TheBloke/OpenChat-v3.2-GPTQ",
+        "BTLM-3B-8K": "cerebras/btlm-3b-8k-base",
+        "CLAUDE-V1": "claude-1.1",
+        "CLAUDE-V2": "claude-2.0"
+        }
+
+def get_model_basenames():
+    return {
+        "GPT4ALL-13B-GPTQ": "gpt4all-snoozy-13b-superhot-8k-GPTQ-4bit-128g.no-act.order",
+        "LLAMA2-7B-GPTQ": "gptq_model-4bit-128g",
+        "LLAMA2-13B-GPTQ": "gptq_model-4bit-128g",
+        "STABLE-BELUGA-7B-GPTQ": "gptq_model-4bit-128g",
+        "STABLE-BELUGA-13B-GPTQ": "gptq_model-4bit-128g",
+        "OPEN-CHAT-GPTQ": "gptq_model-4bit-128g"
+    }
+
+def choose_bot(device, repo_id=None, gen_params=None):
   
-    if repo is None:
-        repos = REPO_ID.__members__    
-        repo_dict = dict((str(k), v) for k, v in enumerate(repos.keys()))
+    if repo_id is None:
 
+        num_repo = dict({str(k): v for k, v in enumerate(get_repos().keys())})
         print("\nChoose a model from the list: (Use their number id for choosing)\n")
-
-        for i, repo in repo_dict.items():
+        for i, repo in num_repo.items():
             repo_name = repo.replace("_", "-")
             print(f"{i}: {repo_name}")  
 
         while True:
-
             model_id = input()
-            repo_id = repo_dict.get(model_id)
-
+            repo_id = num_repo.get(model_id)
             if repo_id is None:
                 print("Please select from one of the options!")
             else:
-                repo = repos[repo_id]
                 break
-    if "FALCON" in repo.name:
-        return Falcon(repo, device, gen_params)
-    elif "VICUNA" in repo.name:
-        return Vicuna(repo, device, gen_params)
-    elif "LLAMA" in repo.name:
-        return LLaMA2(repo, device, gen_params)
-    elif "MPT" in repo.name:
-        return MPT(repo, device, gen_params)
-    elif "GPT4ALL" in repo.name:
-        return GPT4ALL(repo, device, gen_params)  
-    elif "BELUGA" in repo.name:
-        return StableBeluga(repo, device, gen_params)
-    elif "OPEN_CHAT" in repo.name:
-        return OpenChat(repo, device, gen_params)
-    elif "BTLM" in repo.name:
-        return BTLM(repo, device, gen_params)
-    elif "CLAUDE" in repo.name:
-        return Claude(repo, gen_params)
+
+    if "FALCON" in repo_id:
+        return Falcon(repo_id, device, gen_params)
+    elif "VICUNA" in repo_id:
+        return Vicuna(repo_id, device, gen_params)
+    elif "LLAMA" in repo_id:
+        return LLaMA2(repo_id, device, gen_params)
+    elif "MPT" in repo_id:
+        return MPT(repo_id, device, gen_params)
+    elif "GPT4ALL" in repo_id:
+        return GPT4ALL(repo_id, device, gen_params)  
+    elif "BELUGA" in repo_id:
+        return StableBeluga(repo_id, device, gen_params)
+    elif "OPEN_CHAT" in repo_id:
+        return OpenChat(repo_id, device, gen_params)
+    elif "BTLM" in repo_id:
+        return BTLM(repo_id, device, gen_params)
+    elif "CLAUDE" in repo_id:
+        return Claude(repo_id, gen_params)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
 class Chatbot:
 
-    def __init__(self, repo, device, gen_params=None) -> None:
+    def __init__(self, repo_id, device, gen_params=None) -> None:
 
-        self.repo = repo
+        self.repo = (repo_id, get_repos()[repo_id])
         self.device = device
         self.is_gptq = self.check_is_gptq()
         self.tokenizer = self.init_tokenizer()
@@ -74,10 +97,10 @@ class Chatbot:
         return {}
 
     def check_is_gptq(self):
-        return True if "GPTQ" in self.repo.name else False
+        return True if "GPTQ" in self.repo[1] else False
     
     def init_tokenizer(self):
-        return AutoTokenizer.from_pretrained(self.repo.value, use_fast=True)
+        return AutoTokenizer.from_pretrained(self.repo[1], use_fast=True)
     
     def gptq_model_params(self):
         return {
@@ -90,13 +113,19 @@ class Chatbot:
     
     def init_model(self):
         if self.is_gptq:
-            return AutoGPTQForCausalLM.from_quantized(
-                    self.repo.value,
-                    model_basename=GPTQ_MODELNAMES[self.repo.name].value,
-                    **self.model_params)
+            basename = get_model_basenames().get(self.repo[0])
+            if basename is None:
+                    return AutoGPTQForCausalLM.from_quantized(
+                        self.repo[1],
+                        **self.model_params)
+            else:
+                return AutoGPTQForCausalLM.from_quantized(
+                        self.repo[1],
+                        model_basename=basename,
+                        **self.model_params)
         else:
             return AutoModelForCausalLM.from_pretrained(
-                    self.repo.value,
+                    self.repo[1],
                     **self.model_params
                     )
         
@@ -107,10 +136,11 @@ class Vicuna(Chatbot):
 
     def __init__(self, repo, device, gen_params=None) -> None:
         super().__init__(repo, device, gen_params)
+        self.context_length = 4096
 
     def prompt_template(self):
         return strip_all("""
-        A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.
+        A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
         USER: 
         {prompt}
         ASSISTANT:""")
@@ -141,7 +171,7 @@ class MPT(Chatbot):
         return AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
     
     def get_model_params(self):
-        config = AutoConfig.from_pretrained(self.repo.value, trust_remote_code=True)
+        config = AutoConfig.from_pretrained(self.repo[1], trust_remote_code=True)
         config.init_device = self.device 
         config.max_seq_len = 8192
 
@@ -202,7 +232,7 @@ class LLaMA2(Chatbot):
 
     def prompt_template(self):
         return strip_all("""
-        [INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don't know the answer to a question, please don't share false information.<</SYS>>{prompt}[/INST]""")
+        [INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>{prompt}[/INST]""")
     
     def get_model_params(self):
         return {
@@ -226,7 +256,7 @@ class StableBeluga(Chatbot):
     def prompt_template(self):
         return strip_all("""
         ### System: 
-        You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don't know the answer to a question, please don't share false information.
+        You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.
         ### User: 
         {prompt}
         ### Assistant:""")
@@ -275,9 +305,10 @@ class BTLM(Chatbot):
                 }    
 
 class Claude(Chatbot):
-    def __init__(self, repo, gen_params=None) -> None:
 
-        self.repo = repo
+    def __init__(self, repo_id, gen_params=None) -> None:
+
+        self.repo_id = (repo_id, get_repos()[repo_id])
         self.gen_params = self.get_gen_params() if gen_params is None else self.reformat_params(gen_params)
         self.model_params = self.gen_params
         self.model = self.init_model()
@@ -300,7 +331,7 @@ class Claude(Chatbot):
         }
     
     def init_model(self):
-        return ChatAnthropic(model=self.repo.value,**self.gen_params)
+        return ChatAnthropic(model=self.repo[1], **self.gen_params)
     
     def init_pipe(self):
         return self.model

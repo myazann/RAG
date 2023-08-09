@@ -15,37 +15,35 @@ from RAG.chatbots import choose_bot
 from RAG.utils import get_device, get_args
 from RAG.loader import FileLoader
 from RAG.retriever import Retriever
-from RAG.enums import REPO_ID
 from RAG.prompter import Prompter
 
 huggingface_hub.login(new_session=False)
 args = get_args()
-doc_name = args.document
+file_name = args.document
 test = args.perturb_test_type
 
-loader = FileLoader(doc_name)
-doc = loader.load_doc()
-doc = loader.trim_doc(doc)
+file_loader = FileLoader()
+file = file_loader.load(file_name)
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=500)
-texts = text_splitter.split_documents(doc)
+texts = text_splitter.split_documents(file)
 
 embeddings = HuggingFaceEmbeddings()
 
 db = Chroma.from_documents(texts, embeddings)
-chatbots = [REPO_ID.LLAMA2_7B_GPTQ, REPO_ID.LLAMA2_13B_GPTQ, REPO_ID.STABLE_BELUGA_7B_GPTQ, REPO_ID.STABLE_BELUGA_13B_GPTQ, REPO_ID.CLAUDE_V1, REPO_ID.CLAUDE_V2] 
+chatbots = ["LLAMA2-7B-GPTQ", "LLAMA2-13B-GPTQ", "STABLE-BELUGA-7B-GPTQ", "STABLE-BELUGA-13B-GPTQ", "CLAUDE-V1", "CLAUDE-V2"] 
 
 with open(f"{test}.json", "r") as f:
     test_queries = json.load(f)
 
 for bot in chatbots:
 
-    print(bot.name)
+    print(bot)
 
     device = get_device()
     chatbot = choose_bot(device, bot, gen_params={"max_new_tokens": 512, "temperature": 0})
 
-    test_name = f"PT_{test}_{bot.name}_{time.time()}"
+    test_name = f"PT_{test}_{bot}_{time.time()}"
     os.environ["LANGCHAIN_PROJECT"] = test_name
 
     retriever = Retriever(db, k=3, search_type="mmr")

@@ -3,7 +3,7 @@ import os
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import ConversationalRetrievalChain
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.prompts import PromptTemplate
 from langchain_experimental.sql import SQLDatabaseChain
@@ -26,7 +26,7 @@ file_loader = FileLoader()
 file = file_loader.load(file_name)
 file_type = file_loader.get_file_type(file_name)
 
-test_name = f"QA_{chatbot.repo.name}_{time.time()}"
+test_name = f"QA_{chatbot.repo[0]}_{time.time()}"
 os.environ["LANGCHAIN_PROJECT"] = test_name
 
 if file_type == "db":
@@ -80,8 +80,3 @@ while True:
 
 ## Who are the leaders of work packages?
 ## Give me a summary of each lessen work package
-
-
-#I want you to act as an evaluator. I will give you a question, the solution, and the prediction, and you will give a score between 0 and 100 to the prediction. You will evaluate whether the prediction is similar to the solution and relevant to the question. The prediction does not have to exactly be the same as the solution, but the general meaning and context should be similar, and it should include include the information given in the solution. You should take into account whether the prediction goes off topic, repeats the same sentences over and over again, or contains unrelated, not mentioned or false information. False information and mention of unrelated information should be your priority, those answers should have a low score. If the prediction does not answer the question but is still trying to be helpful or polite, give it a score of 25. Your output will be as follows:
-#        Score: <score>
-#        Explanation: <your explanation about why you gave that score> 
