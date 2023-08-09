@@ -7,6 +7,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTex
 from langchain.vectorstores import Chroma
 from langchain.prompts import PromptTemplate
 from langchain_experimental.sql import SQLDatabaseChain
+from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
 import huggingface_hub
 
 from RAG.chatbots import choose_bot
@@ -48,14 +49,19 @@ else:
   prompter = Prompter()
   qa_prompt = prompter.merge_with_template(chatbot, "qa")
   condense_prompt = prompter.merge_with_template(chatbot, "condense")
-  QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
-  CONDENSE_PROMPT = PromptTemplate.from_template(condense_prompt)
+  memory_prompt = prompter.merge_with_template(chatbot, "memory_summary")
 
+  QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "question"], template=qa_prompt)
+  CONDENSE_PROMPT = PromptTemplate(input_variables=["chat_history", "question"], template=condense_prompt)
+  MEMORY_PROMPT = PromptTemplate(input_variables=["summary", "new_lines"], template=memory_prompt)
+
+  memory = ConversationSummaryMemory(llm=chatbot.pipe, memory_key="chat_history", return_messages=False, prompt=MEMORY_PROMPT)
   qa = ConversationalRetrievalChain.from_llm(chatbot.pipe, retriever.base_retriever, chain_type="stuff", 
                                             combine_docs_chain_kwargs={"prompt": QA_CHAIN_PROMPT}, 
-                                            condense_question_prompt=CONDENSE_PROMPT
-                                            )
-  chat_history = []
+                                            condense_question_prompt=CONDENSE_PROMPT, 
+                                            get_chat_history=lambda h: h,
+                                            memory=memory)
+  #chat_history = []
 
 pretty_doc_name = " ".join(file_name.split(".")[:-1]).replace("_"," ")
 print(f"""\nHello, I am here to inform you about the {pretty_doc_name}. What do want to learn? (Press 0 if you want to quit!) \n""")
@@ -67,9 +73,9 @@ while True:
     if file_type == "db":
       answer = db_chain.run(query)
     else:
-      result = qa({"question": query.strip(), "chat_history": chat_history})
+      result = qa({"question": query.strip()})
       answer = result["answer"].strip()
-      chat_history.append((query, answer))
+      #chat_history.append((query, answer))
 
     print(f"\n{answer}\n")
     end_time = time.time()

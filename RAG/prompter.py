@@ -8,7 +8,8 @@ class Prompter():
             "condense": self.condense_q_prompt(),
             "qa": self.qa_prompt(),
             "eval_qa": self.eval_qa_prompt(),
-            "multi_query": self.multi_query_prompt()
+            "multi_query": self.multi_query_prompt(),
+            "memory_summary": self.memory_summary()
         }
 
     def stripped_prompts(self, prompt):
@@ -46,17 +47,40 @@ class Prompter():
             print("No such test id!")
 
     def qa_prompt(self):
-        return self.stripped_prompts("""
-        Use the following pieces of context to answer the question at the end. If you don't know the answer, just say I am sorry but I don't know the answer, don't try to make up an answer.
+        return self.stripped_prompts("""Use the following pieces of context to answer the question at the end. If you don't know the answer, don't try to make up an answer.
+        Context:
         {context}
-        {question}
-        Answer:""")
+        Question:
+        {question}""")
 
     def condense_q_prompt(self):
-        return self.stripped_prompts("""Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
+        return self.stripped_prompts("""Output the given summary of the conversation history and the question, as is. Do not change anything.                                     
+        Summary of the conversation history:
         {chat_history}
-        {question}
-        Standalone question:""")
+        Question:
+        {question}""")
+    
+    def memory_summary(self):
+        return self.stripped_prompts("""Progressively summarize the lines of conversation provided, adding onto the previous summary returning a new summary. Do not output anything except the summary.
+        EXAMPLE
+        Current summary:
+        The human asks what the AI thinks of artificial intelligence. The AI thinks artificial intelligence is a force for good.
+
+        New lines of conversation:
+        Human: Why do you think artificial intelligence is a force for good?
+        AI: Because artificial intelligence will help humans reach their full potential.
+
+        New summary:
+        The human asks what the AI thinks of artificial intelligence. The AI thinks artificial intelligence is a force for good because it will help humans reach their full potential.
+        END OF EXAMPLE
+
+        Current summary:
+        {summary}
+
+        New lines of conversation:
+        {new_lines}
+
+        New summary:""")
     
     def multi_query_prompt(self):
         return self.stripped_prompts("""You are an AI language model assistant. Your task is to generate three different versions of the given user question to retrieve relevant documents from a vector database. By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitations of the distance-based similarity search. Provide these alternative questions seperated by newlines. Do not output anything besides the questions, and don't put a blank line between the questions.

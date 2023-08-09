@@ -126,7 +126,7 @@ class Vicuna(Chatbot):
     def get_gen_params(self):
         return {
         "max_new_tokens": 512,
-        "temperature": 0.7
+        "temperature": 0.7,
     }
 
 class GPT4ALL(Chatbot):
