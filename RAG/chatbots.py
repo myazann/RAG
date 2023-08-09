@@ -1,4 +1,5 @@
 import torch
+import configparser
 
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
 from langchain import HuggingFacePipeline
@@ -7,39 +8,18 @@ from auto_gptq import AutoGPTQForCausalLM
 
 from RAG.utils import strip_all
 
-def get_repos():
-    return {
-        "MPT-7B": "mosaicml/mpt-7b-chat",
-        "FALCON-7B": "tiiuae/falcon-7b-instruct",
-        "GPT4ALL-13B-GPTQ": "TheBloke/GPT4All-13B-Snoozy-SuperHOT-8K-GPTQ",
-        "VICUNA-7B-v1.5-GPTQ": "TheBloke/vicuna-7B-v1.5-GPTQ",
-        "VICUNA-13B-v1.5-GPTQ": "TheBloke/vicuna-13B-v1.5-GPTQ",
-        "LLAMA2-7B": "meta-llama/Llama-2-7b-chat-hf",
-        "LLAMA2-7B-GPTQ": "TheBloke/Llama-2-7b-Chat-GPTQ",
-        "LLAMA2-13B-GPTQ": "TheBloke/Llama-2-13B-chat-GPTQ",
-        "STABLE-BELUGA-7B-GPTQ": "TheBloke/StableBeluga-7B-GPTQ",
-        "STABLE-BELUGA-13B-GPTQ": "TheBloke/StableBeluga-13B-GPTQ",
-        "OPEN-CHAT-GPTQ": "TheBloke/OpenChat-v3.2-GPTQ",
-        "BTLM-3B-8K": "cerebras/btlm-3b-8k-base",
-        "CLAUDE-V1": "claude-1.1",
-        "CLAUDE-V2": "claude-2.0"
-        }
+def get_model_cfg():
 
-def get_model_basenames():
-    return {
-        "GPT4ALL-13B-GPTQ": "gpt4all-snoozy-13b-superhot-8k-GPTQ-4bit-128g.no-act.order",
-        "LLAMA2-7B-GPTQ": "gptq_model-4bit-128g",
-        "LLAMA2-13B-GPTQ": "gptq_model-4bit-128g",
-        "STABLE-BELUGA-7B-GPTQ": "gptq_model-4bit-128g",
-        "STABLE-BELUGA-13B-GPTQ": "gptq_model-4bit-128g",
-        "OPEN-CHAT-GPTQ": "gptq_model-4bit-128g"
-    }
+    config = configparser.ConfigParser()
+    config.read("model_config.cfg")
+    return config
 
-def choose_bot(device, repo_id=None, gen_params=None):
-  
-    if repo_id is None:
+def choose_bot(device, model_name=None, gen_params=None):
 
-        num_repo = dict({str(k): v for k, v in enumerate(get_repos().keys())})
+    if model_name is None:
+
+        models = get_model_cfg().sections()
+        num_repo = dict({str(k): v for k, v in enumerate(models)})
         print("\nChoose a model from the list: (Use their number id for choosing)\n")
         for i, repo in num_repo.items():
             repo_name = repo.replace("_", "-")
@@ -47,38 +27,44 @@ def choose_bot(device, repo_id=None, gen_params=None):
 
         while True:
             model_id = input()
-            repo_id = num_repo.get(model_id)
-            if repo_id is None:
+            model_name = num_repo.get(model_id)
+            if model_name is None:
                 print("Please select from one of the options!")
             else:
                 break
 
-    if "FALCON" in repo_id:
-        return Falcon(repo_id, device, gen_params)
-    elif "VICUNA" in repo_id:
-        return Vicuna(repo_id, device, gen_params)
-    elif "LLAMA" in repo_id:
-        return LLaMA2(repo_id, device, gen_params)
-    elif "MPT" in repo_id:
-        return MPT(repo_id, device, gen_params)
-    elif "GPT4ALL" in repo_id:
-        return GPT4ALL(repo_id, device, gen_params)  
-    elif "BELUGA" in repo_id:
-        return StableBeluga(repo_id, device, gen_params)
-    elif "OPEN_CHAT" in repo_id:
-        return OpenChat(repo_id, device, gen_params)
-    elif "BTLM" in repo_id:
-        return BTLM(repo_id, device, gen_params)
-    elif "CLAUDE" in repo_id:
-        return Claude(repo_id, gen_params)
+    if "FALCON" in model_name:
+        return Falcon(model_name, device, gen_params)
+    elif "VICUNA" in model_name:
+        return Vicuna(model_name, device, gen_params)
+    elif "LLAMA" in model_name:
+        return LLaMA2(model_name, device, gen_params)
+    elif "MPT" in model_name:
+        return MPT(model_name, device, gen_params)
+    elif "GPT4ALL" in model_name:
+        return GPT4ALL(model_name, device, gen_params)  
+    elif "BELUGA" in model_name:
+        return StableBeluga(model_name, device, gen_params)
+    elif "OPEN_CHAT" in model_name:
+        return OpenChat(model_name, device, gen_params)
+    elif "BTLM" in model_name:
+        return BTLM(model_name, device, gen_params)
+    elif "CLAUDE" in model_name:
+        return Claude(model_name, gen_params)
+    elif "LUNA" in model_name:
+        return Luna(model_name, gen_params)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
 class Chatbot:
 
-    def __init__(self, repo_id, device, gen_params=None) -> None:
+    def __init__(self, model_name, device, gen_params=None) -> None:
 
-        self.repo = (repo_id, get_repos()[repo_id])
+        self.cfg = get_model_cfg()[model_name]
+        self.name = model_name
+        self.repo_id = self.cfg.get("repo_id")
+        self.model_basename = self.cfg.get("basename")
+        self.context_length = self.cfg.get("context_length")
         self.device = device
         self.is_gptq = self.check_is_gptq()
         self.tokenizer = self.init_tokenizer()
@@ -97,10 +83,10 @@ class Chatbot:
         return {}
 
     def check_is_gptq(self):
-        return True if "GPTQ" in self.repo[1] else False
+        return True if "GPTQ" in self.repo_id else False
     
     def init_tokenizer(self):
-        return AutoTokenizer.from_pretrained(self.repo[1], use_fast=True)
+        return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
     
     def gptq_model_params(self):
         return {
@@ -113,19 +99,13 @@ class Chatbot:
     
     def init_model(self):
         if self.is_gptq:
-            basename = get_model_basenames().get(self.repo[0])
-            if basename is None:
-                    return AutoGPTQForCausalLM.from_quantized(
-                        self.repo[1],
-                        **self.model_params)
-            else:
-                return AutoGPTQForCausalLM.from_quantized(
-                        self.repo[1],
-                        model_basename=basename,
-                        **self.model_params)
+            return AutoGPTQForCausalLM.from_quantized(
+                    self.repo_id,
+                    model_basename=self.model_basename,
+                    **self.model_params)
         else:
             return AutoModelForCausalLM.from_pretrained(
-                    self.repo[1],
+                    self.repo_id,
                     **self.model_params
                     )
         
@@ -134,13 +114,11 @@ class Chatbot:
 
 class Vicuna(Chatbot):
 
-    def __init__(self, repo, device, gen_params=None) -> None:
-        super().__init__(repo, device, gen_params)
-        self.context_length = 4096
+    def __init__(self, model_name, device, gen_params=None) -> None:
+        super().__init__(model_name, device, gen_params)
 
     def prompt_template(self):
-        return strip_all("""
-        A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
+        return strip_all("""A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
         USER: 
         {prompt}
         ASSISTANT:""")
@@ -153,8 +131,8 @@ class Vicuna(Chatbot):
 
 class GPT4ALL(Chatbot):
 
-    def __init__(self, repo, device, gen_params=None) -> None:
-        super().__init__(repo, device, gen_params)
+    def __init__(self, model_name, device, gen_params=None) -> None:
+        super().__init__(model_name, device, gen_params)
 
     def get_gen_params(self):
         return {
@@ -164,14 +142,14 @@ class GPT4ALL(Chatbot):
 
 class MPT(Chatbot):
 
-    def __init__(self, repo, device, gen_params=None) -> None:
-        super().__init__(repo, device, gen_params)
+    def __init__(self, model_name, device, gen_params=None) -> None:
+        super().__init__(model_name, device, gen_params)
 
     def init_tokenizer(self):
         return AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
     
     def get_model_params(self):
-        config = AutoConfig.from_pretrained(self.repo[1], trust_remote_code=True)
+        config = AutoConfig.from_pretrained(self.repo_id, trust_remote_code=True)
         config.init_device = self.device 
         config.max_seq_len = 8192
 
@@ -205,8 +183,8 @@ class MPT(Chatbot):
 
 class Falcon(Chatbot):
 
-    def __init__(self, repo, device, gen_params=None) -> None:
-        super().__init__(repo, device, gen_params)
+    def __init__(self, model_name, device, gen_params=None) -> None:
+        super().__init__(model_name, device, gen_params)
     
     def get_model_params(self):
         return {
@@ -227,12 +205,11 @@ class Falcon(Chatbot):
     
 class LLaMA2(Chatbot):
 
-    def __init__(self, repo, device, gen_params=None) -> None:
-        super().__init__(repo, device, gen_params)
+    def __init__(self, model_name, device, gen_params=None) -> None:
+        super().__init__(model_name, device, gen_params)
 
     def prompt_template(self):
-        return strip_all("""
-        [INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>{prompt}[/INST]""")
+        return strip_all("""[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>{prompt}[/INST]""")
     
     def get_model_params(self):
         return {
@@ -250,12 +227,11 @@ class LLaMA2(Chatbot):
     
 class StableBeluga(Chatbot):
 
-    def __init__(self, repo, device, gen_params=None) -> None:
-        super().__init__(repo, device, gen_params)
+    def __init__(self, model_name, device, gen_params=None) -> None:
+        super().__init__(model_name, device, gen_params)
 
     def prompt_template(self):
-        return strip_all("""
-        ### System: 
+        return strip_all("""### System: 
         You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.
         ### User: 
         {prompt}
@@ -269,12 +245,11 @@ class StableBeluga(Chatbot):
     
 class OpenChat(Chatbot):
 
-    def __init__(self, repo, device, gen_params=None) -> None:
-        super().__init__(repo, device, gen_params)
+    def __init__(self, model_name, device, gen_params=None) -> None:
+        super().__init__(model_name, device, gen_params)
 
     def prompt_template(self):
-        return strip_all("""
-        GPT4 User: {prompt}<|end_of_turn|>
+        return strip_all("""GPT4 User: {prompt}<|end_of_turn|>
         GPT4 Assistant:""")
 
     def get_gen_params(self):
@@ -285,8 +260,8 @@ class OpenChat(Chatbot):
     
 class BTLM(Chatbot):
 
-    def __init__(self, repo, device, gen_params=None) -> None:
-        super().__init__(repo, device, gen_params)
+    def __init__(self, model_name, device, gen_params=None) -> None:
+        super().__init__(model_name, device, gen_params)
 
     def get_model_params(self):
         return {
@@ -303,12 +278,31 @@ class BTLM(Chatbot):
                 "no_repeat_ngram_size": 2,
                 "temperature": 0.7
                 }    
+    
+class Luna(Chatbot):
+
+    def __init__(self, model_name, device, gen_params=None) -> None:
+        super().__init__(model_name, device, gen_params)
+
+    def prompt_template(self):
+        return strip_all("""USER: {prompt}
+        ASSISTANT:""")
+
+    def get_gen_params(self):
+        return {
+                "max_new_tokens": 512,
+                "temperature": 0.7
+                }     
 
 class Claude(Chatbot):
 
-    def __init__(self, repo_id, gen_params=None) -> None:
+    def __init__(self, model_name, gen_params=None) -> None:
 
-        self.repo_id = (repo_id, get_repos()[repo_id])
+        self.cfg = get_model_cfg()[model_name]
+        self.name = model_name
+        self.repo_id = self.cfg.get("repo_id")
+        self.model_basename = self.cfg.get("basename")
+        self.context_length = self.cfg.get("context_length")
         self.gen_params = self.get_gen_params() if gen_params is None else self.reformat_params(gen_params)
         self.model_params = self.gen_params
         self.model = self.init_model()
@@ -331,7 +325,7 @@ class Claude(Chatbot):
         }
     
     def init_model(self):
-        return ChatAnthropic(model=self.repo[1], **self.gen_params)
+        return ChatAnthropic(model=self.repo_id, **self.gen_params)
     
     def init_pipe(self):
         return self.model

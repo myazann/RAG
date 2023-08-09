@@ -1,6 +1,6 @@
 import re
 
-from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader
+from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader
 from langchain.utilities import SQLDatabase
 
 class FileLoader():
@@ -8,22 +8,19 @@ class FileLoader():
     def load(self, doc_name, pdf_loader="unstructured"):
 
         file_type = self.get_file_type(doc_name)
-        if file_type != "db":
-            if file_type == "pdf":
+        if file_type == "db":
+            print("Reading database!")
+            doc = SQLDatabase.from_uri(f"sqlite:///{doc_name}") 
+        else:
+            if "telegram" in doc_name:
+                loader = TelegramChatFileLoader(doc_name)
+            elif file_type == "pdf":
                 loader = self.pdf_loaders()[pdf_loader](doc_name)
-            
             elif file_type == "txt":
                 loader = TextLoader(doc_name)
-            try:
-                doc = loader.load()
-                return doc
-            except:
-                raise Exception("File doesn't exist or no loader yet for the file extension!")
+            doc = loader.load()
 
-        else:
-            print("Reading database!")
-            sql_db = SQLDatabase.from_uri(f"sqlite:///{doc_name}") 
-            return sql_db
+        return doc
 
     def get_file_type(self, file_name):
         return file_name.split(".")[-1]

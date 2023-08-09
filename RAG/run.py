@@ -26,7 +26,7 @@ file_loader = FileLoader()
 file = file_loader.load(file_name)
 file_type = file_loader.get_file_type(file_name)
 
-test_name = f"QA_{chatbot.repo[0]}_{time.time()}"
+test_name = f"QA_{chatbot.name}_{time.time()}"
 os.environ["LANGCHAIN_PROJECT"] = test_name
 
 if file_type == "db":
