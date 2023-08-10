@@ -33,7 +33,6 @@ class Prompter():
         {answer}""")
     
     def gen_sim_queries(self, test_id):
-
         # Prompt to generate similar questions. This prompt works best with Claude 2.0, so it may not produce 
         # desirable outputs in different chatbots.
         if test_id == 1:
@@ -47,10 +46,15 @@ class Prompter():
             print("No such test id!")
 
     def qa_prompt(self):
-        return self.stripped_prompts("""Use the following pieces of context to answer the question at the end. If you don't know the answer, don't try to make up an answer.
+        return self.stripped_prompts("""Your job is to give an answer to the user input at the end. You can use the following pieces of context and the chat history to give an answer. The context and chat history is to help you give a satisfactory answer to the user input, but if the user input is irrelevant to the context and history, you don't have to use them to answer it. If you don't know the answer to the input, don't try to make up an answer. 
+        
         Context:
         {context}
-        Question:
+                                     
+        Chat History:
+        {chat_history}
+                                     
+        User Input:
         {question}""")
 
     def condense_q_prompt(self):
@@ -61,7 +65,7 @@ class Prompter():
         {question}""")
     
     def memory_summary(self):
-        return self.stripped_prompts("""Progressively summarize the lines of conversation provided, adding onto the previous summary returning a new summary. Do not output anything except the summary.
+        return self.stripped_prompts("""Progressively summarize the lines of conversation provided, adding onto the previous summary returning a new summary. Do not output anything except the summary. Do not make a very long summary, keep it short.
         EXAMPLE
         Current summary:
         The human asks what the AI thinks of artificial intelligence. The AI thinks artificial intelligence is a force for good.
