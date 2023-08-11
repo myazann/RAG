@@ -1,5 +1,5 @@
 <h3> TODO </h3>
 <ul>
-  <li> Conversation memory does not work properly for each case, find a solution </li>
-  <li> Try to find the best chunk sizes according to the document </li>
+  <li> Compare different chunk sizes and number of k's </li>
+  <li> Find other documents for testing </li>
 </ul>
