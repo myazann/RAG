@@ -1,6 +1,7 @@
 import torch
 import configparser
 
+import anthropic
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
 from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic
@@ -75,6 +76,12 @@ class Chatbot:
 
     def prompt_template(self):
         return None
+    
+    def count_tokens(self, prompt):
+        if isinstance(prompt, str):
+            return len(self.tokenizer(prompt).input_ids)
+        if isinstance(prompt, list):
+            return max([len(self.tokenizer(chunk).input_ids) for chunk in prompt])
 
     def get_gen_params(self):
         return {}
@@ -127,6 +134,8 @@ class Vicuna(Chatbot):
         return {
         "max_new_tokens": 512,
         "temperature": 0.7,
+        "repetition_penalty": 1.15,
+        "top_p": 0.95,
     }
 
 class GPT4ALL(Chatbot):
@@ -311,6 +320,12 @@ class Claude(Chatbot):
     def prompt_template(self):
         return strip_all("""Human: {prompt}
         Assistant:""")
+    
+    def count_tokens(self, prompt):
+        if isinstance(prompt, str):
+            return self.model.count_tokens(prompt)
+        if isinstance(prompt, list):
+            return max([self.model.count_tokens(chunk) for chunk in prompt])
     
     def reformat_params(self, gen_params):
         if "max_new_tokens" in gen_params.keys():

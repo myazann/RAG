@@ -2,6 +2,9 @@ import argparse
 import difflib
 from configparser import ConfigParser
 
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+
 import GPUtil
 
 def get_device():
@@ -101,3 +104,18 @@ def find_best_substring_match(str1, str2):
             best_match = substring
 
     return best_ratio, best_match
+
+def get_NoOpChain(llm):
+
+   class NoOpLLMChain(LLMChain):
+
+      def __init__(self):
+            super().__init__(llm=llm, prompt=PromptTemplate(template="", input_variables=[]))
+
+      def run(self, question: str, *args, **kwargs) -> str:
+            return question
+
+      async def arun(self, question: str, *args, **kwargs) -> str:
+            return question
+   
+   return NoOpLLMChain()

@@ -2,9 +2,9 @@ import time
 import os
 
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.chains import ConversationalRetrievalChain, LLMChain
-from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
-from langchain.vectorstores import Chroma
+from langchain.chains import ConversationalRetrievalChain
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.vectorstores import Chroma, FAISS
 from langchain.prompts import PromptTemplate
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.chains.question_answering import load_qa_chain
@@ -12,7 +12,7 @@ from langchain.memory import ConversationSummaryMemory
 import huggingface_hub
 
 from RAG.chatbots import choose_bot
-from RAG.utils import get_args, get_device
+from RAG.utils import get_args, get_device, get_NoOpChain
 from RAG.loader import FileLoader
 from RAG.retriever import Retriever
 from RAG.prompter import Prompter
@@ -40,11 +40,13 @@ else:
   texts = text_splitter.split_documents(doc)
 
   embeddings = HuggingFaceEmbeddings()
-
   db = Chroma.from_documents(texts, embeddings)
 
-  retriever = Retriever(db, k=5, search_type="mmr")
-  # retriever.add_embed_filter(embeddings)
+  retriever = Retriever(db)
+  k = retriever.find_ideal_k(chatbot, [page.page_content for page in texts])
+  retriever.init_base_retriever(k=k)
+  retriever.add_embed_filter(embeddings, similarity_threshold=0.2)
+  retriever.init_comp_retriever()
   # retriever.add_doc_compressor(chatbot.pipe)
 
   prompter = Prompter()
@@ -54,31 +56,24 @@ else:
   QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "chat_history", "question"], template=qa_prompt)
   MEMORY_PROMPT = PromptTemplate(input_variables=["summary", "new_lines"], template=memory_prompt)
 
-  memory = ConversationSummaryMemory(llm=chatbot.pipe, memory_key="chat_history", return_messages=False, prompt=MEMORY_PROMPT)
+  memory = ConversationSummaryMemory(llm=chatbot.pipe, memory_key="chat_history", return_messages=False, prompt=MEMORY_PROMPT,
+                                     input_key="question", output_key="answer")
 
-  class NoOpLLMChain(LLMChain):
-
-   def __init__(self):
-       super().__init__(llm=chatbot.pipe, prompt=PromptTemplate(template="", input_variables=[]))
-
-   def run(self, question: str, *args, **kwargs) -> str:
-       return question
-   
-   async def arun(self, question: str, *args, **kwargs) -> str:
-       return question
-   
   doc_chain = load_qa_chain(
       chatbot.pipe,
       chain_type="stuff",
       **{"prompt": QA_CHAIN_PROMPT},
   )
-  qa = ConversationalRetrievalChain(retriever=retriever.base_retriever, combine_docs_chain=doc_chain, 
-                                    question_generator=NoOpLLMChain(), memory=memory, get_chat_history=lambda h: h)
+
+  qa = ConversationalRetrievalChain(retriever=retriever.comp_retriever, combine_docs_chain=doc_chain, 
+                                    question_generator=get_NoOpChain(chatbot.pipe), memory=memory, get_chat_history=lambda h: h,
+                                    return_source_documents=True)
 
 pretty_doc_name = " ".join(file_name.split(".")[:-1]).replace("_"," ")
-print(f"""\nHello, I am here to inform you about the {pretty_doc_name}. What do want to learn? (Press 0 if you want to quit!) \n""")
+print(f"""\nHello, I am here to inform you about the {pretty_doc_name}. What do you want to learn? (Press 0 if you want to quit!) \n""")
 
 while True:
+  print("User: ")
   query = input()
   if query != "0":
     start_time = time.time()
@@ -87,14 +82,9 @@ while True:
     else:
       result = qa({"question": query.strip()})
       answer = result["answer"].strip()
-      #chat_history.append((query, answer))
-
-    print(f"\n{answer}\n")
+    print(f"\nChatbot: {answer}\n")
     end_time = time.time()
     print(f"Took {end_time - start_time} secs!\n")
   else:
     print("Bye!")
     break
-
-## Who are the leaders of work packages?
-## Give me a summary of each lessen work package
