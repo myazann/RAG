@@ -82,7 +82,8 @@ while True:
     else:
       result = qa({"question": query.strip()})
       answer = result["answer"].strip()
-    print(f"\nChatbot: {answer}\n")
+    print("\nChatbot:")
+    print(f"{answer}\n")
     end_time = time.time()
     print(f"Took {end_time - start_time} secs!\n")
   else:
