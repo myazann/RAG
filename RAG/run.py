@@ -2,13 +2,15 @@ import time
 import os
 
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import ConversationalRetrievalChain, ConversationChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma, FAISS
 from langchain.prompts import PromptTemplate
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.chains.question_answering import load_qa_chain
-from langchain.memory import ConversationSummaryMemory
+from langchain.memory import ConversationSummaryMemory, ConversationBufferWindowMemory
+from langchain.agents import create_csv_agent
+from langchain.agents.agent_types import AgentType
 import huggingface_hub
 
 from RAG.chatbots import choose_bot
@@ -33,7 +35,20 @@ os.environ["LANGCHAIN_PROJECT"] = test_name
 
 if file_type == "db":
   db_chain = SQLDatabaseChain.from_llm(chatbot.pipe, file, verbose=True)
+
+elif file_type == "csv":
+
+  df = file
+  prompter = Prompter()
+  csv_prompt = prompter.merge_with_template(chatbot, "csv")
+  memory_prompt = prompter.merge_with_template(chatbot, "memory_summary")
+
+  CSV_PROMPT = PromptTemplate(input_variables=["chat_history", "user_input"], template=csv_prompt)
+  MEMORY_PROMPT = PromptTemplate(input_variables=["summary", "new_lines"], template=memory_prompt)
+  csv_chain = ConversationChain(llm=chatbot.pipe, input_key="user_input", memory=ConversationBufferWindowMemory(k=25, memory_key="chat_history"), prompt=CSV_PROMPT)
+
 else:
+
   doc = file_loader.trim_doc(file)
 
   text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=500)
@@ -44,10 +59,10 @@ else:
 
   retriever = Retriever(db)
   k = retriever.find_ideal_k(chatbot, [page.page_content for page in texts])
+  print(k)
   retriever.init_base_retriever(k=k)
   retriever.add_embed_filter(embeddings, similarity_threshold=0.2)
   retriever.init_comp_retriever()
-  # retriever.add_doc_compressor(chatbot.pipe)
 
   prompter = Prompter()
   qa_prompt = prompter.merge_with_template(chatbot, "qa")
@@ -74,13 +89,23 @@ print(f"""\nHello, I am here to inform you about the {pretty_doc_name}. What do 
 
 while True:
   print("User: ")
-  query = input()
+  query = input().strip()
   if query != "0":
     start_time = time.time()
     if file_type == "db":
       answer = db_chain.run(query)
+    elif file_type == "csv":
+      first_rows = df.head().to_string()
+      query = f"First 5 rows: {first_rows}\nUser Input: {query}"
+      code = csv_chain.predict(user_input=query).strip()
+      code = code[1:-1]
+      print(f"Chatbot Generated Code: {code}")
+      try:
+        answer = eval(code)
+      except Exception as e:
+        answer = e
     else:
-      result = qa({"question": query.strip()})
+      result = qa({"question": query})
       answer = result["answer"].strip()
     print("\nChatbot:")
     print(f"{answer}\n")

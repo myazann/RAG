@@ -2,6 +2,7 @@ import re
 import requests
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+import pandas as pd
 
 from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader, SeleniumURLLoader
 from langchain.utilities import SQLDatabase
@@ -14,11 +15,14 @@ class FileLoader():
         if file_type == "db":
             print("Reading database!")
             doc = SQLDatabase.from_uri(f"sqlite:///{file_name}") 
+        elif file_type == "csv":
+            doc = pd.read_csv(file_name)
         else:
             if "telegram" in file_name:
                 loader = TelegramChatFileLoader(file_name)
             elif file_type == "url":
                 all_urls = set()
+                all_urls.add(file_name)
                 parsed = urlparse(file_name)
                 base_url_path = f"{parsed.scheme}://{parsed.netloc}"
                 l1_all_urls = self.get_all_links(file_name, base_url_path)

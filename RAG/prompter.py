@@ -9,7 +9,8 @@ class Prompter():
             "qa": self.qa_prompt(),
             "eval_qa": self.eval_qa_prompt(),
             "multi_query": self.multi_query_prompt(),
-            "memory_summary": self.memory_summary()
+            "memory_summary": self.memory_summary(),
+            "csv": self.csv_prompt()
         }
 
     def stripped_prompts(self, prompt):
@@ -89,6 +90,18 @@ class Prompter():
     def multi_query_prompt(self):
         return self.stripped_prompts("""You are an AI language model assistant. Your task is to generate three different versions of the given user question to retrieve relevant documents from a vector database. By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitations of the distance-based similarity search. Provide these alternative questions seperated by newlines. Do not output anything besides the questions, and don't put a blank line between the questions.
         Original question: {question}""")
+    
+    def csv_prompt(self):
+        return self.stripped_prompts("""A user wants to gain insights about a pandas dataframe. The user wants you to translate their command into Python code so that they can run the code to learn more about the dataframe. You are going to refer to the dataframe as "df", and you are going to output the code inside square brackets. You are not going to output anything except the code. You don't have to wrap the code inside a "print" function. Here is an example:
+        EXAMPLE
+        User Input: How many rows are there?
+        Output: [df.shape[0]]
+        END_EXAMPLE
+        Here is the chat history between you and the user:
+        {chat_history}
+        Here is the first 5 rows of the dataframe and the User Input:         
+        {user_input}
+        Output:""")
 
     def merge_with_template(self, chatbot, prompt_type):
 
