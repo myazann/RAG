@@ -51,7 +51,7 @@ else:
 
   doc = file_loader.trim_doc(file)
 
-  text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=500)
+  text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=500)
   texts = text_splitter.split_documents(doc)
 
   embeddings = HuggingFaceEmbeddings()
@@ -59,7 +59,6 @@ else:
 
   retriever = Retriever(db)
   k = retriever.find_ideal_k(chatbot, [page.page_content for page in texts])
-  print(k)
   retriever.init_base_retriever(k=k)
   retriever.add_embed_filter(embeddings, similarity_threshold=0.2)
   retriever.init_comp_retriever()

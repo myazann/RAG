@@ -18,7 +18,7 @@ class Retriever():
     def init_base_retriever(self, search_type="mmr", k=5):
 
         fetch_k = k if k >= self.fetch_k else self.fetch_k
-        self.base_retriever = self.database.as_retriever(search_type=search_type, search_kwargs={"k":k, "fetch_k":fetch_k})
+        self.base_retriever = self.database.as_retriever(search_type=search_type, search_kwargs={"k": k, "fetch_k": fetch_k})
     
     def add_embed_filter(self, embeddings, similarity_threshold=0.2):
 

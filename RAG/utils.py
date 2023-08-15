@@ -42,7 +42,7 @@ def get_cfg_params():
 def get_args():
 
    parser = argparse.ArgumentParser()
-   parser.add_argument("-doc", "--document", default="LESSEN_Project_Proposal.pdf", type=str)
+   parser.add_argument("-doc", "--document", default="./files/LESSEN_Project_Proposal.pdf", type=str)
    parser.add_argument("-pt", "--perturb_test_type", default="test1", type=str)
 
    args = parser.parse_args()

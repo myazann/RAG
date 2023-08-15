@@ -3,8 +3,10 @@ import requests
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import pandas as pd
+from git import Repo
+import os
 
-from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader, SeleniumURLLoader
+from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader, SeleniumURLLoader, GitLoader
 from langchain.utilities import SQLDatabase
 
 class FileLoader():
@@ -32,6 +34,14 @@ class FileLoader():
                     all_urls.update(l2_urls)
                 all_urls = list(all_urls)
                 loader = SeleniumURLLoader(urls=all_urls)
+            elif file_type == "git":
+                repo_name = "/".join(file_name.split("/")[-2:])
+                repo_path = f"./files/git/{repo_name}"
+                if os.path.exists(repo_path):
+                    r = Repo(repo_path)
+                else:
+                    r = Repo.clone_from(file_name, repo_path)
+                loader = GitLoader(repo_path=repo_path, branch=r.heads[0])
             elif file_type == "pdf":
                 loader = self.pdf_loaders()[pdf_loader](file_name)
             elif file_type == "txt":
@@ -42,7 +52,10 @@ class FileLoader():
 
     def get_file_type(self, file_name):
         if file_name.startswith("http"):
-            return "url"
+            if "github.com" in file_name:
+                return "git"
+            else:
+                return "url"
         else:
             return file_name.split(".")[-1]
 
