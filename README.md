@@ -1,5 +1,6 @@
 <h3> TODO </h3>
 <ul>
-  <li> Compare different chunk sizes and number of k's </li>
-  <li> Find other documents for testing </li>
+  <li> Identify the parameters and conditions that can make a difference </li>
+  <li> Identify issues and possible solutions </li>
+  <li> Come up with test scenarios </li>
 </ul>
