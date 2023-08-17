@@ -1,7 +1,5 @@
 import time
 import os
-import ast
-import re
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import ConversationalRetrievalChain, ConversationChain
@@ -18,6 +16,7 @@ from RAG.utils import get_args, get_device, get_NoOpChain
 from RAG.loader import FileLoader
 from RAG.retriever import Retriever
 from RAG.prompter import Prompter
+from RAG.output_formatter import csv_output_formatter
 
 huggingface_hub.login(new_session=False)
 args = get_args()
@@ -45,7 +44,8 @@ elif file_type == "csv":
 
   CSV_PROMPT = PromptTemplate(input_variables=["chat_history", "user_input"], template=csv_prompt)
   MEMORY_PROMPT = PromptTemplate(input_variables=["summary", "new_lines"], template=memory_prompt)
-  csv_chain = ConversationChain(llm=chatbot.pipe, input_key="user_input", memory=ConversationBufferWindowMemory(k=25, memory_key="chat_history"), prompt=CSV_PROMPT)
+  csv_chain = ConversationChain(llm=chatbot.pipe, input_key="user_input", 
+                                memory=ConversationBufferWindowMemory(k=3, memory_key="chat_history"), prompt=CSV_PROMPT)
 
 else:
 
@@ -94,22 +94,17 @@ while True:
     if file_type == "db":
       answer = db_chain.run(query)
     elif file_type == "csv":
-      first_rows = df.head().to_string()
-      query = f"First 5 rows: {first_rows}\nUser Input: {query}"
+      col_info = df.dtypes.to_string()
+      first_rows = df.head(5).to_string()
+      query = f"Column names and datatypes:\n{col_info}\nFirst 5 rows of the dataframe:\n{first_rows}\nUser Input: {query}"
       answer = csv_chain.predict(user_input=query).strip()
-      code_match = re.search(r"```([\s\S]*?)```", answer)
-      if code_match:
-          code = code_match.group(1)
-      print_match = re.search(r'print\((.*?)\)', code)
-      if print_match:
-        code = print_match.group(1) 
-      code = code.replace("'", '"')
-      print(f"Chatbot Generated Code: {code}")
-      #try:
-      #answer = eval(code)
-      answer = ast.literal_eval(code)
-      #except Exception as e:
-        #answer = e
+      code = csv_output_formatter(answer)
+      try:
+        exec(code)
+        answer = ""
+      except Exception as e:
+        print(f"Got an error for the chatbot generated code:\n {code}")
+        answer = e
     else:
       result = qa({"question": query})
       answer = result["answer"].strip()

@@ -1,4 +1,4 @@
-from RAG.utils import strip_all
+from RAG.output_formatter import strip_all
 
 class Prompter():
 
@@ -47,7 +47,7 @@ class Prompter():
             print("No such test id!")
 
     def qa_prompt(self):
-        return self.stripped_prompts("""Your job is to give an answer to the user input at the end. You can use the following pieces of context and the chat history to give an answer. The context and chat history are to help you give a satisfactory answer to the user input, but if the user input is irrelevant to the context and history, you don't have to use them to answer it. If you don't know the answer to the input, don't try to make up an answer. 
+        return self.stripped_prompts("""Your job is to give an answer to the user input at the end. You can use the following pieces of context and the chat history to give an answer. The context and chat history are to help you give a satisfactory answer to the user input, but if the user input is irrelevant to the context and history, you don't have to use them to answer it. If you don't know the answer to the input, don't try to make up an answer.
         Context:
         {context}
                                      
@@ -91,14 +91,15 @@ class Prompter():
         Original question: {question}""")
     
     def csv_prompt(self):
-        return self.stripped_prompts("""A user wants to gain insights about a csv file that is imported as a Python dictionary. The keys of the dictionary hold the columns of the csv file, and each key has a list as the value. The lists correspond to the values in the corresponding column of the csv. The user wants you to translate their command into Python code so that they can run the code to learn more about the dictionary. You are going to refer to the dictionary as "csv_dict", and you are going to output the code inside "```". You are not going to output anything except the code. You don't have to wrap the code inside a "print" function. Use double quotes instead of single ones in the code. Here is an example:
-        EXAMPLE
+        return self.stripped_prompts("""A user wants to gain insights about a pandas dataframe. Your job is to translate the user command into Python code so that they can run the code to learn more about the dataframe. The csv is already loaded into the dataframe, and you are going to refer to the dataframe as "df". You are going to output the code inside "```". You are not going to output anything except the code. Include a print function to show the output of the code. Here is an example:
         User Input: How many rows are there?
-        Output: ```df.shape[0]```
-        END_EXAMPLE
+        Output: 
+        ```
+        print(df.shape[0])
+        ```
         Here is the chat history between you and the user:
         {chat_history}
-        Here is the first 5 rows of the csv file and the User Input:         
+         
         {user_input}
         Output:""")
 

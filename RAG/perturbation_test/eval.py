@@ -10,29 +10,7 @@ import huggingface_hub
 from RAG.chatbots import choose_bot
 from RAG.utils import get_args, get_device, find_best_substring_match
 from RAG.prompter import Prompter
-
-def format_output(output):
-
-    result_dict = {
-        "Correctness": "",
-        "Relevance": "",
-        "Coherence": "",
-        "Explanation": ""
-    }
-
-    for key in result_dict.keys():
-        match = None
-        if key != "Explanation":
-            key_match = re.search(fr"{key}: (\d+)", output)
-            if key_match:
-                match = int(key_match.group(1))
-        else:
-            key_match = re.search(r"Explanation:\s*(.+)", output, re.DOTALL)
-            if key_match:
-                match = key_match.group(1)
-        result_dict[key] = match
-
-    return result_dict
+from RAG.output_formatter import eval_output_formatter
 
 args = get_args()
 device = get_device()
@@ -82,7 +60,7 @@ for perturb_test in perturb_tests:
 
         eval_res = llm_chain.predict(question=question, solution=solution, answer=answer)
 
-        out_dict = format_output(eval_res)
+        out_dict = eval_output_formatter(eval_res)
 
         source_doc_match_ratio, _ = find_best_substring_match(source_docs, solution)
         print()

@@ -8,7 +8,7 @@ from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic
 from auto_gptq import AutoGPTQForCausalLM
 
-from RAG.utils import strip_all
+from RAG.output_formatter import strip_all
 
 def get_model_cfg():
 
