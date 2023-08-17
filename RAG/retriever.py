@@ -53,7 +53,7 @@ class Retriever():
         self.mq_retriever = MultiQueryRetriever.from_llm(retriever=self.database.as_retriever(search_type=search_type, search_kwargs={"k": k}),
                                                          llm=llm, prompt=prompt)
 
-    def find_ideal_k(self, chatbot, chunk):
+    def find_max_k(self, chatbot, chunk):
 
         chunk_len = chatbot.count_tokens(chunk)
         k = int(chatbot.context_length)/chunk_len

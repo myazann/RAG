@@ -1,5 +1,7 @@
 import time
 import os
+import ast
+import re
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import ConversationalRetrievalChain, ConversationChain
@@ -9,8 +11,6 @@ from langchain.prompts import PromptTemplate
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.memory import ConversationSummaryMemory, ConversationBufferWindowMemory
-from langchain.agents import create_csv_agent
-from langchain.agents.agent_types import AgentType
 import huggingface_hub
 
 from RAG.chatbots import choose_bot
@@ -51,14 +51,14 @@ else:
 
   doc = file_loader.trim_doc(file)
 
-  text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=500)
+  text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=500)
   texts = text_splitter.split_documents(doc)
 
   embeddings = HuggingFaceEmbeddings()
   db = Chroma.from_documents(texts, embeddings)
 
   retriever = Retriever(db)
-  k = retriever.find_ideal_k(chatbot, [page.page_content for page in texts])
+  k = retriever.find_max_k(chatbot, [page.page_content for page in texts])
   retriever.init_base_retriever(k=k)
   retriever.add_embed_filter(embeddings, similarity_threshold=0.2)
   retriever.init_comp_retriever()
@@ -96,13 +96,20 @@ while True:
     elif file_type == "csv":
       first_rows = df.head().to_string()
       query = f"First 5 rows: {first_rows}\nUser Input: {query}"
-      code = csv_chain.predict(user_input=query).strip()
-      code = code[1:-1]
+      answer = csv_chain.predict(user_input=query).strip()
+      code_match = re.search(r"```([\s\S]*?)```", answer)
+      if code_match:
+          code = code_match.group(1)
+      print_match = re.search(r'print\((.*?)\)', code)
+      if print_match:
+        code = print_match.group(1) 
+      code = code.replace("'", '"')
       print(f"Chatbot Generated Code: {code}")
-      try:
-        answer = eval(code)
-      except Exception as e:
-        answer = e
+      #try:
+      #answer = eval(code)
+      answer = ast.literal_eval(code)
+      #except Exception as e:
+        #answer = e
     else:
       result = qa({"question": query})
       answer = result["answer"].strip()

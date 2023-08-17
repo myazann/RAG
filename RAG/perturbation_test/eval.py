@@ -71,10 +71,7 @@ for perturb_test in perturb_tests:
     runs.reverse()
     
     eval_prompt = prompter.merge_with_template(chatbot, "eval_qa")
-    llm_chain = LLMChain(
-            llm=chatbot.pipe,
-            prompt=PromptTemplate.from_template(eval_prompt)
-        )
+    llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(eval_prompt))
 
     for run in runs:
         
@@ -102,28 +99,5 @@ for perturb_test in perturb_tests:
             "Source Doc Match Ratio": source_doc_match_ratio 
         })
 
-# pretty_name = "_".join(test_name.split("_")[2:-1])
 with open(f"evalres_{test}.json", "w") as f:
     json.dump(all_test_res, f)
-
-"""
-chatbot = choose_bot(device, gen_params={"max_new_tokens": 512, "temperature": 0})
-lc_pipeline = HuggingFacePipeline(pipeline=chatbot.pipe)
-
-prompter = Prompter()
-eval_prompt = prompter.merge_with_template(chatbot, "eval_qa")
-eval_res = lc_pipeline(eval_prompt.format(question=question, real_answer=real_answer, gen_answer=gen_answer))
-
-
-
-eval_dict = json.loads(eval_res)
-
-score_match = re.search(r"Score: (\d+)", eval_res)
-if score_match:
-    score = int(score_match.group(1))
-
-exp_match = re.search(r"Explanation:\s*(.+)", eval_res, re.DOTALL)
-if exp_match:
-    explanation = exp_match.group(1)
-
-"""

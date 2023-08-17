@@ -1,7 +1,8 @@
 import torch
 import configparser
+import os
+from pathlib import Path
 
-import anthropic
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
 from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic
@@ -12,7 +13,7 @@ from RAG.utils import strip_all
 def get_model_cfg():
 
     config = configparser.ConfigParser()
-    config.read("model_config.cfg")
+    config.read(os.path.join(Path(__file__).absolute().parent, "model_config.cfg"))
     return config
 
 def choose_bot(device, model_name=None, gen_params=None):
