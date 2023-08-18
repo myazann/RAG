@@ -49,7 +49,7 @@ elif file_type == "csv":
 
 else:
 
-  doc = file_loader.trim_doc(file)
+  doc = file_loader.LESSEN_preprocess(file)
 
   text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=500)
   texts = text_splitter.split_documents(doc)

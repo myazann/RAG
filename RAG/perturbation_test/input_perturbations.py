@@ -34,9 +34,8 @@ texts = text_splitter.split_documents(doc)
 embeddings = HuggingFaceEmbeddings()
 
 db = Chroma.from_documents(texts, embeddings)
-# chatbots = ["VICUNA-7B-v1.5-GPTQ", "VICUNA-13B-v1.5-GPTQ", "STABLE-BELUGA-7B-GPTQ", "STABLE-BELUGA-13B-GPTQ", "CLAUDE-V1", "CLAUDE-V2"]
-chatbots = ["LLAMA2-13B-GPTQ"]
-
+#chatbots = ["LLAMA2-13B-GPTQ", "VICUNA-7B-v1.5-GPTQ", "VICUNA-13B-v1.5-GPTQ", "STABLE-BELUGA-7B-GPTQ", "STABLE-BELUGA-13B-GPTQ", "CLAUDE-V1", "CLAUDE-V2"]
+chatbots = ["STABLE-BELUGA-7B-GPTQ", "STABLE-BELUGA-13B-GPTQ", "CLAUDE-V1", "CLAUDE-V2"]
 with open(f"{test}.json", "r") as f:
     test_queries = json.load(f)
 
@@ -46,7 +45,6 @@ for bot in chatbots:
 
     device = get_device()
     chatbot = choose_bot(device, model_name=bot, gen_params={"max_new_tokens": 512, "temperature": 0})
-    print(chatbot)
     prompter = Prompter()
     qa_prompt = prompter.merge_with_template(chatbot, "qa")
     
@@ -82,7 +80,7 @@ for bot in chatbots:
             chain_retriever = retriever.base_retriever
 
         qa = ConversationalRetrievalChain(retriever=chain_retriever, combine_docs_chain=doc_chain, 
-                                            question_generator=get_NoOpChain(chatbot.pipe), return_source_documents=False)
+                                          question_generator=get_NoOpChain(chatbot.pipe), return_source_documents=True)
 
         start_time = time.time()
 

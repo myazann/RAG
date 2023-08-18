@@ -66,14 +66,6 @@ class FileLoader():
             "unstructured": UnstructuredPDFLoader,
         }
 
-    def trim_doc(self, doc):
-    
-        for page in doc:
-            page.page_content = re.sub(r'\n+', '\n', page.page_content) 
-            page.page_content = re.sub(r'\s{2,}', ' ', page.page_content)
-
-        return doc
-    
     def get_all_links(self, url, base_url):
 
         reqs = requests.get(url)
@@ -88,3 +80,28 @@ class FileLoader():
                 urls.add(abs_ref)
 
         return list(urls)
+    
+    def LESSEN_preprocess(self, doc):
+        
+        for page in doc:    
+            """
+            pattern = "Dutch Research Agenda Research along routes by Consortia (NWA-ORC) 2020/21 Full proposal form IMPACT PLAN APPROACH\n\nPage "
+            
+            while True:
+                pattern_index = page.page_content.find(pattern)
+            
+                if pattern_index != -1:
+                    end_idx = len(pattern)+pattern_index
+                    if page.page_content[end_idx: end_idx+2].isdigit():
+                        end_idx = len(pattern)+pattern_index+2
+                    else:
+                        end_idx = len(pattern)+pattern_index+1
+
+                    page.page_content = page.page_content.replace(page.page_content[pattern_index: end_idx], "", 1)
+                else:
+                    break
+            """
+            page.page_content = re.sub(r'\n+', '\n', page.page_content) 
+            page.page_content = re.sub(r'\s{2,}', ' ', page.page_content)
+            
+        return doc
