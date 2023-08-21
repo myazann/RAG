@@ -1,20 +1,21 @@
 import json
-import os
-import time
+import pickle
 
 from langsmith import Client
-from langchain import LLMChain, PromptTemplate
 import huggingface_hub
+from ragas import evaluate
+from ragas.metrics import AnswerRelevancy
+from datasets import Dataset
 
+from RAG.utils import get_args, get_device
+from RAG.output_formatter import find_best_substring_match
 from RAG.chatbots import choose_bot
-from RAG.utils import get_args, get_device, find_best_substring_match
-from RAG.prompter import Prompter
-from RAG.output_formatter import eval_output_formatter
 
 args = get_args()
 device = get_device()
 test = args.perturb_test_type
 
+chatbot = choose_bot(device)
 huggingface_hub.login(new_session=False)
 client = Client()
 perturb_tests = [x for x in client.list_projects() if x.name[:2] == "PT"]
@@ -28,16 +29,20 @@ with open(f"{test}.json", "r") as f:
             all_qas[questions] = v["answer"]
 
 all_test_res = {}
-prompter = Prompter()
-chatbot = choose_bot(device, gen_params={"max_new_tokens": 512, "temperature": 0})
 
 for perturb_test in perturb_tests:
 
+    res_dataset = {
+        "question": [],
+        "ground_truths": [],
+        "answer": [],
+        "contexts": [],
+        "source_doc_match_ratio": []
+    }
     pt_test_name = perturb_test.name
     print(pt_test_name)
-    all_test_res[pt_test_name] = []
-    ls_name = f"Eval_{pt_test_name}_{time.time()}"
-    os.environ["LANGCHAIN_PROJECT"] = ls_name
+    k = pt_test_name.split("_")[3]
+    model_name = pt_test_name.split("_")[-2]
 
     runs = list(client.list_runs(
         project_name=pt_test_name,
@@ -46,35 +51,30 @@ for perturb_test in perturb_tests:
     ))
 
     runs.reverse()
-    
-    eval_prompt = prompter.merge_with_template(chatbot, "eval_qa")
-    llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(eval_prompt))
 
-    for run in runs:
+    for i, run in enumerate(runs):
         
         question = run.inputs["question"]
-        solution = all_qas[question]
+        ground_truth = [all_qas[question]]
         answer = run.outputs["answer"]
-        source_docs = " \n".join([page["page_content"] for page in run.outputs["source_documents"]])
+        source_docs = [page["page_content"] for page in run.outputs["source_documents"]]
+        
+        res_dataset["question"].append(question)
+        res_dataset["ground_truths"].append(ground_truth)
+        res_dataset["answer"].append(answer)
+        res_dataset["contexts"].append(source_docs)
+        match_ratio, _ = find_best_substring_match("\n".join(source_docs), ground_truth[0])
+        res_dataset["source_doc_match_ratio"].append(match_ratio)
 
-        eval_res = llm_chain.predict(question=question, solution=solution, answer=answer)
+    dataset = Dataset.from_dict(res_dataset)
 
-        out_dict = eval_output_formatter(eval_res)
+    answer_relevancy = AnswerRelevancy(llm=chatbot.pipe, strictness=3)
+    result = evaluate(dataset, metrics=[answer_relevancy])
+    df = result.to_pandas()
+    df["source_doc_match_ratio"] = res_dataset["source_doc_match_ratio"]
+    all_test_res[f"{model_name}_{k}"] = df
 
-        source_doc_match_ratio, _ = find_best_substring_match(source_docs, solution)
-        print()
-        print(f"""Scores: {out_dict} \nSource doc match ratio: {source_doc_match_ratio}""")
-
-        all_test_res[pt_test_name].append({
-            "Question": question,
-            "Solution": solution,
-            "Answer": answer,
-            "Correctness Score": out_dict["Correctness"],
-            "Relevance Score": out_dict["Relevance"],
-            "Coherence Score": out_dict["Coherence"],
-            "Explanation": out_dict["Explanation"],
-            "Source Doc Match Ratio": source_doc_match_ratio 
-        })
-
-with open(f"evalres_{test}.json", "w") as f:
-    json.dump(all_test_res, f)
+    print(df.head())
+    
+with open("llm_eval_res.pkl", "wb") as f:
+    pickle.dump(all_test_res, f)
