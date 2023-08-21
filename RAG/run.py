@@ -1,13 +1,14 @@
 import time
 import os
 
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.embeddings import HuggingFaceBgeEmbeddings, CacheBackedEmbeddings
 from langchain.chains import ConversationalRetrievalChain, ConversationChain
+from langchain.chains.question_answering import load_qa_chain
+from langchain.storage import InMemoryStore, LocalFileStore, RedisStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma, FAISS
 from langchain.prompts import PromptTemplate
 from langchain_experimental.sql import SQLDatabaseChain
-from langchain.chains.question_answering import load_qa_chain
 from langchain.memory import ConversationSummaryMemory, ConversationBufferWindowMemory
 import huggingface_hub
 
@@ -54,8 +55,21 @@ else:
   text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=500)
   texts = text_splitter.split_documents(doc)
 
-  embeddings = HuggingFaceEmbeddings()
-  db = Chroma.from_documents(texts, embeddings)
+  model_name = "BAAI/bge-base-en"
+  model_kwargs = {"device": device}
+  encode_kwargs = {"normalize_embeddings": True}
+  embeddings = HuggingFaceBgeEmbeddings(
+      model_name=model_name,
+      model_kwargs=model_kwargs,
+      encode_kwargs=encode_kwargs
+  )
+  fs = LocalFileStore("./cache/")
+  cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+      embeddings, fs, namespace=embeddings.model_name
+  )
+
+  # embeddings = HuggingFaceEmbeddings()
+  db = Chroma.from_documents(texts, cached_embedder)
 
   retriever = Retriever(db)
   k = retriever.find_max_k(chatbot, [page.page_content for page in texts])
