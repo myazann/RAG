@@ -1,22 +1,30 @@
 import json
-import pickle
+import time
+import os
 
+import xlsxwriter
+import pandas as pd
+from langchain import LLMChain, PromptTemplate
+from evaluate import load
 from langsmith import Client
-import huggingface_hub
-from ragas import evaluate
-from ragas.metrics import AnswerRelevancy
-from datasets import Dataset
 
 from RAG.utils import get_args, get_device
-from RAG.output_formatter import find_best_substring_match
+from RAG.prompter import Prompter
+from RAG.output_formatter import find_best_substring_match, eval_output_formatter
 from RAG.chatbots import choose_bot
+from UniEval.utils import convert_to_json
+from UniEval.metric.evaluator import get_evaluator 
+
 
 args = get_args()
 device = get_device()
 test = args.perturb_test_type
 
-chatbot = choose_bot(device)
-huggingface_hub.login(new_session=False)
+prompter = Prompter()
+chatbot = choose_bot(device, model_name="CLAUDE-V2", gen_params={"max_new_tokens": 512, "temperature": 0})
+eval_prompt = prompter.merge_with_template(chatbot, "eval_qa")
+llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(eval_prompt))
+
 client = Client()
 perturb_tests = [x for x in client.list_projects() if x.name[:2] == "PT"]
 
@@ -28,8 +36,7 @@ with open(f"{test}.json", "r") as f:
         for questions in v["questions"]:
             all_qas[questions] = v["answer"]
 
-all_test_res = {}
-
+df = pd.DataFrame()
 for perturb_test in perturb_tests:
 
     res_dataset = {
@@ -37,7 +44,15 @@ for perturb_test in perturb_tests:
         "ground_truths": [],
         "answer": [],
         "contexts": [],
-        "source_doc_match_ratio": []
+        "source_doc_match_ratio": [],
+        "bert_score_precision": [],
+        "bert_score_recall": [],
+        "bert_score_f1": [],
+        "UniEval_consistency": [],
+        "LLM_Correctness": [],
+        "LLM_Relevance": [],
+        "LLM_Coherence": [],
+        "LLM_Explanation": []
     }
     pt_test_name = perturb_test.name
     print(pt_test_name)
@@ -58,6 +73,13 @@ for perturb_test in perturb_tests:
         ground_truth = [all_qas[question]]
         answer = run.outputs["answer"]
         source_docs = [page["page_content"] for page in run.outputs["source_documents"]]
+
+        eval_res = llm_chain.predict(question=question, solution=ground_truth[0], answer=answer)
+        out_dict = eval_output_formatter(eval_res)
+        res_dataset["LLM_Correctness"].append(out_dict["Correctness"]),
+        res_dataset["LLM_Relevance"].append(out_dict["Relevance"]),
+        res_dataset["LLM_Coherence"].append(out_dict["Coherence"]),
+        res_dataset["LLM_Explanation"].append(out_dict["Explanation"]),
         
         res_dataset["question"].append(question)
         res_dataset["ground_truths"].append(ground_truth)
@@ -66,15 +88,26 @@ for perturb_test in perturb_tests:
         match_ratio, _ = find_best_substring_match("\n".join(source_docs), ground_truth[0])
         res_dataset["source_doc_match_ratio"].append(match_ratio)
 
-    dataset = Dataset.from_dict(res_dataset)
+        bertscore = load("bertscore")
+        bertscore_res = bertscore.compute(predictions=[answer], references=ground_truth, lang="en")
+        res_dataset["bert_score_precision"].append(bertscore_res["precision"])
+        res_dataset["bert_score_recall"].append(bertscore_res["recall"])
+        res_dataset["bert_score_f1"].append(bertscore_res["f1"])
+        
+        task = "fact"
+        data = convert_to_json(output_list=[answer], src_list=ground_truth)
+        evaluator = get_evaluator(task)
+        eval_scores = evaluator.evaluate(data, print_result=False)
+        res_dataset["UniEval_consistency"].append(eval_scores[0]["consistency"])
 
-    answer_relevancy = AnswerRelevancy(llm=chatbot.pipe, strictness=3)
-    result = evaluate(dataset, metrics=[answer_relevancy])
-    df = result.to_pandas()
-    df["source_doc_match_ratio"] = res_dataset["source_doc_match_ratio"]
-    all_test_res[f"{model_name}_{k}"] = df
+    test_df = pd.DataFrame(res_dataset)
+    test_df["k"] = k
+    test_df["model_name"] = model_name
+
+    df = pd.concat([df, test_df])
 
     print(df.head())
-    
-with open("llm_eval_res.pkl", "wb") as f:
-    pickle.dump(all_test_res, f)
+    print(df.tail())
+
+with pd.ExcelWriter("llm_eval_res.xlsx", engine="xlsxwriter") as writer:
+    df.to_excel(writer, index=False)
