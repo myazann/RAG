@@ -1,12 +1,12 @@
 import time
 import os
 
-from langchain.embeddings import HuggingFaceBgeEmbeddings, CacheBackedEmbeddings
+from langchain.embeddings import HuggingFaceBgeEmbeddings, CacheBackedEmbeddings, OpenAIEmbeddings
 from langchain.chains import ConversationalRetrievalChain, ConversationChain
 from langchain.chains.question_answering import load_qa_chain
-from langchain.storage import InMemoryStore, LocalFileStore, RedisStore
+from langchain.storage import LocalFileStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Chroma, FAISS
+from langchain.vectorstores import Chroma
 from langchain.prompts import PromptTemplate
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.memory import ConversationSummaryMemory, ConversationBufferWindowMemory
@@ -63,6 +63,8 @@ else:
       model_kwargs=model_kwargs,
       encode_kwargs=encode_kwargs
   )
+  
+  #embeddings = OpenAIEmbeddings()
   fs = LocalFileStore("./cache/")
   cached_embedder = CacheBackedEmbeddings.from_bytes_store(
       embeddings, fs, namespace=embeddings.model_name
@@ -121,6 +123,8 @@ while True:
         answer = e
     else:
       result = qa({"question": query})
+      source_docs = result["source_documents"]
+      # print([source_doc.metadata for source_doc in source_docs])
       answer = result["answer"].strip()
     print("\nChatbot:")
     print(f"{answer}\n")

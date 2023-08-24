@@ -64,7 +64,7 @@ for perturb_test in perturb_tests:
             "LLM_Correctness": [],
             "LLM_Relevance": [],
             "LLM_Coherence": [],
-            "LLM_Explanation": []
+            "LLM_Analysis": []
         }
 
         runs = list(client.list_runs(
@@ -87,7 +87,7 @@ for perturb_test in perturb_tests:
             res_dataset["LLM_Correctness"].append(out_dict["Correctness"]),
             res_dataset["LLM_Relevance"].append(out_dict["Relevance"]),
             res_dataset["LLM_Coherence"].append(out_dict["Coherence"]),
-            res_dataset["LLM_Explanation"].append(out_dict["Explanation"]),
+            res_dataset["LLM_Analysis"].append(out_dict["Analysis"]),
             
             res_dataset["question"].append(question)
             res_dataset["ground_truths"].append(ground_truth)

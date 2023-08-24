@@ -18,20 +18,20 @@ def csv_output_formatter(output):
 def eval_output_formatter(output):
 
     result_dict = {
+        "Analysis": "",
         "Correctness": "",
         "Relevance": "",
         "Coherence": "",
-        "Explanation": ""
     }
 
     for key in result_dict.keys():
         match = None
-        if key != "Explanation":
+        if key != "Analysis":
             key_match = re.search(fr"{key}: (\d+)", output)
             if key_match:
                 match = int(key_match.group(1))
         else:
-            key_match = re.search(r"Explanation:\s*(.+)", output, re.DOTALL)
+            key_match = re.search(r"Analysis:\s*(.*?)\s*Correctness:", output, re.DOTALL)
             if key_match:
                 match = key_match.group(1)
         result_dict[key] = match

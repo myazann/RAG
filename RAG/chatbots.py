@@ -1,6 +1,7 @@
 import torch
 import configparser
 import os
+import numpy as np
 from pathlib import Path
 
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
@@ -25,7 +26,10 @@ def choose_bot(device, model_name=None, gen_params=None):
         print("\nChoose a model from the list: (Use their number id for choosing)\n")
         for i, repo in num_repo.items():
             repo_name = repo.replace("_", "-")
-            print(f"{i}: {repo_name}")  
+            if get_model_cfg()[repo]["min_GPU_RAM"] == ">24":
+                print(f"{i}: {repo_name} (This model requires more than 24GBs of GPU RAM!)")  
+            else:
+                print(f"{i}: {repo_name}")  
 
         while True:
             model_id = input()
@@ -135,8 +139,8 @@ class Vicuna(Chatbot):
         return {
         "max_new_tokens": 512,
         "temperature": 0.7,
-        "repetition_penalty": 1.15,
-        "top_p": 0.95,
+        # "repetition_penalty": 1.15,
+        # "top_p": 0.95,
     }
 
 class GPT4ALL(Chatbot):
