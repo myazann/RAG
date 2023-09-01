@@ -124,7 +124,6 @@ while True:
     else:
       result = qa({"question": query})
       source_docs = result["source_documents"]
-      # print([source_doc.metadata for source_doc in source_docs])
       answer = result["answer"].strip()
     print("\nChatbot:")
     print(f"{answer}\n")
