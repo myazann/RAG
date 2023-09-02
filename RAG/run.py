@@ -75,7 +75,7 @@ else:
 
   retriever = Retriever(db)
   k = retriever.find_max_k(chatbot, [page.page_content for page in texts])
-  retriever.init_base_retriever(k=k)
+  retriever.init_base_retriever(k=5)
   retriever.add_embed_filter(embeddings, similarity_threshold=0.2)
   retriever.init_comp_retriever()
 

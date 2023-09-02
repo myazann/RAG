@@ -1,7 +1,6 @@
 import torch
 import configparser
 import os
-import numpy as np
 from pathlib import Path
 
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
@@ -51,8 +50,6 @@ def choose_bot(device, model_name=None, gen_params=None):
         return GPT4ALL(model_name, device, gen_params)  
     elif "BELUGA" in model_name:
         return StableBeluga(model_name, device, gen_params)
-    elif "OPEN_CHAT" in model_name:
-        return OpenChat(model_name, device, gen_params)
     elif "BTLM" in model_name:
         return BTLM(model_name, device, gen_params)
     elif "CLAUDE" in model_name:
@@ -221,7 +218,10 @@ class LLaMA2(Chatbot):
         super().__init__(model_name, device, gen_params)
 
     def prompt_template(self):
-        return strip_all("""[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>{prompt}[/INST]""")
+        if "Yarn" in self.repo_id:
+            return "{prompt}"
+        else: 
+            return strip_all("""[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>{prompt}[/INST]""")
     
     def get_model_params(self):
         return {
@@ -234,8 +234,8 @@ class LLaMA2(Chatbot):
     def get_gen_params(self):
         return {
                 "max_new_tokens": 512,
-                "temperature": 0.7
-                } 
+                "temperature": 0.7,
+                }
     
 class StableBeluga(Chatbot):
 
@@ -253,43 +253,7 @@ class StableBeluga(Chatbot):
         return {
                 "max_new_tokens": 512,
                 "temperature": 0.7
-                }     
-    
-class OpenChat(Chatbot):
-
-    def __init__(self, model_name, device, gen_params=None) -> None:
-        super().__init__(model_name, device, gen_params)
-
-    def prompt_template(self):
-        return strip_all("""GPT4 User: {prompt}<|end_of_turn|>
-        GPT4 Assistant:""")
-
-    def get_gen_params(self):
-        return {
-                "max_new_tokens": 512,
-                "temperature": 0.7
-                }         
-    
-class BTLM(Chatbot):
-
-    def __init__(self, model_name, device, gen_params=None) -> None:
-        super().__init__(model_name, device, gen_params)
-
-    def get_model_params(self):
-        return {
-                "trust_remote_code": True,
-                "pad_token_id": self.tokenizer.eos_token_id,
-                "max_length": 8192
-                }
-
-    def get_gen_params(self):
-        return {
-                "max_new_tokens": 512, 
-                "repetition_penalty": 1.1,
-                "do_sample": False, 
-                "no_repeat_ngram_size": 2,
-                "temperature": 0.7
-                }    
+                }            
     
 class Luna(Chatbot):
 
