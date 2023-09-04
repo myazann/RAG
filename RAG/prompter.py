@@ -1,4 +1,4 @@
-from RAG.output_formatter import strip_all
+from output_formatter import strip_all
 
 class Prompter():
 

@@ -12,12 +12,12 @@ from langchain_experimental.sql import SQLDatabaseChain
 from langchain.memory import ConversationSummaryMemory, ConversationBufferWindowMemory
 import huggingface_hub
 
-from RAG.chatbots import choose_bot
-from RAG.utils import get_args, get_device, get_NoOpChain
-from RAG.loader import FileLoader
-from RAG.retriever import Retriever
-from RAG.prompter import Prompter
-from RAG.output_formatter import csv_output_formatter
+from chatbots import choose_bot
+from utils import get_args, get_device, get_NoOpChain
+from loader import FileLoader
+from retriever import Retriever
+from prompter import Prompter
+from output_formatter import csv_output_formatter
 
 huggingface_hub.login(new_session=False)
 args = get_args()

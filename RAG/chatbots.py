@@ -8,7 +8,7 @@ from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic
 from auto_gptq import AutoGPTQForCausalLM
 
-from RAG.output_formatter import strip_all
+from output_formatter import strip_all
 
 def get_model_cfg():
 
@@ -50,8 +50,6 @@ def choose_bot(device, model_name=None, gen_params=None):
         return GPT4ALL(model_name, device, gen_params)  
     elif "BELUGA" in model_name:
         return StableBeluga(model_name, device, gen_params)
-    elif "BTLM" in model_name:
-        return BTLM(model_name, device, gen_params)
     elif "CLAUDE" in model_name:
         return Claude(model_name, gen_params)
     elif "LUNA" in model_name:
