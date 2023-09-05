@@ -6,9 +6,7 @@ from langchain import LLMChain, PromptTemplate
 from evaluate import load
 from langsmith import Client
 
-print(os.getcwd())
-
-from ..utils import get_args, get_device
+from RAG.utils import get_args, get_device
 from RAG.prompter import Prompter
 from RAG.output_formatter import find_best_substring_match, eval_output_formatter
 from RAG.chatbots import choose_bot

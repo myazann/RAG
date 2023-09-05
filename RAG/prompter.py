@@ -1,10 +1,11 @@
-from output_formatter import strip_all
+from RAG.output_formatter import strip_all
 
 class Prompter():
 
     def __init__(self):
 
         self.prompt_dict = {
+            "lamp": self.lamp_prompt(),
             "condense": self.condense_q_prompt(),
             "qa": self.qa_prompt(),
             "eval_qa": self.eval_qa_prompt(),
@@ -15,6 +16,12 @@ class Prompter():
 
     def stripped_prompts(self, prompt):
         return strip_all(prompt)
+    
+    def lamp_prompt(self):
+        return self.stripped_prompts("""Your task is to categorize an article by choosing from one of the provided categories. You will only output the category name and nothing else.
+        Article: 
+        {article}
+        Categories: [women, religion, politics, style & beauty, entertainment, culture & arts, sports, science & technology, travel, business, crime, education, healthy living, parents, food & drink]""")
     
     def eval_qa_prompt(self):
         return self.stripped_prompts("""Your job is to evaluate an answer given the question and the solution. You will output a score between 0 and 10 for the following categories:

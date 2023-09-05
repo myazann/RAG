@@ -1,5 +1,4 @@
 import argparse
-import difflib
 from configparser import ConfigParser
 
 from langchain.prompts import PromptTemplate
