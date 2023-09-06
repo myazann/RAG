@@ -43,6 +43,7 @@ def get_args():
    parser = argparse.ArgumentParser()
    parser.add_argument("-doc", "--document", default="./files/LESSEN_Project_Proposal.pdf", type=str)
    parser.add_argument("-pt", "--perturb_test_type", default="test1", type=str)
+   parser.add_argument("-ldn", "--lamp_dataset_num", default="5", type=str)
 
    args = parser.parse_args()
 

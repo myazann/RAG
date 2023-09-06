@@ -5,7 +5,8 @@ class Prompter():
     def __init__(self):
 
         self.prompt_dict = {
-            "lamp": self.lamp_prompt(),
+            "lamp_2": self.lamp_prompt_2(),
+            "lamp_5": self.lamp_prompt_5(),
             "condense": self.condense_q_prompt(),
             "qa": self.qa_prompt(),
             "eval_qa": self.eval_qa_prompt(),
@@ -16,12 +17,18 @@ class Prompter():
 
     def stripped_prompts(self, prompt):
         return strip_all(prompt)
-    
-    def lamp_prompt(self):
+
+    def lamp_prompt_2(self):
         return self.stripped_prompts("""Your task is to categorize an article by choosing from one of the provided categories. You will only output the category name and nothing else.
-        Article: 
-        {article}
-        Categories: [women, religion, politics, style & beauty, entertainment, culture & arts, sports, science & technology, travel, business, crime, education, healthy living, parents, food & drink]""")
+            Article: 
+            {article}
+            Categories: [women, religion, politics, style & beauty, entertainment, culture & arts, sports, science & technology, travel, business, crime, education, healthy living, parents, food & drink]""")
+    
+    def lamp_prompt_5(self):
+        return self.stripped_prompts("""Your task is to generate a title for the given abstract. You will only output the title and nothing else.
+            Abstract:
+            {abstract}
+            Title:""")        
     
     def eval_qa_prompt(self):
         return self.stripped_prompts("""Your job is to evaluate an answer given the question and the solution. You will output a score between 0 and 10 for the following categories:

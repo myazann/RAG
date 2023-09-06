@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from git import Repo
 import os
+import json
+import urllib
 
 from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader, SeleniumURLLoader, GitLoader
 from langchain.utilities import SQLDatabase
@@ -49,6 +51,22 @@ class FileLoader():
             doc = loader.load()
 
         return doc
+
+    def get_lamp_dataset(dataset_num):
+
+        modes = ["train", "dev"]
+
+        data = []
+        gts = []
+
+        for mode in modes:
+            with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
+                data.extend(json.load(url))
+            with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_outputs.json") as url:
+                gts.extend(json.load(url)["golds"])
+                gts = sorted(gts, key=lambda x: int(x["id"]))
+                
+        return data, gts
 
     def get_file_type(self, file_name):
         if file_name.startswith("http"):
