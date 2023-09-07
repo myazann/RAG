@@ -1,11 +1,13 @@
 import torch
 import configparser
 import os
+import subprocess
 from pathlib import Path
 
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
 from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic
+from langchain.llms import LlamaCpp
 from auto_gptq import AutoGPTQForCausalLM
 
 from RAG.output_formatter import strip_all
@@ -20,15 +22,18 @@ def choose_bot(device, model_name=None, gen_params=None):
 
     if model_name is None:
 
-        models = get_model_cfg().sections()
+        model_cfg = get_model_cfg()
+        models = model_cfg.sections()
         num_repo = dict({str(k): v for k, v in enumerate(models)})
         print("\nChoose a model from the list: (Use their number id for choosing)\n")
         for i, repo in num_repo.items():
             repo_name = repo.replace("_", "-")
-            if get_model_cfg()[repo]["min_GPU_RAM"] == ">24":
-                print(f"{i}: {repo_name} (Requires >24GBs of GPU RAM!)")  
+            gpu_req = model_cfg[repo]['min_GPU_RAM']
+            if int(gpu_req) == 0:
+                print(f"{i}: {repo_name} (Doesn't need a GPU!)")  
             else:
-                print(f"{i}: {repo_name}")  
+                print(f"{i}: {repo_name} (Requires at least {gpu_req}GB of GPU RAM!)")  
+
 
         while True:
             model_id = input()
@@ -46,8 +51,6 @@ def choose_bot(device, model_name=None, gen_params=None):
         return LLaMA2(model_name, device, gen_params)
     elif "MPT" in model_name:
         return MPT(model_name, device, gen_params)
-    elif "GPT4ALL" in model_name:
-        return GPT4ALL(model_name, device, gen_params)  
     elif "BELUGA" in model_name:
         return StableBeluga(model_name, device, gen_params)
     elif "CLAUDE" in model_name:
@@ -67,9 +70,9 @@ class Chatbot:
         self.model_basename = self.cfg.get("basename")
         self.context_length = self.cfg.get("context_length")
         self.device = device
-        self.is_gptq = self.check_is_gptq()
+        self.model_type = self.get_model_type()
         self.tokenizer = self.init_tokenizer()
-        self.model_params = self.gptq_model_params() if self.is_gptq else self.get_model_params()
+        self.model_params = self.get_model_params()
         self.gen_params = self.get_gen_params() if gen_params is None else gen_params
         self.model = self.init_model()
         self.pipe = self.init_pipe()
@@ -82,20 +85,29 @@ class Chatbot:
             return len(self.tokenizer(prompt).input_ids)
         if isinstance(prompt, list):
             return max([len(self.tokenizer(chunk).input_ids) for chunk in prompt])
-
-    def get_gen_params(self):
-        return {}
-
-    def get_model_params(self):
-        return {}
-
-    def check_is_gptq(self):
-        return True if "GPTQ" in self.repo_id else False
-    
+        
+    def get_model_type(self):
+        if self.repo_id.endswith("GPTQ"):
+            return "GPTQ"
+        elif self.repo_id.endswith("GGUF") or self.repo_id.endswith("GGML"):
+            return "GGUF"
+        else:
+            return "default"
+        
     def init_tokenizer(self):
-        return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
-    
-    def gptq_model_params(self):
+        if self.model_type == "GGUF":
+            return AutoTokenizer.from_pretrained(self.cfg.get("tokenizer"), use_fast=True)
+        else:
+            return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
+            
+    def get_gen_params(self):
+        name_token_var = "max_tokens" if self.model_type == "GGUF" else "max_new_tokens"
+        return {
+        name_token_var: 512,
+        "temperature": 0.7,
+    }
+
+    def gptq_params(self):
         return {
                 "device": self.device,
                 "use_safetensors": True,
@@ -104,20 +116,59 @@ class Chatbot:
                 "quantize_config": None
                 }
     
+    def ggum_params(self):
+        return {
+                "n_gpu_layers": -1,
+                "n_batch": 512,
+                "verbose": True,
+                }
+    
+    def default_model_params(self):
+        return {}
+    
+    def get_model_params(self):
+        if self.model_type == "GPTQ":
+            return self.gptq_params()
+        elif self.model_type == "GGUF":
+            return self.ggum_params()
+        else:
+            return self.default_model_params()
+    
     def init_model(self):
-        if self.is_gptq:
+        if self.model_type == "GPTQ":
             return AutoGPTQForCausalLM.from_quantized(
                     self.repo_id,
                     model_basename=self.model_basename,
                     **self.model_params)
+        elif self.model_type == "GGUF":
+            if os.getenv("HF_HOME") is None:
+                hf_cache_path = os.path.join(os.path.expanduser('~'), ".cache", "huggingface", "transformers")
+            else:
+                hf_cache_path = os.getenv("HF_HOME")
+            model_folder = os.path.join(hf_cache_path, self.repo_id.replace("/", "-"))
+
+            if not os.path.exists(os.path.join(model_folder, self.model_basename)):
+                os.makedirs(model_folder)
+                model_url_path = f"https://huggingface.co/{self.repo_id}/resolve/main/{self.model_basename}"
+                wget_command = f'wget -P {os.path.join(model_folder, self.model_basename)} {model_url_path}'
+                subprocess.run(wget_command.split(), check=True)
+
+            return LlamaCpp(
+                    model_path=os.path.join(model_folder, self.model_basename),
+                    **self.model_params,
+                    **self.gen_params
+                    )     
         else:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
-                    **self.model_params
+                    **self.model_params,
                     )
         
     def init_pipe(self):
-        return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, device=self.device, **self.gen_params))
+        if self.model_type == "GGUF":
+            return self.model
+        else:
+            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, device=self.device, **self.gen_params))
 
 class Vicuna(Chatbot):
 
@@ -129,23 +180,6 @@ class Vicuna(Chatbot):
         USER: 
         {prompt}
         ASSISTANT:""")
-
-    def get_gen_params(self):
-        return {
-        "max_new_tokens": 512,
-        "temperature": 0.7,
-    }
-
-class GPT4ALL(Chatbot):
-
-    def __init__(self, model_name, device, gen_params=None) -> None:
-        super().__init__(model_name, device, gen_params)
-
-    def get_gen_params(self):
-        return {
-        "max_new_tokens": 512,
-        "temperature": 0.7
-    }
 
 class MPT(Chatbot):
 
@@ -203,12 +237,6 @@ class Falcon(Chatbot):
                 "do_sample": True,
                 "top_k": 10,
                 }
-
-    def get_gen_params(self):
-        return {
-                "max_new_tokens": 512,
-                "temperature": 0.7
-                }
     
 class LLaMA2(Chatbot):
 
@@ -221,18 +249,12 @@ class LLaMA2(Chatbot):
         else: 
             return strip_all("""[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>{prompt}[/INST]""")
     
-    def get_model_params(self):
+    def default_model_params(self):
         return {
                 "trust_remote_code": True,
                 "pad_token_id": self.tokenizer.eos_token_id,
                 "eos_token_id": self.tokenizer.eos_token_id,
                 "use_auth_token": True,
-                }
-
-    def get_gen_params(self):
-        return {
-                "max_new_tokens": 512,
-                "temperature": 0.7,
                 }
     
 class StableBeluga(Chatbot):
@@ -245,13 +267,7 @@ class StableBeluga(Chatbot):
         You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.
         ### User: 
         {prompt}
-        ### Assistant:""")
-
-    def get_gen_params(self):
-        return {
-                "max_new_tokens": 512,
-                "temperature": 0.7
-                }            
+        ### Assistant:""")        
     
 class Luna(Chatbot):
 
@@ -261,12 +277,6 @@ class Luna(Chatbot):
     def prompt_template(self):
         return strip_all("""USER: {prompt}
         ASSISTANT:""")
-
-    def get_gen_params(self):
-        return {
-                "max_new_tokens": 512,
-                "temperature": 0.7
-                }     
 
 class Claude(Chatbot):
 

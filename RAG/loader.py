@@ -62,6 +62,7 @@ class FileLoader():
         for mode in modes:
             with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
                 data.extend(json.load(url))
+                data = sorted(data, key=lambda x: int(x["id"]))
             with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_outputs.json") as url:
                 gts.extend(json.load(url)["golds"])
                 gts = sorted(gts, key=lambda x: int(x["id"]))
