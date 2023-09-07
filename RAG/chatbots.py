@@ -146,7 +146,6 @@ class Chatbot:
             else:
                 hf_cache_path = os.getenv("HF_HOME")
             model_folder = os.path.join(hf_cache_path, self.repo_id.replace("/", "-"))
-            print(model_folder)
             if not os.path.exists(os.path.join(model_folder, self.model_basename)):
                 os.makedirs(model_folder, exist_ok=True)
                 model_url_path = f"https://huggingface.co/{self.repo_id}/resolve/main/{self.model_basename}"
