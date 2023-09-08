@@ -34,7 +34,6 @@ def choose_bot(device, model_name=None, gen_params=None):
             else:
                 print(f"{i}: {repo_name} (Requires at least {gpu_req}GB of GPU RAM!)")  
 
-
         while True:
             model_id = input()
             model_name = num_repo.get(model_id)
