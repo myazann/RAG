@@ -147,11 +147,10 @@ class Chatbot:
             else:
                 hf_cache_path = os.getenv("HF_HOME")
             model_folder = os.path.join(hf_cache_path, self.repo_id.replace("/", "-"))
-
             if not os.path.exists(os.path.join(model_folder, self.model_basename)):
-                os.makedirs(model_folder)
+                os.makedirs(model_folder, exist_ok=True)
                 model_url_path = f"https://huggingface.co/{self.repo_id}/resolve/main/{self.model_basename}"
-                wget_command = f'wget -P {os.path.join(model_folder, self.model_basename)} {model_url_path}'
+                wget_command = f"wget -P {model_folder} {model_url_path}"
                 subprocess.run(wget_command.split(), check=True)
 
             return LlamaCpp(
