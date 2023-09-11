@@ -5,5 +5,3 @@
   <li> Understand how quantization methods work, add support for models to utilize different quantization methods </li>
   <li> Try this
 </ul>
-
-Example
