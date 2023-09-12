@@ -1,8 +1,8 @@
 import torch
 import configparser
 import os
-import subprocess
 from pathlib import Path
+import urllib.request
 
 from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
 from langchain import HuggingFacePipeline
@@ -146,11 +146,36 @@ class Chatbot:
             else:
                 hf_cache_path = os.getenv("HF_HOME")
             model_folder = os.path.join(hf_cache_path, self.repo_id.replace("/", "-"))
-            if not os.path.exists(os.path.join(model_folder, self.model_basename)):
-                os.makedirs(model_folder, exist_ok=True)
-                model_url_path = f"https://huggingface.co/{self.repo_id}/resolve/main/{self.model_basename}"
-                wget_command = f"wget -P {model_folder} {model_url_path}"
-                subprocess.run(wget_command.split(), check=True)
+
+            print("This is a quantized model, please choose the number of quantization bits: ")
+
+            bit_range = [str(i) for i in range(2, 9)]
+            for i in bit_range:
+                print(f"{i}")  
+
+            while True:
+                q_bit = input()
+                if q_bit not in bit_range:
+                    print("Please select from one of the options!")
+                else:
+                    self.model_basename = "-".join(self.repo_id.split('/')[1].split("-")[:-1]).lower()
+                    if q_bit in ["2", "6"]:
+                        self.model_basename = f"{self.model_basename}.Q{q_bit}_K.gguf"
+                    elif q_bit == "8":
+                        self.model_basename = f"{self.model_basename}.Q{q_bit}_0.gguf"
+                    else:    
+                        self.model_basename = f"{self.model_basename}.Q{q_bit}_K_M.gguf"
+                    model_url_path = f"https://huggingface.co/{self.repo_id}/resolve/main/{self.model_basename}"
+
+                    if not os.path.exists(os.path.join(model_folder, self.model_basename)):
+                        os.makedirs(model_folder, exist_ok=True)
+                        try:
+                            print("Downloading model!")
+                            urllib.request.urlretrieve(model_url_path, os.path.join(model_folder, self.model_basename))
+                            break
+                        except Exception as e:
+                            print(e)
+                            print("Couldn't find the model, please choose again! (Maybe the model isn't quantized with this bit?)")
 
             return LlamaCpp(
                     model_path=os.path.join(model_folder, self.model_basename),
