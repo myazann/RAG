@@ -18,7 +18,7 @@ def get_model_cfg():
     config.read(os.path.join(Path(__file__).absolute().parent, "model_config.cfg"))
     return config
 
-def choose_bot(device, model_name=None, gen_params=None):
+def choose_bot(model_name=None, gen_params=None):
 
     if model_name is None:
 
@@ -43,15 +43,13 @@ def choose_bot(device, model_name=None, gen_params=None):
                 break
 
     if "FALCON" in model_name:
-        return Falcon(model_name, device, gen_params)
+        return Falcon(model_name, gen_params)
     elif "VICUNA" in model_name:
-        return Vicuna(model_name, device, gen_params)
+        return Vicuna(model_name, gen_params)
     elif "LLAMA" in model_name:
-        return LLaMA2(model_name, device, gen_params)
-    elif "MPT" in model_name:
-        return MPT(model_name, device, gen_params)
+        return LLaMA2(model_name, gen_params)
     elif "BELUGA" in model_name:
-        return StableBeluga(model_name, device, gen_params)
+        return StableBeluga(model_name, gen_params)
     elif "CLAUDE" in model_name:
         return Claude(model_name, gen_params)
     elif "LUNA" in model_name:
@@ -61,14 +59,13 @@ def choose_bot(device, model_name=None, gen_params=None):
 
 class Chatbot:
 
-    def __init__(self, model_name, device, gen_params=None) -> None:
+    def __init__(self, model_name, gen_params=None) -> None:
 
         self.cfg = get_model_cfg()[model_name]
         self.name = model_name
         self.repo_id = self.cfg.get("repo_id")
         self.model_basename = self.cfg.get("basename")
         self.context_length = self.cfg.get("context_length")
-        self.device = device
         self.model_type = self.get_model_type()
         self.tokenizer = self.init_tokenizer()
         self.model_params = self.get_model_params()
@@ -108,7 +105,7 @@ class Chatbot:
 
     def gptq_params(self):
         return {
-                "device": self.device,
+                "device_map": "auto",
                 "use_safetensors": True,
                 "trust_remote_code": True,
                 "use_triton": False,
@@ -186,18 +183,19 @@ class Chatbot:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
                     **self.model_params,
+                    device_map="auto"
                     )
         
     def init_pipe(self):
         if self.model_type == "GGUF":
             return self.model
         else:
-            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, device=self.device, **self.gen_params))
+            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
 
 class Vicuna(Chatbot):
 
-    def __init__(self, model_name, device, gen_params=None) -> None:
-        super().__init__(model_name, device, gen_params)
+    def __init__(self, model_name, gen_params=None) -> None:
+        super().__init__(model_name, gen_params)
 
     def prompt_template(self):
         return strip_all("""A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
@@ -205,51 +203,10 @@ class Vicuna(Chatbot):
         {prompt}
         ASSISTANT:""")
 
-class MPT(Chatbot):
-
-    def __init__(self, model_name, device, gen_params=None) -> None:
-        super().__init__(model_name, device, gen_params)
-
-    def init_tokenizer(self):
-        return AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
-    
-    def get_model_params(self):
-        config = AutoConfig.from_pretrained(self.repo_id, trust_remote_code=True)
-        config.init_device = self.device 
-        config.max_seq_len = 8192
-
-        return {
-                #"config": config,
-                "init_device": self.device,
-                "max_seq_len": 4096,
-                "torch_dtype": torch.bfloat16, 
-                "trust_remote_code": True,
-                }
-
-    def get_gen_params(self):
-
-        stop_token_ids = self.tokenizer.convert_tokens_to_ids(["<|endoftext|>"])
-        
-        class StopOnTokens(StoppingCriteria):
-            def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs):
-                for stop_id in stop_token_ids:
-                    if input_ids[0][-1] == stop_id:
-                        return True
-                return False
-        
-        stopping_criteria = StoppingCriteriaList([StopOnTokens()])
-
-        return {
-                "return_full_text": True,
-                "stopping_criteria": stopping_criteria, 
-                "max_new_tokens": 512,  
-                "repetition_penalty": 1.1
-                }
-
 class Falcon(Chatbot):
 
-    def __init__(self, model_name, device, gen_params=None) -> None:
-        super().__init__(model_name, device, gen_params)
+    def __init__(self, model_name, gen_params=None) -> None:
+        super().__init__(model_name, gen_params)
     
     def get_model_params(self):
         return {
@@ -264,8 +221,8 @@ class Falcon(Chatbot):
     
 class LLaMA2(Chatbot):
 
-    def __init__(self, model_name, device, gen_params=None) -> None:
-        super().__init__(model_name, device, gen_params)
+    def __init__(self, model_name, gen_params=None) -> None:
+        super().__init__(model_name, gen_params)
 
     def prompt_template(self):
         if "Yarn" in self.repo_id:
@@ -283,8 +240,8 @@ class LLaMA2(Chatbot):
     
 class StableBeluga(Chatbot):
 
-    def __init__(self, model_name, device, gen_params=None) -> None:
-        super().__init__(model_name, device, gen_params)
+    def __init__(self, model_name, gen_params=None) -> None:
+        super().__init__(model_name, gen_params)
 
     def prompt_template(self):
         return strip_all("""### System: 
@@ -295,8 +252,8 @@ class StableBeluga(Chatbot):
     
 class Luna(Chatbot):
 
-    def __init__(self, model_name, device, gen_params=None) -> None:
-        super().__init__(model_name, device, gen_params)
+    def __init__(self, model_name, gen_params=None) -> None:
+        super().__init__(model_name, gen_params)
 
     def prompt_template(self):
         return strip_all("""USER: {prompt}

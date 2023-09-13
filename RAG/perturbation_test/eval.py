@@ -6,7 +6,7 @@ from langchain import LLMChain, PromptTemplate
 from evaluate import load
 from langsmith import Client
 
-from RAG.utils import get_args, get_device
+from RAG.utils import get_args
 from RAG.prompter import Prompter
 from RAG.output_formatter import find_best_substring_match, eval_output_formatter
 from RAG.chatbots import choose_bot
@@ -14,11 +14,10 @@ from UniEval.utils import convert_to_json
 from UniEval.metric.evaluator import get_evaluator 
 
 args = get_args()
-device = get_device()
 test = args.perturb_test_type
 
 prompter = Prompter()
-chatbot = choose_bot(device, model_name="CLAUDE-V2", gen_params={"max_new_tokens": 512, "temperature": 0})
+chatbot = choose_bot(model_name="CLAUDE-V2", gen_params={"max_new_tokens": 512, "temperature": 0})
 eval_prompt = prompter.merge_with_template(chatbot, "eval_qa")
 llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(eval_prompt))
 

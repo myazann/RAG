@@ -24,7 +24,7 @@ args = get_args()
 file_name = args.document
 device = get_device()
 
-chatbot = choose_bot(device)
+chatbot = choose_bot()
 
 file_loader = FileLoader()
 file = file_loader.load(file_name)

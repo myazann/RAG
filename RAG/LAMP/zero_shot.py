@@ -4,17 +4,16 @@ import time
 from langchain import LLMChain, PromptTemplate
 
 from RAG.prompter import Prompter
-from RAG.utils import get_device, get_args
+from RAG.utils import get_args
 from RAG.chatbots import choose_bot
 from RAG.loader import FileLoader
 
-device = get_device()
 args = get_args()
 dataset_num = args.lamp_dataset_num
 
 data, gts = FileLoader.get_lamp_dataset(dataset_num)
 prompter = Prompter()
-chatbot = choose_bot(device, gen_params={"max_new_tokens": 256, "temperature": 0})
+chatbot = choose_bot(gen_params={"max_new_tokens": 256, "temperature": 0})
 lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
 
 test_name = f"LAMP_{chatbot.name}_{time.time()}"

@@ -14,7 +14,7 @@ import torch
 import numpy as np
 
 from RAG.chatbots import choose_bot
-from RAG.utils import get_device, get_args, get_NoOpChain
+from RAG.utils import get_args, get_NoOpChain
 from RAG.loader import FileLoader
 from RAG.retriever import Retriever
 from RAG.prompter import Prompter
@@ -43,8 +43,7 @@ for bot in chatbots:
 
     print(bot)
 
-    device = get_device()
-    chatbot = choose_bot(device, model_name=bot, gen_params={"max_new_tokens": 512, "temperature": 0})
+    chatbot = choose_bot(model_name=bot, gen_params={"max_new_tokens": 512, "temperature": 0})
     prompter = Prompter()
     qa_prompt = prompter.merge_with_template(chatbot, "qa")
     
