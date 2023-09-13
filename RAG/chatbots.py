@@ -166,7 +166,6 @@ class Chatbot:
                     else:    
                         self.model_basename = f"{self.model_basename}.Q{q_bit}_K_M.gguf"
                     model_url_path = f"https://huggingface.co/{self.repo_id}/resolve/main/{self.model_basename}"
-
                     if not os.path.exists(os.path.join(model_folder, self.model_basename)):
                         os.makedirs(model_folder, exist_ok=True)
                         try:
@@ -176,6 +175,7 @@ class Chatbot:
                         except Exception as e:
                             print(e)
                             print("Couldn't find the model, please choose again! (Maybe the model isn't quantized with this bit?)")
+                    break
 
             return LlamaCpp(
                     model_path=os.path.join(model_folder, self.model_basename),
