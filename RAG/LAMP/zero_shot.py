@@ -2,6 +2,7 @@ import os
 import time
 
 from langchain import LLMChain, PromptTemplate
+from evaluate import load
 
 from RAG.prompter import Prompter
 from RAG.utils import get_args
@@ -41,9 +42,24 @@ elif dataset_num == "5":
     for i, q in enumerate(data):
         if i == 10:
             break
+        print(f"Sample {i}:\n")
         abstract_idx = q["input"].find(":")+1
         abstract = q["input"][abstract_idx:].strip()
         res = llm_chain.predict(abstract=abstract).strip()
-        print(f"Abstract: {abstract}")
-        print(f"Ground Truth: {gts[i]['output']}")
-        print(f"Pred: {res}")
+        gt = gts[i]['output']
+        print(f"Abstract: \n{abstract}")
+        print(f"Ground Truth: \n{gt}")
+        print(f"Pred: \n{res}")
+
+        bertscore = load("bertscore")
+        bertscore_res = bertscore.compute(predictions=[res], references=[gt], lang="en")
+        print(f"Bertscore: {bertscore_res}")
+
+        rouge = load("rouge")
+        rouge_results = rouge.compute(predictions=[res], references=[gt])
+        print(f"Rouge: {rouge_results}")
+
+        bleu = load("bleu")
+        bleu_results = bleu.compute(predictions=[res], references=[gt])
+        print(f"BLEU: {bleu_results}")
+        print()

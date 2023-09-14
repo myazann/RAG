@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import urllib.request
 
-from transformers import AutoTokenizer, pipeline, StoppingCriteria, StoppingCriteriaList, AutoConfig, AutoModelForCausalLM
+from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM
 from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic
 from langchain.llms import LlamaCpp
@@ -69,7 +69,7 @@ class Chatbot:
         self.model_type = self.get_model_type()
         self.tokenizer = self.init_tokenizer()
         self.model_params = self.get_model_params()
-        self.gen_params = self.get_gen_params() if gen_params is None else gen_params
+        self.gen_params = self.get_gen_params(gen_params)
         self.model = self.init_model()
         self.pipe = self.init_pipe()
 
@@ -93,15 +93,32 @@ class Chatbot:
     def init_tokenizer(self):
         if self.model_type == "GGUF":
             return AutoTokenizer.from_pretrained(self.cfg.get("tokenizer"), use_fast=True)
+        elif "claude" in self.repo_id:
+            return None
         else:
             return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
             
-    def get_gen_params(self):
-        name_token_var = "max_tokens" if self.model_type == "GGUF" else "max_new_tokens"
-        return {
-        name_token_var: 512,
-        "temperature": 0.7,
-    }
+    def get_gen_params(self, gen_params):
+
+        if self.model_type == "GGUF":
+            name_token_var = "max_tokens"
+        elif "claude" in self.repo_id:
+            name_token_var = "max_tokens_to_sample"
+        else:
+            name_token_var = "max_new_tokens"
+
+        if gen_params is None:
+            return {
+            name_token_var: 512,
+            "temperature": 0.7,
+            }
+        
+        elif "max_new_tokens" in gen_params.keys():
+
+            value = gen_params.pop("max_new_tokens")
+            gen_params[name_token_var] = value
+
+        return gen_params
 
     def gptq_params(self):
         return {
@@ -137,6 +154,10 @@ class Chatbot:
                     self.repo_id,
                     model_basename=self.model_basename,
                     **self.model_params)
+        
+        elif "claude" in self.repo_id:
+            return ChatAnthropic(model=self.repo_id, **self.gen_params)
+        
         elif self.model_type == "GGUF":
             if os.getenv("HF_HOME") is None:
                 hf_cache_path = os.path.join(os.path.expanduser('~'), ".cache", "huggingface", "transformers")
@@ -187,7 +208,7 @@ class Chatbot:
                     )
         
     def init_pipe(self):
-        if self.model_type == "GGUF":
+        if self.model_type == "GGUF" or "claude" in self.repo_id:
             return self.model
         else:
             return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
@@ -225,10 +246,7 @@ class LLaMA2(Chatbot):
         super().__init__(model_name, gen_params)
 
     def prompt_template(self):
-        if "Yarn" in self.repo_id:
-            return "{prompt}"
-        else: 
-            return strip_all("""[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>{prompt}[/INST]""")
+        return strip_all("""[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>{prompt}[/INST]""")
     
     def default_model_params(self):
         return {
@@ -261,17 +279,8 @@ class Luna(Chatbot):
 
 class Claude(Chatbot):
 
-    def __init__(self, model_name, gen_params=None) -> None:
-
-        self.cfg = get_model_cfg()[model_name]
-        self.name = model_name
-        self.repo_id = self.cfg.get("repo_id")
-        self.model_basename = self.cfg.get("basename")
-        self.context_length = self.cfg.get("context_length")
-        self.gen_params = self.get_gen_params() if gen_params is None else self.reformat_params(gen_params)
-        self.model_params = self.gen_params
-        self.model = self.init_model()
-        self.pipe = self.init_pipe()
+    def __init__(self, model_name, gen_params) -> None:
+        super().__init__(model_name, gen_params)
 
     def prompt_template(self):
         return strip_all("""Human: {prompt}
@@ -282,21 +291,3 @@ class Claude(Chatbot):
             return self.model.count_tokens(prompt)
         if isinstance(prompt, list):
             return max([self.model.count_tokens(chunk) for chunk in prompt])
-    
-    def reformat_params(self, gen_params):
-        if "max_new_tokens" in gen_params.keys():
-            value = gen_params.pop("max_new_tokens")
-            gen_params["max_tokens_to_sample"] = value
-        return gen_params
-    
-    def get_gen_params(self):
-        return {
-            "max_tokens_to_sample": 512,
-            "temperature": None
-        }
-    
-    def init_model(self):
-        return ChatAnthropic(model=self.repo_id, **self.gen_params)
-    
-    def init_pipe(self):
-        return self.model
