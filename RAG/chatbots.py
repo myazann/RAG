@@ -66,6 +66,7 @@ class Chatbot:
         self.repo_id = self.cfg.get("repo_id")
         self.model_basename = self.cfg.get("basename")
         self.context_length = self.cfg.get("context_length")
+        self.q_bit = None
         self.model_type = self.get_model_type()
         self.tokenizer = self.init_tokenizer()
         self.model_params = self.get_model_params()
@@ -177,6 +178,7 @@ class Chatbot:
                     print("Please select from one of the options!")
                 else:
                     self.model_basename = "-".join(self.repo_id.split('/')[1].split("-")[:-1]).lower()
+                    self.q_bit = q_bit
                     if q_bit in ["2", "6"]:
                         self.model_basename = f"{self.model_basename}.Q{q_bit}_K.gguf"
                     elif q_bit == "8":
