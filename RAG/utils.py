@@ -41,7 +41,7 @@ def get_cfg_params():
 def get_args():
 
    parser = argparse.ArgumentParser()
-   parser.add_argument("-doc", "--document", default="./files/LESSEN_Project_Proposal.pdf", type=str)
+   parser.add_argument("-doc", "--document", default="https://python.langchain.com/docs/get_started/introduction", type=str)
    parser.add_argument("-pt", "--perturb_test_type", default="test1", type=str)
    parser.add_argument("-ldn", "--lamp_dataset_num", default="5", type=str)
 
