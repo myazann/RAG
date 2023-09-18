@@ -67,7 +67,10 @@ for bot in chatbots:
             k = max_k
         else:
             k = k_val
-        test_name = f"PT_WITH_K_{k_val}_{test}_{bot}_{time.time()}"
+        if chatbot.q_bit is None:
+            test_name = f"PT_WITH_K_{k_val}_{test}_{bot}_{time.time()}"
+        else:
+            test_name = f"PT_WITH_K_{k_val}_{test}_{bot}_{chatbot.q_bit}_{time.time()}"
         os.environ["LANGCHAIN_PROJECT"] = test_name
         retriever.init_base_retriever(k=k)
         if k_val == "filtered":

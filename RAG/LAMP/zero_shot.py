@@ -17,7 +17,10 @@ prompter = Prompter()
 chatbot = choose_bot(gen_params={"max_new_tokens": 256, "temperature": 0})
 lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
 
-test_name = f"LAMP_{chatbot.name}_{time.time()}"
+if chatbot.q_bit is None:
+  test_name = f"QA_{chatbot.name}_{time.time()}"
+else:
+  test_name = f"QA_{chatbot.name}_{chatbot.q_bit}-bit_{time.time()}"
 os.environ["LANGCHAIN_PROJECT"] = test_name
 
 llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))
@@ -40,7 +43,7 @@ if dataset_num == "2":
 
 elif dataset_num == "5":
     for i, q in enumerate(data):
-        if i == 10:
+        if i == 20:
             break
         print(f"Sample {i}:\n")
         abstract_idx = q["input"].find(":")+1
