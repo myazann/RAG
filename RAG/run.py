@@ -1,7 +1,7 @@
 import time
 import os
 
-from langchain.embeddings import HuggingFaceBgeEmbeddings, CacheBackedEmbeddings, OpenAIEmbeddings
+from langchain.embeddings import HuggingFaceBgeEmbeddings, CacheBackedEmbeddings
 from langchain.chains import ConversationalRetrievalChain, ConversationChain
 from langchain.chains.question_answering import load_qa_chain
 from langchain.storage import LocalFileStore
@@ -55,7 +55,7 @@ else:
 
   doc = file_loader.LESSEN_preprocess(file)
 
-  text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=500)
+  text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=250)
   texts = text_splitter.split_documents(doc)
 
   model_name = "BAAI/bge-base-en"
