@@ -1,3 +1,8 @@
+#module load GitPython
+#source /data1/yazanm/chatbots/bin/activate
+#module load ALICE/AMD
+#module load GitPython/3.1.14-GCCcore-10.2.0 
+
 import os
 import time
 
@@ -14,7 +19,8 @@ dataset_num = args.lamp_dataset_num
 
 data, gts = FileLoader.get_lamp_dataset(dataset_num)
 prompter = Prompter()
-chatbot = choose_bot(gen_params={"max_new_tokens": 256, "temperature": 0})
+# model_name="LLAMA2-7B",
+chatbot = choose_bot(gen_params={"max_new_tokens": 256}, q_bits=5)
 lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
 
 if chatbot.q_bit is None:
