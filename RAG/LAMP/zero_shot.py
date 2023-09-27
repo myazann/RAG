@@ -18,7 +18,10 @@ dataset_num = args.lamp_dataset_num
 data, gts = FileLoader.get_lamp_dataset(dataset_num)
 prompter = Prompter()
 
-chatbot = choose_bot(model_name="LLAMA2-70B-GGUF", gen_params={"max_new_tokens": 256}, q_bits=5)
+chatbot = choose_bot(model_name="LLAMA2-70B-GGUF", model_params={"n_gpu_layers": 0,
+                "n_batch": 512,
+                "verbose": True,
+                "n_ctx": 4096}, gen_params={"max_new_tokens": 256}, q_bits=5)
 print(subprocess.run("nvidia-smi"))
 
 sys.stdout.flush()
