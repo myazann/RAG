@@ -133,7 +133,7 @@ class Chatbot:
         return {
                 "n_gpu_layers": -1,
                 "n_batch": 512,
-                "verbose": True,
+                "verbose": False,
                 "n_ctx": self.context_length
                 }
     

@@ -52,22 +52,23 @@ class FileLoader():
 
         return doc
 
-    def get_lamp_dataset(dataset_num):
+    def get_lamp_dataset(dataset_num, get_gts_only=False):
 
         modes = ["train", "dev"]
-
         data = []
         gts = []
 
         for mode in modes:
-            with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
-                data.extend(json.load(url))
-                data = sorted(data, key=lambda x: int(x["id"]))
+            if not get_gts_only:
+                with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
+                    data.extend(json.load(url))
+                    data = sorted(data, key=lambda x: int(x["id"]))
             with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_outputs.json") as url:
                 gts.extend(json.load(url)["golds"])
                 gts = sorted(gts, key=lambda x: int(x["id"]))
+                out_gts = [gt["output"] for gt in gts]
                 
-        return data, gts
+        return data, out_gts
 
     def get_file_type(self, file_name):
         if file_name.startswith("http"):
