@@ -18,7 +18,7 @@ orig_data, _ = FileLoader.get_lamp_dataset(dataset_num)
 
 prompter = Prompter()
 # ["LLAMA2-7B", "LLAMA2-7B-GGUF", "LLAMA2-13B", "LLAMA2-13B-GGUF", "VICUNA-7B-v1.5", "VICUNA-7B-v1.5-GGUF", "VICUNA-13B-v1.5", "VICUNA-13B-v1.5-GGUF"]
-chatbot_names = ["VICUNA-7B-v1.5-GGUF"]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5"]
 out_dir = "res_pkls"
 os.makedirs(out_dir, exist_ok=True)
 
@@ -46,7 +46,9 @@ for chatbot_name in chatbot_names:
 
         else:
             data = orig_data[len(all_res):]
-            
+    else:
+        data = orig_data
+        
     os.environ["LANGCHAIN_PROJECT"] = test_name
     chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": 64}, q_bits=q_bits)
     lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
