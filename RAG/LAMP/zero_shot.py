@@ -18,7 +18,7 @@ orig_data, _ = FileLoader.get_lamp_dataset(dataset_num)
 
 prompter = Prompter()
 # ["LLAMA2-7B", "LLAMA2-7B-GGUF", "LLAMA2-13B", "LLAMA2-13B-GGUF", "VICUNA-7B-v1.5", "VICUNA-7B-v1.5-GGUF", "VICUNA-13B-v1.5", "VICUNA-13B-v1.5-GGUF"]
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5"]
+chatbot_names = ["LLAMA2-7B-GGUF"]
 out_dir = "res_pkls"
 os.makedirs(out_dir, exist_ok=True)
 
