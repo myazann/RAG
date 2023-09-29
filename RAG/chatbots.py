@@ -6,7 +6,7 @@ import urllib.request
 
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM
 from langchain import HuggingFacePipeline
-from langchain.chat_models import ChatAnthropic
+from langchain.chat_models import ChatAnthropic, ChatOpenAI
 from langchain.llms import LlamaCpp
 from auto_gptq import AutoGPTQForCausalLM
 
@@ -24,15 +24,25 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
 
         model_cfg = get_model_cfg()
         models = model_cfg.sections()
-        num_repo = dict({str(k): v for k, v in enumerate(models)})
-        print("\nChoose a model from the list: (Use their number id for choosing)\n")
+        model_families = dict({str(k): v for k, v in enumerate(set([model.split("-")[0] for model in models ]))})
+        print("Here are the available model families, please choose one:\n")
+
+        for i, repo in model_families.items():
+            print(f"{i}: {repo}")  
+
+        while True:
+            model_family_id = input()
+            model_family = model_families.get(model_family_id)
+            if model_family is None:
+                print("Please select from one of the options!")
+            else:
+                break
+
+        num_repo = dict({str(k): v for k, v in enumerate([model for model in models if model_family in model])})
+        print("\nChoose a version:\n")
         for i, repo in num_repo.items():
             repo_name = repo.replace("_", "-")
-            gpu_req = model_cfg[repo]['min_GPU_RAM']
-            if int(gpu_req) == 0:
-                print(f"{i}: {repo_name} (Doesn't need a GPU!)")  
-            else:
-                print(f"{i}: {repo_name} (Requires at least {gpu_req}GB of GPU RAM!)")  
+            print(f"{i}: {repo_name}")  
 
         while True:
             model_id = input()
@@ -50,10 +60,12 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
         return LLaMA2(model_name, model_params, gen_params, q_bits)
     elif "BELUGA" in model_name:
         return StableBeluga(model_name, model_params, gen_params, q_bits)
-    elif "CLAUDE" in model_name:
-        return Claude(model_name, model_params, gen_params)
     elif "LUNA" in model_name:
         return Luna(model_name, model_params, gen_params, q_bits)
+    elif "GPT" in model_name:
+        return ChatGPT(model_name, model_params, gen_params)
+    elif "CLAUDE" in model_name:
+        return Claude(model_name, model_params, gen_params)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
@@ -94,14 +106,14 @@ class Chatbot:
     def init_tokenizer(self):
         if self.model_type == "GGUF":
             return AutoTokenizer.from_pretrained(self.cfg.get("tokenizer"), use_fast=True)
-        elif "claude" in self.repo_id:
+        elif "claude" in self.repo_id or "gpt" in self.repo_id:
             return None
         else:
             return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
             
     def get_gen_params(self, gen_params):
 
-        if self.model_type == "GGUF":
+        if self.model_type == "GGUF" or "gpt" in self.repo_id:
             name_token_var = "max_tokens"
         elif "claude" in self.repo_id:
             name_token_var = "max_tokens_to_sample"
@@ -161,6 +173,9 @@ class Chatbot:
         elif "claude" in self.repo_id:
             return ChatAnthropic(model=self.repo_id, **self.gen_params)
         
+        elif "gpt" in self.repo_id:
+            return ChatOpenAI(model=self.repo_id, **self.gen_params)
+        
         elif self.model_type == "GGUF":
             if os.getenv("HF_HOME") is None:
                 hf_cache_path = os.path.join(os.path.expanduser('~'), ".cache", "huggingface", "transformers")
@@ -212,8 +227,8 @@ class Chatbot:
                     device_map="auto"
                     )
         
-    def init_pipe(self):
-        if self.model_type == "GGUF" or "claude" in self.repo_id:
+    def init_pipe(self):            
+        if self.model_type == "GGUF" or "claude" in self.repo_id or "gpt" in self.repo_id:
             return self.model
         else:
             return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
@@ -296,3 +311,17 @@ class Claude(Chatbot):
             return self.model.count_tokens(prompt)
         if isinstance(prompt, list):
             return max([self.model.count_tokens(chunk) for chunk in prompt])
+        
+class ChatGPT(Chatbot):
+
+    def __init__(self, model_name, model_params=None, gen_params=None) -> None:
+        super().__init__(model_name, model_params, gen_params)
+
+    def prompt_template(self):
+        return strip_all("""{prompt}""")
+    
+    def count_tokens(self, prompt):
+        if isinstance(prompt, str):
+            return self.model.get_num_tokens(prompt)
+        if isinstance(prompt, list):
+            return max([self.model.get_num_tokens(chunk) for chunk in prompt])

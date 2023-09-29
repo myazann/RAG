@@ -1,4 +1,3 @@
-import sys
 import os
 import time
 import pickle
@@ -15,9 +14,10 @@ from RAG.loader import FileLoader
 args = get_args()
 dataset_num = args.lamp_dataset_num
 
-data, gts = FileLoader.get_lamp_dataset(dataset_num)
+data, _ = FileLoader.get_lamp_dataset(dataset_num)
 
 prompter = Prompter()
+# ["LLAMA2-7B", "LLAMA2-7B-GGUF", "LLAMA2-13B", "LLAMA2-13B-GGUF", "VICUNA-7B-v1.5", "VICUNA-7B-v1.5-GGUF", "VICUNA-13B-v1.5", "VICUNA-13B-v1.5-GGUF"]
 chatbot_names = ["LLAMA2-7B-GGUF"]
 out_dir = "res_pkls"
 os.makedirs(out_dir, exist_ok=True)
@@ -27,26 +27,35 @@ for chatbot_name in chatbot_names:
     print(chatbot_name)
     if "GGUF" in chatbot_name:
         q_bits = 5
-        test_name = f"LAMP_{chatbot_name}_{q_bits}bit_{time.time()}"
-        file_out_path = os.path.join(out_dir, f"LAMP_{dataset_num}_{chatbot_name}_{q_bits}bit.pkl")
+        test_name = f"LAMP_{dataset_num}_{chatbot_name}_{q_bits}bit"
+        file_out_path = os.path.join(out_dir, f"{test_name}.pkl")
     
     else:
         q_bits = None
-        test_name = f"LAMP_{chatbot_name}_{time.time()}"
-        file_out_path = os.path.join(out_dir, f"LAMP_{dataset_num}_{chatbot_name}.pkl")
+        test_name = f"LAMP_{dataset_num}_{chatbot_name}"
+        file_out_path = os.path.join(out_dir, f"{test_name}.pkl")
 
+    all_res = []
     if os.path.exists(file_out_path):
-        print("Experiment for this chatbot is already concluded!")
-        continue
+        with open(file_out_path, "rb") as f:
+             all_res = pickle.load(f)
 
+        if len(all_res) == len(data):
+            print("Experiment for this chatbot is already concluded!")
+            continue
+
+        else:
+            data = data[len(all_res):]
+            
     os.environ["LANGCHAIN_PROJECT"] = test_name
-    chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": 256}, q_bits=q_bits)
+    chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": 64}, q_bits=q_bits)
     lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
 
     llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))
 
+    print(f"Starting from sample no. {len(all_res)}")
     if dataset_num == "5":
-        all_res = []
+        
         start_time = time.time()
         for i, q in enumerate(data):
             # print(f"Sample {i}:\n")
@@ -60,12 +69,11 @@ for chatbot_name in chatbot_names:
             # print(f"Pred: \n{res}")
 
             torch.cuda.empty_cache()
+            with open(file_out_path, "wb") as f:
+                pickle.dump(all_res, f)
 
         end_time = time.time()
         print(f"Took {(end_time-start_time)/3600} hours!")
-        
-    with open(file_out_path, "wb") as f:
-        pickle.dump(all_res, f)
 
 """
 if dataset_num == "2":
