@@ -14,11 +14,11 @@ from RAG.loader import FileLoader
 args = get_args()
 dataset_num = args.lamp_dataset_num
 
-data, _ = FileLoader.get_lamp_dataset(dataset_num)
+orig_data, _ = FileLoader.get_lamp_dataset(dataset_num)
 
 prompter = Prompter()
 # ["LLAMA2-7B", "LLAMA2-7B-GGUF", "LLAMA2-13B", "LLAMA2-13B-GGUF", "VICUNA-7B-v1.5", "VICUNA-7B-v1.5-GGUF", "VICUNA-13B-v1.5", "VICUNA-13B-v1.5-GGUF"]
-chatbot_names = ["LLAMA2-7B-GGUF"]
+chatbot_names = ["VICUNA-7B-v1.5-GGUF"]
 out_dir = "res_pkls"
 os.makedirs(out_dir, exist_ok=True)
 
@@ -40,12 +40,12 @@ for chatbot_name in chatbot_names:
         with open(file_out_path, "rb") as f:
              all_res = pickle.load(f)
 
-        if len(all_res) == len(data):
+        if len(all_res) == len(orig_data):
             print("Experiment for this chatbot is already concluded!")
             continue
 
         else:
-            data = data[len(all_res):]
+            data = orig_data[len(all_res):]
             
     os.environ["LANGCHAIN_PROJECT"] = test_name
     chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": 64}, q_bits=q_bits)
