@@ -142,11 +142,13 @@ class Chatbot:
                 }
     
     def ggum_params(self):
+        rope_freq_scale = float(self.cfg.get("rope_freq_scale")) if self.cfg.get("rope_freq_scale") else 1
         return {
                 "n_gpu_layers": -1,
                 "n_batch": 512,
                 "verbose": False,
-                "n_ctx": self.context_length
+                "n_ctx": self.context_length,
+                "rope_freq_scale": rope_freq_scale
                 }
     
     def default_model_params(self):

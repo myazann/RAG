@@ -17,8 +17,8 @@ dataset_num = args.lamp_dataset_num
 orig_data, _ = FileLoader.get_lamp_dataset(dataset_num)
 
 prompter = Prompter()
-# ["LLAMA2-7B", "LLAMA2-7B-GGUF", "LLAMA2-13B", "LLAMA2-13B-GGUF", "VICUNA-7B-v1.5", "VICUNA-7B-v1.5-GGUF", "VICUNA-13B-v1.5", "VICUNA-13B-v1.5-GGUF"]
-chatbot_names = ["LLAMA2-7B-GGUF"]
+# chatbot_names = ["LLAMA2-7B", "LLAMA2-7B-GGUF", "LLAMA2-13B", "LLAMA2-13B-GGUF", "VICUNA-7B-16K-v1.5", "VICUNA-7B-16K-v1.5-GGUF", "VICUNA-13B-16K-v1.5", "VICUNA-13B-16K-v1.5-GGUF"]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5"]
 out_dir = "res_pkls"
 os.makedirs(out_dir, exist_ok=True)
 
@@ -64,7 +64,10 @@ for chatbot_name in chatbot_names:
             abstract_idx = q["input"].find(":") + 1
             abstract = q["input"][abstract_idx:].strip()
             final_prompt = lamp_prompt.format(abstract=abstract)
-            res = chatbot.pipe(final_prompt)
+            if chatbot.count_tokens(final_prompt) > int(chatbot.context_length):
+                res = ""
+            else:
+                res = chatbot.pipe(final_prompt)
             all_res.append(res)
             # print(f"Abstract: \n{abstract}")
             # print(f"Ground Truth: \n{gts[i]}")
