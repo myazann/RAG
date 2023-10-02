@@ -7,6 +7,7 @@ from git import Repo
 import os
 import json
 import urllib
+import pickle
 
 from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader, SeleniumURLLoader, GitLoader
 from langchain.utilities import SQLDatabase
@@ -58,16 +59,36 @@ class FileLoader():
         data = []
         gts = []
 
-        for mode in modes:
-            if not get_gts_only:
-                with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
-                    data.extend(json.load(url))
-                    data = sorted(data, key=lambda x: int(x["id"]))
-            with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_outputs.json") as url:
-                gts.extend(json.load(url)["golds"])
-                gts = sorted(gts, key=lambda x: int(x["id"]))
-                out_gts = [gt["output"] for gt in gts]
-                
+        lamp_dataset_path = "datasets"
+        os.makedirs(lamp_dataset_path, exist_ok=True)
+
+        if not get_gts_only:
+            data_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_data.pkl")
+            if os.path.exists(data_path):
+                with open(data_path, "rb") as f:
+                    data = pickle.load(f)
+            else:
+                for mode in modes:
+                    with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
+                        data.extend(json.load(url))
+                        data = sorted(data, key=lambda x: int(x["id"]))
+                with open(data_path, "wb") as f:
+                    pickle.dump(data, f)
+
+        gts_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_gts.pkl")
+        if os.path.exists(gts_path):
+            with open(gts_path, "rb") as f:
+                out_gts = pickle.load(f)
+        else:
+            for mode in modes:
+                with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_outputs.json") as url:
+                    gts.extend(json.load(url)["golds"])
+                    gts = sorted(gts, key=lambda x: int(x["id"]))
+                    out_gts = [gt["output"] for gt in gts]
+
+            with open(gts_path, "wb") as f:
+                pickle.dump(out_gts, f)
+                    
         return data, out_gts
 
     def get_file_type(self, file_name):

@@ -44,6 +44,7 @@ def get_args():
    parser.add_argument("-doc", "--document", default="https://python.langchain.com/docs/get_started/introduction", type=str)
    parser.add_argument("-pt", "--perturb_test_type", default="test1", type=str)
    parser.add_argument("-ldn", "--lamp_dataset_num", default="5", type=str)
+   parser.add_argument("-lk", "--lamp_k", default="0", type=str)
 
    args = parser.parse_args()
 
