@@ -1,7 +1,6 @@
 import os
 import time
 import pickle
-import subprocess
 import sys
 
 from langchain import LLMChain, PromptTemplate
@@ -9,20 +8,27 @@ from evaluate import load
 import torch 
 
 from RAG.prompter import Prompter
-from RAG.utils import get_args
 from RAG.chatbots import choose_bot
 from RAG.loader import FileLoader
-from lamp_retrievers import create_retr_data
+from lamp_utils import get_lamp_args, create_retr_data, bm25
     
-args = get_args()
-dataset_num = args.lamp_dataset_num
-k = args.lamp_k
+retrieval_models = {
+    "bm25": bm25
+}
+
+args = get_lamp_args()
+dataset_num = args.dataset_num
+k = args.k
+retriever = retrieval_models[args.retriever]
 
 data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
 prompter = Prompter()
 # chatbot_names = ["LLAMA2-7B", "LLAMA2-7B-GGUF", "LLAMA2-13B", "LLAMA2-13B-GGUF", "VICUNA-7B-16K-v1.5", "VICUNA-7B-16K-v1.5-GGUF", "VICUNA-13B-16K-v1.5", "VICUNA-13B-16K-v1.5-GGUF"]
 chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5"]
-out_dir = f"res_pkls/D{dataset_num}/K{k}"
+if k == "0":
+    out_dir = f"res_pkls/D{dataset_num}/K{k}"
+else:
+    out_dir = f"res_pkls/D{dataset_num}/K{k}/{args.retriever}"
 os.makedirs(out_dir, exist_ok=True)
 
 print(f"Running experiments for the {dataset_num}th dataset with k={k}")
@@ -31,10 +37,12 @@ for chatbot_name in chatbot_names:
     print(chatbot_name)
     if "GGUF" in chatbot_name:
         q_bits = 5
-        test_name = f"LAMP_D{dataset_num}_K{k}_{chatbot_name}_{q_bits}bit"    
     else:
         q_bits = None
-        test_name = f"LAMP_D{dataset_num}_K{k}_{chatbot_name}"
+    if k == "0":
+        test_name = f"LAMP_D{dataset_num}_K{k}_{chatbot_name}"   
+    else:
+        test_name = f"LAMP_D{dataset_num}_K{k}_{args.retriever}_{chatbot_name}"
     os.environ["LANGCHAIN_PROJECT"] = test_name
     file_out_path = os.path.join(out_dir, f"{chatbot_name}.pkl")
 
@@ -47,7 +55,6 @@ for chatbot_name in chatbot_names:
     if len(all_res) == 12121:
         print("Experiment for this chatbot is already concluded!")
         continue
-
     else:
         orig_queries, orig_corpuses, orig_titles, out_gts = create_retr_data(data, out_gts)
         queries = orig_queries[len(all_res):]
@@ -55,21 +62,41 @@ for chatbot_name in chatbot_names:
         titles = orig_titles[len(all_res):]
     
     chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": 64}, q_bits=q_bits)
-    print(subprocess.run("nvidia-smi"))
-    
+
     if k == "0":
         lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
     else:
         lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}_with_k")
+        retr_doc_idxs = retriever(corpuses, queries)
 
     llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))
 
     print(f"Starting from sample no. {len(all_res)}")
-    sys.stdout.flush()
     start_time = time.time()
+    avail_space = int(chatbot.context_length) - chatbot.count_tokens(lamp_prompt)
+    sys.stdout.flush()
+
     for i, q in enumerate(queries):
         if k == "0":
             final_prompt = lamp_prompt.format(abstract=queries[i])        
+        else:
+            example_pairs = ""
+            if k == "max":
+                i_retr = 0
+                while i_retr < len(retr_doc_idxs[i]):
+                    example = f"""Abstract:\n{corpuses[i][i_retr]}\nTitle:\n{titles[i][i_retr]}""" 
+                    if chatbot.count_tokens(example_pairs + "\n" + example) < avail_space:
+                        example_pairs = example_pairs + "\n" + example
+                        i_retr += 1
+                    else:
+                        break
+            else:
+                retr_corpuses = [corpuses[i][doc_id] for doc_id in retr_doc_idxs[i][:int(k)]]
+                retr_titles = [titles[i][doc_id] for doc_id in retr_doc_idxs[i][:int(k)]]
+                for corp, title in zip(retr_corpuses, retr_titles):
+                    example_pairs = example_pairs + f"""Abstract:\n{corp}\nTitle:\n{title}"""      
+
+            final_prompt = lamp_prompt.format(examples=example_pairs, abstract=queries[i])
         res = chatbot.pipe(final_prompt)
         all_res.append(res)
 
