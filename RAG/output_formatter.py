@@ -1,6 +1,20 @@
 import difflib
 import re
 
+def lamp_output_formatter(output):
+
+    match = re.search(r'"([^"]*)"', output)
+    if match:
+        substring = match.group(0)
+    else:
+        substring = output
+    substring = substring.strip('"')
+    index = substring.find("Title: ")
+    if index != -1:
+        substring = substring[index + len("Title: "):]
+
+    return substring.strip()
+
 def csv_output_formatter(output):
 
     code_match = re.search(r"```([\s\S]*?)```", output)

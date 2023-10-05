@@ -32,10 +32,11 @@ class Prompter():
             Title:""")   
 
     def lamp5_prompt_with_k(self):
-        return self.stripped_prompts("""Your task is to generate a title for the given abstract by looking at a couple of other abstract-title pairs of the same author. Generate a title that matches the style of the author, but the title shouldn't be the same as the provided examples. You will only output the title and nothing else.
+        return self.stripped_prompts("""Here are a couple of abstract-title pairs of an author:
             <EXAMPLES>
             {examples}
-            </END OF EXAMPLES>
+            </EXAMPLES>
+            With the given examples, generate a title for the given abstract by the same author. Only output the title and nothing else:
             Abstract:
             {abstract}
             Title:""")
