@@ -24,7 +24,7 @@ retriever = retrieval_models[args.retriever]
 data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
 prompter = Prompter()
 # chatbot_names = ["LLAMA2-7B", "LLAMA2-7B-GGUF", "LLAMA2-13B", "LLAMA2-13B-GGUF", "VICUNA-7B-16K-v1.5", "VICUNA-7B-16K-v1.5-GGUF", "VICUNA-13B-16K-v1.5", "VICUNA-13B-16K-v1.5-GGUF"]
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5"]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/K{k}"
 else:
@@ -68,6 +68,7 @@ for chatbot_name in chatbot_names:
     else:
         lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}_with_k")
         retr_doc_idxs = retriever(corpuses, queries)
+        retr_doc_idxs = retr_doc_idxs[len(all_res):]
 
     llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))
 
@@ -75,7 +76,6 @@ for chatbot_name in chatbot_names:
     start_time = time.time()
     avail_space = int(chatbot.context_length) - chatbot.count_tokens(lamp_prompt)
     sys.stdout.flush()
-
     for i, q in enumerate(queries):
         if k == "0":
             final_prompt = lamp_prompt.format(abstract=queries[i])        
@@ -85,11 +85,11 @@ for chatbot_name in chatbot_names:
                 i_retr = 0
                 while i_retr < len(retr_doc_idxs[i]):
                     example = f"""Abstract:\n{corpuses[i][i_retr]}\nTitle:\n{titles[i][i_retr]}""" 
-                    if chatbot.count_tokens(example_pairs + "\n" + example) < avail_space:
+                    if chatbot.count_tokens(example_pairs + "\n" + example + queries[i]) < avail_space:
                         example_pairs = example_pairs + "\n" + example
                         i_retr += 1
                     else:
-                        break
+                        break                
             else:
                 retr_corpuses = [corpuses[i][doc_id] for doc_id in retr_doc_idxs[i][:int(k)]]
                 retr_titles = [titles[i][doc_id] for doc_id in retr_doc_idxs[i][:int(k)]]
