@@ -9,9 +9,9 @@ def lamp_output_formatter(output):
     else:
         substring = output
     substring = substring.strip('"')
-    index = substring.find("Title: ")
+    index = substring.find("Title:")
     if index != -1:
-        substring = substring[index + len("Title: "):]
+        substring = substring[index + len("Title:"):]
 
     return substring.strip()
 

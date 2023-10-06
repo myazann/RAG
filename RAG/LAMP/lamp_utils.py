@@ -85,6 +85,7 @@ def retrieved_idx(corpuses, queries, model="bm25", device="cuda:0"):
             tokenizer = AutoTokenizer.from_pretrained("facebook/contriever")
             with torch.no_grad():
                 for i in range(len(corpuses)):
+                    print(i)
                     inp = corpuses[i]
                     inp.append(queries[i]) 
                     inputs = tokenizer(inp, padding=True, truncation=True, return_tensors="pt")

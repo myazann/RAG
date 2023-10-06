@@ -53,7 +53,7 @@ class FileLoader():
 
         return doc
 
-    def get_lamp_dataset(dataset_num, get_gts_only=False):
+    def get_lamp_dataset(dataset_num):
 
         modes = ["train", "dev"]
         data = []
@@ -62,18 +62,17 @@ class FileLoader():
         lamp_dataset_path = "datasets"
         os.makedirs(lamp_dataset_path, exist_ok=True)
 
-        if not get_gts_only:
-            data_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_data.pkl")
-            if os.path.exists(data_path):
-                with open(data_path, "rb") as f:
-                    data = pickle.load(f)
-            else:
-                for mode in modes:
-                    with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
-                        data.extend(json.load(url))
-                        data = sorted(data, key=lambda x: int(x["id"]))
-                with open(data_path, "wb") as f:
-                    pickle.dump(data, f)
+        data_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_data.pkl")
+        if os.path.exists(data_path):
+            with open(data_path, "rb") as f:
+                data = pickle.load(f)
+        else:
+            for mode in modes:
+                with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
+                    data.extend(json.load(url))
+                    data = sorted(data, key=lambda x: int(x["id"]))
+            with open(data_path, "wb") as f:
+                pickle.dump(data, f)
 
         gts_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_gts.pkl")
         if os.path.exists(gts_path):

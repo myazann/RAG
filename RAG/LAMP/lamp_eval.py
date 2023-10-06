@@ -10,7 +10,7 @@ out_dir = "res_pkls"
 
 args = get_args()
 dataset_num = args.lamp_dataset_num
-_, gts = FileLoader.get_lamp_dataset(dataset_num, get_gts_only=True)
+_, out_gts = FileLoader.get_lamp_dataset(dataset_num)
 
 all_res_files = [file for file in os.listdir(out_dir) if file.split("_")[1] == dataset_num]
 
