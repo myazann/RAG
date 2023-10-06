@@ -27,7 +27,7 @@ else:
     out_dir = f"res_pkls/D{dataset_num}/K{k}/{retriever}"
 os.makedirs(out_dir, exist_ok=True)
 
-print(f"Running experiments for the {dataset_num}th dataset with k={k}")
+print(f"Running experiments for the {dataset_num}th dataset with k={k} with {retriever}")
 for chatbot_name in chatbot_names:
 
     print(chatbot_name)

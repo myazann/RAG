@@ -5,6 +5,7 @@ import pickle
 
 import numpy as np
 import pandas as pd
+import torch
 from rank_bm25 import BM25Okapi
 from transformers import AutoTokenizer
 from contriever.src.contriever import Contriever
@@ -62,7 +63,7 @@ def create_retr_data(data, out_gts):
 
     return queries, corpuses, titles, out_gts
 
-def retrieved_idx(corpuses, queries, model="bm25"):
+def retrieved_idx(corpuses, queries, model="bm25", device="cuda:0"):
 
     retr_path = "retrievers"
     os.makedirs(retr_path, exist_ok=True)
@@ -79,19 +80,19 @@ def retrieved_idx(corpuses, queries, model="bm25"):
                 doc_scores = bm25.get_scores(queries[i])
                 retr_doc_idxs.append(doc_scores.argsort()[::-1])
         elif model == "contriever":
-            device = "cuda:0"
             contriever = Contriever.from_pretrained("facebook/contriever") 
-            contriever.to(device)
+            contriever.to(device).eval()
             tokenizer = AutoTokenizer.from_pretrained("facebook/contriever")
-            for i in range(len(corpuses)):
-                inp = corpuses[i]
-                inp.append(queries[i]) 
-                inputs = tokenizer(inp, padding=True, truncation=True, return_tensors="pt")
-                inputs.to(device)
-                embeddings = contriever(**inputs).detach().numpy()
-                sim_scores = np.dot(embeddings[-1:], embeddings[:-1].T)    
-                sorted_idxs = np.argsort(sim_scores).squeeze()[::-1]
-                retr_doc_idxs.append(sorted_idxs.tolist())
+            with torch.no_grad():
+                for i in range(len(corpuses)):
+                    inp = corpuses[i]
+                    inp.append(queries[i]) 
+                    inputs = tokenizer(inp, padding=True, truncation=True, return_tensors="pt")
+                    inputs.to(device)
+                    embeddings = contriever(**inputs).cpu().numpy()
+                    sim_scores = np.dot(embeddings[-1:], embeddings[:-1].T)    
+                    sorted_idxs = np.argsort(sim_scores).squeeze()[::-1]
+                    retr_doc_idxs.append(sorted_idxs.tolist())
 
         with open(file_path, "wb") as f:
             pickle.dump(retr_doc_idxs, f)
