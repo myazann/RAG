@@ -12,7 +12,11 @@ def lamp_output_formatter(output):
     index = substring.find("Title:")
     if index != -1:
         substring = substring[index + len("Title:"):]
-
+    substring = substring.strip()
+    index = substring.find("\n")
+    if index != -1:
+        substring = substring[index:]
+    
     return substring.strip()
 
 def csv_output_formatter(output):
