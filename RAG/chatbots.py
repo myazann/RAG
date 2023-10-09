@@ -9,6 +9,7 @@ from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic, ChatOpenAI
 from langchain.llms import LlamaCpp
 from auto_gptq import AutoGPTQForCausalLM
+from awq import AutoAWQForCausalLM
 
 from RAG.output_formatter import strip_all
 
@@ -100,6 +101,8 @@ class Chatbot:
             return "GPTQ"
         elif self.repo_id.endswith("GGUF") or self.repo_id.endswith("GGML"):
             return "GGUF"
+        elif self.repo_id.endswith("AWQ"):
+            return "AWQ"
         else:
             return "default"
         
@@ -151,6 +154,13 @@ class Chatbot:
                 "rope_freq_scale": rope_freq_scale
                 }
     
+    def awq_params(self):
+        return {
+            "fuse_layers": True,
+            "trust_remote_code": False,
+            "safetensors": True
+        }
+    
     def default_model_params(self):
         return {}
     
@@ -160,6 +170,8 @@ class Chatbot:
                 return self.gptq_params()
             elif self.model_type == "GGUF":
                 return self.ggum_params()
+            elif self.model_type == "AWQ":
+                return self.awq_params()
             else:
                 return self.default_model_params()
         else:
@@ -171,6 +183,10 @@ class Chatbot:
                     self.repo_id,
                     model_basename=self.model_basename,
                     **self.model_params)
+        elif self.model_type == "AWQ":
+            return AutoAWQForCausalLM.from_quantized(
+                self.repo_id,
+                **self.model_params)
         
         elif "claude" in self.repo_id:
             return ChatAnthropic(model=self.repo_id, **self.gen_params)
@@ -190,7 +206,6 @@ class Chatbot:
                 print("This is a quantized model, please choose the number of quantization bits: ")
                 for i in bit_range:
                     print(f"{i}")  
-
                 while True:
                     q_bit = input()
                     if q_bit not in bit_range:
@@ -200,7 +215,6 @@ class Chatbot:
                         break
 
             self.model_basename = "-".join(self.repo_id.split('/')[1].split("-")[:-1]).lower()
-    
             if self.q_bit in ["2", "6"]:
                 self.model_basename = f"{self.model_basename}.Q{self.q_bit}_K.gguf"
             elif self.q_bit == "8":
@@ -220,14 +234,12 @@ class Chatbot:
             return LlamaCpp(
                     model_path=os.path.join(model_folder, self.model_basename),
                     **self.model_params,
-                    **self.gen_params
-                    )     
+                    **self.gen_params)     
         else:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
                     **self.model_params,
-                    device_map="auto"
-                    )
+                    device_map="auto")
         
     def init_pipe(self):            
         if self.model_type == "GGUF" or "claude" in self.repo_id or "gpt" in self.repo_id:

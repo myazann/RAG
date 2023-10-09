@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 from rank_bm25 import BM25Okapi
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, DPRQuestionEncoder, DPRQuestionEncoderTokenizer
 from contriever.src.contriever import Contriever
 
 def get_lamp_args():
@@ -79,20 +79,30 @@ def retrieved_idx(corpuses, queries, model="bm25", device="cuda:0"):
                 bm25 = BM25Okapi(corpuses[i])
                 doc_scores = bm25.get_scores(queries[i])
                 retr_doc_idxs.append(doc_scores.argsort()[::-1])
-        elif model == "contriever":
-            contriever = Contriever.from_pretrained("facebook/contriever-msmarco") 
-            contriever.to(device).eval()
-            tokenizer = AutoTokenizer.from_pretrained("facebook/contriever")
+        elif model in ["contriever", "dpr"]:
+            if model == "contriever":
+                retr_model = Contriever.from_pretrained("facebook/contriever-msmarco") 
+                tokenizer = AutoTokenizer.from_pretrained("facebook/contriever")
+            elif model == "dpr":
+                retr_model = DPRQuestionEncoder.from_pretrained("facebook/dpr-question_encoder-single-nq-base")
+                tokenizer = DPRQuestionEncoderTokenizer.from_pretrained("facebook/dpr-question_encoder-single-nq-base")
+                
+            retr_model.to(device).eval()
             with torch.no_grad():
                 for i in range(len(corpuses)):
                     inp = corpuses[i]
                     inp.append(queries[i]) 
                     inputs = tokenizer(inp, padding=True, truncation=True, return_tensors="pt")
                     inputs.to(device)
-                    embeddings = contriever(**inputs).cpu().numpy()
+                    embeddings = retr_model(**inputs)
+                    if model == "dpr":
+                        embeddings = embeddings.pooler_output
+                    embeddings = embeddings.cpu()
                     sim_scores = np.dot(embeddings[-1:], embeddings[:-1].T)    
                     sorted_idxs = np.argsort(sim_scores).squeeze()[::-1]
                     retr_doc_idxs.append(sorted_idxs)
+        else:
+            raise Exception("Retriever not implemented!")
                     
         with open(file_path, "wb") as f:
             pickle.dump(retr_doc_idxs, f)
