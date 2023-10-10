@@ -8,45 +8,51 @@ from RAG.output_formatter import lamp_output_formatter
 from RAG.loader import FileLoader
 from lamp_utils import get_lamp_args, create_retr_data
 
+def list_files_in_directory(root_dir):
+    file_list = []
+    for root, _, files in os.walk(root_dir):
+        for file in files:
+            file_list.append(os.path.join(root, file))
+    return file_list
+
+all_res_files = sorted(list_files_in_directory("res_pkls"))
 args = get_lamp_args()
 dataset_num = args.dataset_num
-k = args.k
-retriever = args.retriever
-if k == "0":
-    out_dir = os.path.join("res_pkls", f"D{dataset_num}", f"K{k}")
-else:
-    out_dir = os.path.join("res_pkls", f"D{dataset_num}", f"K{k}", retriever)
 
 data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
 _, _, _, out_gts = create_retr_data(data, out_gts)
 
-all_res_files = sorted(os.listdir(out_dir))
-if k == "0":
-    print("Running eval for zero-shot!")
-else:
-    print(f"Running eval for K={k} and {retriever}")
-
 all_rouge = []
 cols = []
 for file in all_res_files:
-    with open(os.path.join(out_dir, file), "rb") as f:
-        all_res = pickle.load(f)
-
-    if len(all_res) != len(out_gts):
-        continue
-    cols.append(file[:-4])
-    all_res = [lamp_output_formatter(res) for res in all_res]
-
-    rouge = load("rouge")
-    rouge_results = rouge.compute(predictions=all_res, references=out_gts)
-    all_rouge.append(rouge_results)
+    if "LLAMA2-7B" in file:
+        with open(file, "rb") as f:
+            all_res = pickle.load(f)
+        if len(all_res) != len(out_gts):
+            continue
+        params = file.split("/")
+        if len(params) == 4:
+            k = "0"
+            retriever = None
+        else:
+            k = params[-3][1] 
+            retriever = file.split("/")[-2]
+        model_name = file.split("/")[-1][:-4]
+        cols.append(model_name)
+        print(k, retriever, model_name)
+        all_res = [lamp_output_formatter(res) for res in all_res]
+        rouge = load("rouge")
+        rouge_results = rouge.compute(predictions=all_res, references=out_gts)
+        rouge_results["k"] = k
+        rouge_results["retriever"] = retriever
+        all_rouge.append(rouge_results)
 
 df = pd.DataFrame(all_rouge)
 df.index = cols
 print(df.sort_values("rougeLsum", ascending=False))
 
-"""
 
+"""
     bertscore = load("bertscore")
     bertscore_res = bertscore.compute(predictions=all_res, references=out_gts, lang="en", device="cuda:0")
     print(f"Bertscore: {bertscore_res} \n")

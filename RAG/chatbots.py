@@ -25,7 +25,7 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
 
         model_cfg = get_model_cfg()
         models = model_cfg.sections()
-        model_families = dict({str(k): v for k, v in enumerate(set([model.split("-")[0] for model in models ]))})
+        model_families = dict({str(k): v for k, v in enumerate(sorted(set([model.split("-")[0] for model in models ])))})
         print("Here are the available model families, please choose one:\n")
 
         for i, repo in model_families.items():
