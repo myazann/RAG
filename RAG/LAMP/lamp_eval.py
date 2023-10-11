@@ -25,27 +25,26 @@ _, _, _, out_gts = create_retr_data(data, out_gts)
 all_rouge = []
 cols = []
 for file in all_res_files:
-    if "LLAMA2-7B" in file:
-        with open(file, "rb") as f:
-            all_res = pickle.load(f)
-        if len(all_res) != len(out_gts):
-            continue
-        params = file.split("/")
-        if len(params) == 4:
-            k = "0"
-            retriever = None
-        else:
-            k = params[-3][1] 
-            retriever = file.split("/")[-2]
-        model_name = file.split("/")[-1][:-4]
-        cols.append(model_name)
-        print(k, retriever, model_name)
-        all_res = [lamp_output_formatter(res) for res in all_res]
-        rouge = load("rouge")
-        rouge_results = rouge.compute(predictions=all_res, references=out_gts)
-        rouge_results["k"] = k
-        rouge_results["retriever"] = retriever
-        all_rouge.append(rouge_results)
+    with open(file, "rb") as f:
+        all_res = pickle.load(f)
+    if len(all_res) != len(out_gts):
+        continue
+    params = file.split("/")
+    if len(params) == 4:
+        k = "0"
+        retriever = None
+    else:
+        k = params[-3][1:] 
+        retriever = file.split("/")[-2]
+    model_name = file.split("/")[-1][:-4]
+    cols.append(model_name)
+    print(k, retriever, model_name)
+    all_res = [lamp_output_formatter(res) for res in all_res]
+    rouge = load("rouge")
+    rouge_results = rouge.compute(predictions=all_res, references=out_gts)
+    rouge_results["k"] = k
+    rouge_results["retriever"] = retriever
+    all_rouge.append(rouge_results)
 
 df = pd.DataFrame(all_rouge)
 df.index = cols
@@ -66,17 +65,4 @@ print(df.sort_values("rougeLsum", ascending=False))
         bleu_results = bleu.compute(predictions=[res], references=[gt])
         all_bleu_list.append(bleu_results)
         i += 1
-
-    all_rouge_dict = {}
-    rouge_keys = all_rouge_list[0].keys()
-    for key in rouge_keys:
-        all_rouge_dict[key] = [rouge_res[key] for rouge_res in all_rouge_list]
-
-    all_bleu_dict = {}
-    bleu_keys = all_bleu_list[0].keys()
-    for key in bleu_keys:
-        all_bleu_dict[key] = [rouge_res[key] for rouge_res in all_bleu_list]
-   
-    print(f"Rouge: {all_rouge_dict} \n")
-    print(f"BLEU: {all_bleu_dict}")
 """

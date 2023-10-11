@@ -13,13 +13,12 @@ from contriever.src.contriever import Contriever
 def get_lamp_args():
 
    parser = argparse.ArgumentParser()
+   parser.add_argument("-isq", "--quant_bots", default=False, type=bool)
    parser.add_argument("-dn", "--dataset_num", default="5", type=str)
    parser.add_argument("-k", "--k", default="0", type=str)
    parser.add_argument("-r", "--retriever", default="bm25", type=str)
 
-   args = parser.parse_args()
-
-   return args
+   return parser.parse_args()
 
 def create_retr_data(data, out_gts):
 
