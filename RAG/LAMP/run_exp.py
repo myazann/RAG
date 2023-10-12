@@ -13,7 +13,7 @@ from RAG.loader import FileLoader
 from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx
 
 args = get_lamp_args()
-is_q = args.quant_bots
+is_q = bool(args.quant_bots)
 dataset_num = args.dataset_num
 k = args.k
 retriever = args.retriever
@@ -73,8 +73,9 @@ for chatbot_name in chatbot_names:
     avail_space = int(chatbot.context_length) - chatbot.count_tokens(lamp_prompt)
     sys.stdout.flush()
     skip_k = 0
+    doc_k = k
     if "skip" in k:
-        k = k.split("_")[0]
+        doc_k = k.split("_")[0]
         skip_k = int(k.split("_")[-1])
     for i in range(len(queries)):
         if k == "0":
@@ -83,20 +84,17 @@ for chatbot_name in chatbot_names:
             retr_docs = retr_doc_idxs[i]
             example_pairs = ""
             if k == "max":
-                i_retr = skip_k
-                while i_retr < len(retr_docs):
-                    example = f"""Abstract:\n{corpuses[i][retr_docs[i_retr]]}\nTitle:\n{titles[i][retr_docs[i_retr]]}\n"""
-                    if chatbot.count_tokens(example_pairs + "\n" + example + queries[i]) < avail_space:
-                        example_pairs = example_pairs + "\n" + example
-                        i_retr += 1
-                    else:
-                        break                
+                doc_k = len(retr_docs)-skip_k
             else:
-                k = int(k)
-                retr_corpuses = [corpuses[i][doc_id] for doc_id in retr_docs[skip_k: (k+skip_k)]]
-                retr_titles = [titles[i][doc_id] for doc_id in retr_docs[skip_k: (k+skip_k)]]
-                for corp, title in zip(retr_corpuses, retr_titles):
-                    example_pairs = example_pairs + f"""Abstract:\n{corp}\nTitle:\n{title}\n"""      
+                doc_k = int(doc_k)
+            retr_corpuses = [corpuses[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
+            retr_titles = [titles[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
+            for corp, title in zip(retr_corpuses, retr_titles):
+                example = f"""Abstract:\n{corp}\nTitle:\n{title}\n"""  
+                if chatbot.count_tokens(example_pairs + "\n" + example + queries[i]) < avail_space:
+                    example_pairs = example_pairs + "\n" + example   
+                else:
+                    break   
             final_prompt = lamp_prompt.format(examples=example_pairs, abstract=queries[i])
         res = chatbot.pipe(final_prompt)
         all_res.append(res)
