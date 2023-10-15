@@ -23,7 +23,7 @@ data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
 _, _, _, out_gts = create_retr_data(data, out_gts)
 
 all_rouge = []
-cols = []
+models = []
 for file in all_res_files:
     with open(file, "rb") as f:
         all_res = pickle.load(f)
@@ -37,7 +37,7 @@ for file in all_res_files:
         k = params[-3][1:] 
         retriever = file.split("/")[-2]
     model_name = file.split("/")[-1][:-4]
-    cols.append(model_name)
+    models.append(model_name)
     print(k, retriever, model_name)
     all_res = [lamp_output_formatter(res) for res in all_res]
     rouge = load("rouge")
@@ -47,8 +47,11 @@ for file in all_res_files:
     all_rouge.append(rouge_results)
 
 df = pd.DataFrame(all_rouge)
-df.index = cols
+df["model"] = models
+df = df[["model", "retriever", "k", "rouge1", "rouge2", "rougeL", "rougeLsum"]]
+df = df.round(dict([(c, 4) for c in df.columns if "rouge" in c]))
 print(df.sort_values("rougeLsum", ascending=False))
+df.sort_values("rougeLsum", ascending=False).to_csv("lamp_eval_res.csv", index=False)
 
 
 """

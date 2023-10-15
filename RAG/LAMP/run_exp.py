@@ -24,7 +24,7 @@ MAX_NEW_TOKENS = 64
 
 data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5"]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5", "MISTRAL-7B-v0.1-INSTRUCT"]
 if is_q:
     chatbot_names = [f"{bot_name}-GGUF" for bot_name in chatbot_names]
 if k == "0":

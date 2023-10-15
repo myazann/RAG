@@ -23,7 +23,6 @@ huggingface_hub.login(new_session=False)
 args = get_args()
 file_name = args.document
 device = get_device()
-
 chatbot = choose_bot()
 
 file_loader = FileLoader()
@@ -40,7 +39,6 @@ if file_type == "db":
   db_chain = SQLDatabaseChain.from_llm(chatbot.pipe, file, verbose=True)
 
 elif file_type == "csv":
-
   df = file
   prompter = Prompter()
   csv_prompt = prompter.merge_with_template(chatbot, "csv")
@@ -54,7 +52,6 @@ elif file_type == "csv":
 else:
 
   doc = file_loader.LESSEN_preprocess(file)
-
   text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=250)
   texts = text_splitter.split_documents(doc)
 

@@ -67,6 +67,8 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
         return ChatGPT(model_name, model_params, gen_params)
     elif "CLAUDE" in model_name:
         return Claude(model_name, model_params, gen_params)
+    elif "MISTRAL" in model_name:
+        return Mistral(model_name, model_params, gen_params, q_bits)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
@@ -339,3 +341,11 @@ class ChatGPT(Chatbot):
             return self.model.get_num_tokens(prompt)
         if isinstance(prompt, list):
             return max([self.model.get_num_tokens(chunk) for chunk in prompt])
+        
+class Mistral(Chatbot):
+
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+        super().__init__(model_name, model_params, gen_params, q_bits)
+
+    def prompt_template(self):
+        return strip_all("""<s>[INST] {prompt} [/INST]""")
