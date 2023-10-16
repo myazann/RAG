@@ -6,7 +6,7 @@ from evaluate import load
 
 from RAG.output_formatter import lamp_output_formatter
 from RAG.loader import FileLoader
-from lamp_utils import get_lamp_args, create_retr_data
+from lamp_utils import get_lamp_args, create_retr_data, get_val_idx
 
 def list_files_in_directory(root_dir):
     file_list = []
@@ -20,14 +20,16 @@ args = get_lamp_args()
 dataset_num = args.dataset_num
 
 data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
-_, _, _, out_gts = create_retr_data(data, out_gts)
+_, _, _, out_gts = create_retr_data(data["train_dev"], out_gts["train_dev"])
+
+val_idx = get_val_idx(out_gts)
 
 all_rouge = []
 models = []
 for file in all_res_files:
     with open(file, "rb") as f:
-        all_res = pickle.load(f)
-    if len(all_res) != len(out_gts):
+        preds = pickle.load(f)
+    if len(preds) != len(out_gts):
         continue
     params = file.split("/")
     if len(params) == 4:
@@ -39,9 +41,11 @@ for file in all_res_files:
     model_name = file.split("/")[-1][:-4]
     models.append(model_name)
     print(k, retriever, model_name)
-    all_res = [lamp_output_formatter(res) for res in all_res]
+    preds = [preds[i] for i in val_idx]
+    gts = [out_gts[i] for i in val_idx]
+    preds = [lamp_output_formatter(res) for res in preds]
     rouge = load("rouge")
-    rouge_results = rouge.compute(predictions=all_res, references=out_gts)
+    rouge_results = rouge.compute(predictions=preds, references=gts)
     rouge_results["k"] = k
     rouge_results["retriever"] = retriever
     all_rouge.append(rouge_results)

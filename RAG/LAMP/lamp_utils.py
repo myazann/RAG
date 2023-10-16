@@ -10,6 +10,8 @@ from rank_bm25 import BM25Okapi
 from transformers import AutoTokenizer, DPRQuestionEncoder, DPRQuestionEncoderTokenizer
 from contriever.src.contriever import Contriever
 
+from RAG.loader import FileLoader
+
 def get_lamp_args():
 
    parser = argparse.ArgumentParser()
@@ -19,6 +21,18 @@ def get_lamp_args():
    parser.add_argument("-r", "--retriever", default="bm25", type=str)
 
    return parser.parse_args()
+
+def get_val_idx(processed_gts, dataset_num=5):
+
+    _, out_gts = FileLoader.get_lamp_dataset(dataset_num, ["dev"])
+    out_gts = out_gts["dev"]
+    val_idx = []
+    for og in out_gts:
+        try:
+            val_idx.append(processed_gts.index(og))
+        except ValueError:
+            continue
+    return val_idx
 
 def create_retr_data(data, out_gts):
 

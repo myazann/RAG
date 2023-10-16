@@ -23,8 +23,9 @@ FINAL_DB_SIZE = 12121
 MAX_NEW_TOKENS = 64
 
 data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
+
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5", "MISTRAL-7B-v0.1-INSTRUCT"]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5"]
 if is_q:
     chatbot_names = [f"{bot_name}-GGUF" for bot_name in chatbot_names]
 if k == "0":
@@ -53,7 +54,7 @@ for chatbot_name in chatbot_names:
         print("Experiment for this chatbot is already concluded!")
         continue
     else:
-        orig_queries, orig_corpuses, orig_titles, out_gts = create_retr_data(data, out_gts)
+        orig_queries, orig_corpuses, orig_titles, out_gts = create_retr_data(data["train_dev"], out_gts["train_dev"])
         queries = orig_queries[len(all_res):]
         corpuses = orig_corpuses[len(all_res):]
         titles = orig_titles[len(all_res):]
