@@ -54,7 +54,7 @@ for chatbot_name in chatbot_names:
         print("Experiment for this chatbot is already concluded!")
         continue
     else:
-        orig_queries, orig_corpuses, orig_titles, out_gts = create_retr_data(data["train_dev"], out_gts["train_dev"])
+        orig_queries, orig_corpuses, orig_titles, _ = create_retr_data(data["train_dev"], out_gts["train_dev"])
         queries = orig_queries[len(all_res):]
         corpuses = orig_corpuses[len(all_res):]
         titles = orig_titles[len(all_res):]
