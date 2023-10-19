@@ -18,12 +18,9 @@ def list_files_in_directory(root_dir):
 all_res_files = sorted(list_files_in_directory("res_pkls"))
 args = get_lamp_args()
 dataset_num = args.dataset_num
-
 data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
 _, _, _, out_gts = create_retr_data(data["train_dev"], out_gts["train_dev"])
-
 val_idx = get_val_idx(out_gts)
-
 all_rouge = []
 models = []
 for file in all_res_files:
@@ -49,27 +46,8 @@ for file in all_res_files:
     rouge_results["k"] = k
     rouge_results["retriever"] = retriever
     all_rouge.append(rouge_results)
-
 df = pd.DataFrame(all_rouge)
 df["model"] = models
 df = df[["model", "retriever", "k", "rouge1", "rouge2", "rougeL", "rougeLsum"]]
 df = df.round(dict([(c, 4) for c in df.columns if "rouge" in c]))
-print(df.sort_values("rougeLsum", ascending=False))
 df.sort_values("rougeLsum", ascending=False).to_csv("lamp_eval_res.csv", index=False)
-
-
-"""
-    bertscore = load("bertscore")
-    bertscore_res = bertscore.compute(predictions=all_res, references=out_gts, lang="en", device="cuda:0")
-    print(f"Bertscore: {bertscore_res} \n")
-    all_rouge_list = []
-    all_bleu_list = []
-    i = 0
-    for res, gt in zip(all_res, out_gts):
-        print(i)
-        rouge_results = rouge.compute(predictions=[res], references=[gt])
-        all_rouge_list.append(rouge_results)
-        bleu_results = bleu.compute(predictions=[res], references=[gt])
-        all_bleu_list.append(bleu_results)
-        i += 1
-"""
