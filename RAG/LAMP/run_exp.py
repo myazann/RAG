@@ -8,7 +8,7 @@ from evaluate import load
 import torch 
 
 from RAG.prompter import Prompter
-from RAG.chatbots import choose_bot
+from RAG.chatbots import choose_bot, get_model_cfg
 from RAG.loader import FileLoader
 from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx
 
@@ -16,7 +16,8 @@ args = get_lamp_args()
 is_q = bool(args.quant_bots)
 dataset_num = args.dataset_num
 k = args.k
-retriever = args.retriever if k !=0 else None
+retriever = args.retriever if k != 0 else None
+context_length = args.context_length
 
 Q_BIT = 5 if is_q else None
 FINAL_DB_SIZE = 12121
@@ -39,8 +40,14 @@ for chatbot_name in chatbot_names:
         test_name = f"LAMP_D{dataset_num}_K{k}_{chatbot_name}"   
     else:
         test_name = f"LAMP_D{dataset_num}_K{k}_{retriever}_{chatbot_name}"
+    file_out_path = os.path.join(out_dir, f"{chatbot_name}")
+    def_ctx_length = get_model_cfg()[chatbot_name]["context_length"]
+    if def_ctx_length != context_length:
+        exp_window = int(int(context_length)/1000)
+        test_name = f"{test_name}_{exp_window}K"
+        file_out_path = f"{file_out_path}_{exp_window}K"
     os.environ["LANGCHAIN_PROJECT"] = test_name
-    file_out_path = os.path.join(out_dir, f"{chatbot_name}.pkl")
+    file_out_path = f"{file_out_path}.pkl"
     if os.path.exists(file_out_path):
         with open(file_out_path, "rb") as f:
              all_res = pickle.load(f)
@@ -55,6 +62,7 @@ for chatbot_name in chatbot_names:
         corpuses = orig_corpuses[len(all_res):]
         titles = orig_titles[len(all_res):]
     chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=Q_BIT)
+    chatbot.context_length = context_length
     if k == "0":
         lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
     else:

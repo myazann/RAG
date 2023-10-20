@@ -27,10 +27,8 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
         models = model_cfg.sections()
         model_families = dict({str(k): v for k, v in enumerate(sorted(set([model.split("-")[0] for model in models ])))})
         print("Here are the available model families, please choose one:\n")
-
         for i, repo in model_families.items():
             print(f"{i}: {repo}")  
-
         while True:
             model_family_id = input()
             model_family = model_families.get(model_family_id)
@@ -38,13 +36,11 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
                 print("Please select from one of the options!")
             else:
                 break
-
         num_repo = dict({str(k): v for k, v in enumerate([model for model in models if model_family in model])})
         print("\nChoose a version:\n")
         for i, repo in num_repo.items():
             repo_name = repo.replace("_", "-")
             print(f"{i}: {repo_name}")  
-
         while True:
             model_id = input()
             model_name = num_repo.get(model_id)
@@ -124,13 +120,11 @@ class Chatbot:
             name_token_var = "max_tokens_to_sample"
         else:
             name_token_var = "max_new_tokens"
-
         if gen_params is None:
             return {
             name_token_var: 512,
             "temperature": 0.7,
             }
-        
         elif "max_new_tokens" or "max_tokens_to_sample" in gen_params.keys():
             value = gen_params.pop("max_new_tokens")
             gen_params[name_token_var] = value
@@ -189,20 +183,16 @@ class Chatbot:
             return AutoAWQForCausalLM.from_quantized(
                 self.repo_id,
                 **self.model_params)
-        
         elif "claude" in self.repo_id:
             return ChatAnthropic(model=self.repo_id, **self.gen_params)
-        
         elif "gpt" in self.repo_id:
             return ChatOpenAI(model=self.repo_id, **self.gen_params)
-        
         elif self.model_type == "GGUF":
             if os.getenv("HF_HOME") is None:
                 hf_cache_path = os.path.join(os.path.expanduser('~'), ".cache", "huggingface", "transformers")
             else:
                 hf_cache_path = os.getenv("HF_HOME")
             model_folder = os.path.join(hf_cache_path, self.repo_id.replace("/", "-"))
-
             bit_range = [str(i) for i in range(2, 9)]
             if self.q_bit not in bit_range:
                 print("This is a quantized model, please choose the number of quantization bits: ")
@@ -215,7 +205,6 @@ class Chatbot:
                     else:
                         self.q_bit = q_bit
                         break
-
             self.model_basename = "-".join(self.repo_id.split('/')[1].split("-")[:-1]).lower()
             if self.q_bit in ["2", "6"]:
                 self.model_basename = f"{self.model_basename}.Q{self.q_bit}_K.gguf"
@@ -232,7 +221,6 @@ class Chatbot:
                 except Exception as e:
                     print(e)
                     print("Couldn't find the model, please choose again! (Maybe the model isn't quantized with this bit?)")
-
             return LlamaCpp(
                     model_path=os.path.join(model_folder, self.model_basename),
                     **self.model_params,

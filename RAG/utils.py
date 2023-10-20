@@ -20,7 +20,6 @@ def get_device():
    print("GPU Usage:\n")
    GPUtil.showUtilization()
    devices = GPUtil.getAvailable()
-   
    if len(devices) == 0:
       device = "cpu"
       print("There are either no GPUS, or they are too busy. Setting device to CPU!")
@@ -32,7 +31,6 @@ def get_device():
    return device
 
 def get_cfg_params():
-
    parser = ConfigParser()
    parser.read("config.cfg")
    
@@ -45,7 +43,6 @@ def get_args():
    parser.add_argument("-pt", "--perturb_test_type", default="test1", type=str)
    parser.add_argument("-ldn", "--lamp_dataset_num", default="5", type=str)
    parser.add_argument("-lk", "--lamp_k", default="0", type=str)
-
    args = parser.parse_args()
 
    return args
@@ -57,14 +54,11 @@ def add_line_breaks(text, max_length):
    """
 
    lines = text.split('\n')
-
    for i, line in enumerate(lines):
       if len(line) > max_length:
-            
          words = line.split(' ')
          length = 0
          formatted = ""
-
          for word in words:
             if length + len(word) <= max_length:
                formatted += word + " "
@@ -72,9 +66,7 @@ def add_line_breaks(text, max_length):
             else:
                formatted += "\n" + word + " "
                length = len(word) + 1
-            
          lines[i] = formatted
-      
    output = "\n".join(lines)
    return output
 

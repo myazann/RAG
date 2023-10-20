@@ -129,7 +129,6 @@ class Prompter():
         Output:""")
 
     def merge_with_template(self, chatbot, prompt_type):
-
         prompt = self.prompt_dict[prompt_type]
         template = chatbot.prompt_template()
         if template is not None:
