@@ -7,7 +7,37 @@ A simple implementation of retrieval augmented generation for a variety of model
 ```bash
 python run.py -doc "URL or path to the document"
 ```
-The script will ask you to choose a chatbot, and retrieval will be done from the given document or URL using Langchain. If you want to use OpenAI or Anthropic models, you need to add the corresponding API keys as environment variables.
+The script will ask you to choose a chatbot, and retrieval will be done from the given document or URL using Langchain. If you want to use OpenAI or Anthropic models, you need to add the corresponding API keys as environment variables. Opensource models can require a Huggingface API key.
+
+## Installation
+
+Run the following command after you clone the repo:
+
+```bash
+pip install -e .
+```
+
+## LaMP Experiments
+
+To run an experiment for the LaMP benchmark, run the following command with arguments:
+
+```bash
+python LAMP/run_exp.py -dn 5 -isq 0 -k 3 -r bm25 -mcl 4096
+```
+
+- `--dn`: Number of the dataset, which should be an integer between 1-7. 
+- `--isq`: Bool to use quantized chatbots or not, should be 0 or 1.
+- `--k`: Number of retrieved documents. Can be an integer, "max", or "<i>k</i>__skip_<i>_k</i>". "0" means no retrieval, "max" means the maximum number of documents that can be put into the context window of the window, and "<i>k</i>__skip_<i>_k</i>" means skip the first k number of docs and use the second integer as "k". This is useful to test the performance without the top retrieved documents.
+- `--r`: Retriever, can be ["bm25", "contriever", "dpr"]. If k is 0, the retriever is not used.
+- `--mcl`: Maximum context length to use when k=max.
+
+The following script evaluates all the completed experiments with the validation set and produces a dataframe with Rouge scores:
+
+```bash
+python lamp_eval.py
+```
+
+The prompts used can be found in the _prompter.py_ script.
 
 ## TODO 
   * Figure out a way to run AWQ 
