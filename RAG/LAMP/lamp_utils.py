@@ -16,7 +16,7 @@ def get_lamp_args():
    parser = argparse.ArgumentParser()
    parser.add_argument("-isq", "--quant_bots", default=0, type=int)
    parser.add_argument("-dn", "--dataset_num", default="5", type=str)
-   parser.add_argument("-k", "--k", default="0", type=str)
+   parser.add_argument("-k", "--k", default="3", type=str)
    parser.add_argument("-r", "--retriever", default="bm25", type=str)
    parser.add_argument("-mcl", "--max_context_length", default="4096", type=str)
 
