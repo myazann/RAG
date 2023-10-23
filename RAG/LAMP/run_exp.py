@@ -17,7 +17,7 @@ is_q = bool(args.quant_bots)
 dataset_num = args.dataset_num
 k = args.k
 retriever = args.retriever if k != 0 else None
-context_length = args.context_length
+max_context_length = args.max_context_length
 
 Q_BIT = 5 if is_q else None
 FINAL_DB_SIZE = 12121
@@ -25,7 +25,7 @@ MAX_NEW_TOKENS = 64
 
 data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5", "MISTRAL-7B-v0.1-INSTRUCT"]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "WIZARDLM-13B-v1.2"]
 if is_q:
     chatbot_names = [f"{bot_name}-GGUF" for bot_name in chatbot_names]
 if k == "0":
@@ -42,8 +42,8 @@ for chatbot_name in chatbot_names:
         test_name = f"LAMP_D{dataset_num}_K{k}_{retriever}_{chatbot_name}"
     file_out_path = os.path.join(out_dir, f"{chatbot_name}")
     def_ctx_length = get_model_cfg()[chatbot_name]["context_length"]
-    if def_ctx_length != context_length:
-        exp_window = int(int(context_length)/1000)
+    if k == "max" and def_ctx_length != max_context_length:
+        exp_window = int(int(max_context_length)/1000)
         test_name = f"{test_name}_{exp_window}K"
         file_out_path = f"{file_out_path}_{exp_window}K"
     os.environ["LANGCHAIN_PROJECT"] = test_name
@@ -62,7 +62,8 @@ for chatbot_name in chatbot_names:
         corpuses = orig_corpuses[len(all_res):]
         titles = orig_titles[len(all_res):]
     chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=Q_BIT)
-    chatbot.context_length = context_length
+    if k == "max" and def_ctx_length != max_context_length:
+        chatbot.context_length = max_context_length
     if k == "0":
         lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
     else:

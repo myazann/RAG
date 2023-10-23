@@ -20,9 +20,7 @@ def get_model_cfg():
     return config
 
 def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None):
-
     if model_name is None:
-
         model_cfg = get_model_cfg()
         models = model_cfg.sections()
         model_families = dict({str(k): v for k, v in enumerate(sorted(set([model.split("-")[0] for model in models ])))})
@@ -48,7 +46,6 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
                 print("Please select from one of the options!")
             else:
                 break
-
     if "FALCON" in model_name:
         return Falcon(model_name, model_params, gen_params, q_bits)
     elif "VICUNA" in model_name:
@@ -65,13 +62,14 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
         return Claude(model_name, model_params, gen_params)
     elif "MISTRAL" in model_name:
         return Mistral(model_name, model_params, gen_params, q_bits)
+    elif "WIZARDLM" in model_name:
+        return WizardLM(model_name, model_params, gen_params, q_bits)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
 class Chatbot:
 
     def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-
         self.cfg = get_model_cfg()[model_name]
         self.name = model_name
         self.repo_id = self.cfg.get("repo_id")
@@ -337,3 +335,15 @@ class Mistral(Chatbot):
 
     def prompt_template(self):
         return strip_all("""<s>[INST] {prompt} [/INST]""")
+    
+
+class WizardLM(Chatbot):
+
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+        super().__init__(model_name, model_params, gen_params, q_bits)
+
+    def prompt_template(self):
+        return strip_all("""A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
+        USER: 
+        {prompt}
+        ASSISTANT:""")  

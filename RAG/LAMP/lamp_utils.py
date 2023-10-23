@@ -18,7 +18,7 @@ def get_lamp_args():
    parser.add_argument("-dn", "--dataset_num", default="5", type=str)
    parser.add_argument("-k", "--k", default="0", type=str)
    parser.add_argument("-r", "--retriever", default="bm25", type=str)
-   parser.add_argument("-cl", "--context_length", default="4096", type=str)
+   parser.add_argument("-mcl", "--max_context_length", default="4096", type=str)
 
    return parser.parse_args()
 
