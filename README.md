@@ -27,7 +27,7 @@ python LAMP/run_exp.py -dn 5 -isq 0 -k 3 -r bm25 -mcl 4096
 
 - `--dn`: Number of the dataset, which should be an integer between 1-7. 
 - `--isq`: Bool to use quantized chatbots or not, should be 0 or 1.
-- `--k`: Number of retrieved documents. Can be an integer, "max", or "<i>k</i>__skip_<i>_k</i>". "0" means no retrieval, "max" means the maximum number of documents that can be put into the context window of the window, and "<i>k</i>__skip_<i>_k</i>" means skip the first k number of docs and use the second integer as "k". This is useful to test the performance without the top retrieved documents.
+- `--k`: Number of retrieved documents. Can be an integer, "max", or "<i>k</i>__skip_<i>_k</i>". "0" means no retrieval, "max" means the maximum number of documents that can be put into the context window of the window, and "<i>k</i>__skip_<i>_k</i>" means skip the second k number of docs and then get the first "k" documents. This is useful to test the performance without the top retrieved documents.
 - `--r`: Retriever, can be ["bm25", "contriever", "dpr"]. If k is 0, the retriever is not used.
 - `--mcl`: Maximum context length to use when k=max.
 
