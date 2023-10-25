@@ -64,6 +64,8 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
         return Mistral(model_name, model_params, gen_params, q_bits)
     elif "WIZARDLM" in model_name:
         return WizardLM(model_name, model_params, gen_params, q_bits)
+    elif "ZEPHYR" in model_name:
+        return Zephyr(model_name, model_params, gen_params, q_bits)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
@@ -335,7 +337,17 @@ class Mistral(Chatbot):
 
     def prompt_template(self):
         return strip_all("""<s>[INST] {prompt} [/INST]""")
-    
+
+class Zephyr(Chatbot):
+
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+        super().__init__(model_name, model_params, gen_params, q_bits)
+
+    def prompt_template(self):
+        return strip_all("""<|system|></s>
+                         <|user|>
+                         {prompt}</s> 
+                         <|assistant|>""")   
 
 class WizardLM(Chatbot):
 
