@@ -40,11 +40,14 @@ python lamp_eval.py
 The prompts used can be found in the _prompter.py_ script.
 
 ## TODO 
-  * Figure out a way to run AWQ 
-  * Reduce the amount of dependency on Langchain 
-  * Check better open-source alternatives to LLaMA 
-  * Add option to pass arguments for prompts
-  * Rethink the logic of counting tokens and get max k 
-  * Move the lamp dataset function to lamp utils 
-  * Remove langchain dependency from loader 
-  * Redesign the retriever class 
+
+Task | Done? |
+---| :---: |
+Figure out a way to run AWQ | ⬜️
+Reduce the amount of dependency on Langchain | ⬜️
+Add option to pass arguments for prompts | ⬜️
+Rethink the logic of counting tokens and get max k | ⬜️
+Move the lamp dataset function to lamp utils | ⬜️
+Remove langchain dependency from the loader | ⬜️
+Redesign the retriever class | ⬜️
+Check better open-source alternatives to LLaMA | ✅
