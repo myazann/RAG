@@ -7,7 +7,7 @@ import urllib.request
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM
 from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic, ChatOpenAI
-from langchain.llms import LlamaCpp
+from langchain.llms import LlamaCpp, VLLM
 from auto_gptq import AutoGPTQForCausalLM
 from awq import AutoAWQForCausalLM
 
@@ -153,8 +153,9 @@ class Chatbot:
     def awq_params(self):
         return {
             "fuse_layers": True,
-            "trust_remote_code": False,
-            "safetensors": True
+            "trust_remote_code": True,
+            "safetensors": True,
+            "dtype": "half"
         }
     
     def default_model_params(self):
@@ -180,8 +181,10 @@ class Chatbot:
                     model_basename=self.model_basename,
                     **self.model_params)
         elif self.model_type == "AWQ":
-            return AutoAWQForCausalLM.from_quantized(
-                self.repo_id,
+            return VLLM(
+                model=self.repo_id,
+                vllm_kwargs={
+                    "quantization": "awq"},
                 **self.model_params)
         elif "claude" in self.repo_id:
             return ChatAnthropic(model=self.repo_id, **self.gen_params)
