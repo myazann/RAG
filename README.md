@@ -46,8 +46,8 @@ Task | Done? |
 Reduce the amount of dependency on Langchain | ⬜️
 Add option to pass arguments for prompts | ⬜️
 Rethink the logic of counting tokens and get max k | ⬜️
-Move the lamp dataset function to lamp utils | ⬜️
 Remove langchain dependency from the loader | ⬜️
 Redesign the retriever class | ⬜️
+Move the lamp dataset function to lamp utils | ✅
 Figure out a way to run AWQ | ✅
 Check better open-source alternatives to LLaMA | ✅
