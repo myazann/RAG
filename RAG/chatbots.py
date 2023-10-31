@@ -183,6 +183,7 @@ class Chatbot:
         elif self.model_type == "AWQ":
             return VLLM(
                 model=self.repo_id,
+                verbose=False,
                 vllm_kwargs={
                     "quantization": "awq"},
                 **self.model_params)
@@ -235,7 +236,7 @@ class Chatbot:
                     device_map="auto")
         
     def init_pipe(self):            
-        if self.model_type == "GGUF" or "claude" in self.repo_id or "gpt" in self.repo_id:
+        if self.model_type in ["GGUF", "AWQ"] or "claude" in self.repo_id or "gpt" in self.repo_id:
             return self.model
         else:
             return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
