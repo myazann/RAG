@@ -9,23 +9,23 @@ import torch
 
 from RAG.prompter import Prompter
 from RAG.chatbots import choose_bot, get_model_cfg
-from RAG.loader import FileLoader
-from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx
+from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset
 
 args = get_lamp_args()
 is_q = bool(args.quant_bots)
+q_bits = args.q_bits
 dataset_num = args.dataset_num
 k = args.k
 retriever = args.retriever if k != 0 else None
 max_context_length = args.max_context_length
 
-Q_BIT = 5 if is_q else None
+Q_BIT = q_bits if is_q else None
 FINAL_DB_SIZE = 12121
 MAX_NEW_TOKENS = 64
 
-data, out_gts = FileLoader.get_lamp_dataset(dataset_num)
+data, out_gts = get_lamp_dataset(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "WIZARDLM-13B-v1.2"]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA"]
 if is_q:
     chatbot_names = [f"{bot_name}-GGUF" for bot_name in chatbot_names]
 if k == "0":
@@ -35,12 +35,16 @@ else:
 os.makedirs(out_dir, exist_ok=True)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} with {retriever}")
 for chatbot_name in chatbot_names:
-    print(chatbot_name)
-    if k == "0":
-        test_name = f"LAMP_D{dataset_num}_K{k}_{chatbot_name}"   
+    if Q_BIT not in [None, "5"]:
+        bit_chatbot_name = f"{chatbot_name}-{Q_BIT}_bits"
     else:
-        test_name = f"LAMP_D{dataset_num}_K{k}_{retriever}_{chatbot_name}"
-    file_out_path = os.path.join(out_dir, f"{chatbot_name}")
+        bit_chatbot_name = chatbot_name
+    print(bit_chatbot_name)
+    if k == "0":
+        test_name = f"LAMP_D{dataset_num}_K{k}_{bit_chatbot_name}"   
+    else:
+        test_name = f"LAMP_D{dataset_num}_K{k}_{retriever}_{bit_chatbot_name}"
+    file_out_path = os.path.join(out_dir, f"{bit_chatbot_name}")
     def_ctx_length = get_model_cfg()[chatbot_name]["context_length"]
     if k == "max" and def_ctx_length != max_context_length:
         exp_window = int(int(max_context_length)/1000)
@@ -62,8 +66,7 @@ for chatbot_name in chatbot_names:
         corpuses = orig_corpuses[len(all_res):]
         titles = orig_titles[len(all_res):]
     chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=Q_BIT)
-    if k == "max" and def_ctx_length != max_context_length:
-        chatbot.context_length = max_context_length
+    chatbot.context_length = max_context_length
     if k == "0":
         lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
     else:
