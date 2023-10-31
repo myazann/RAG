@@ -1,18 +1,11 @@
-import os
 import pickle
 
 import pandas as pd
 from evaluate import load
 
+from RAG.utils import list_files_in_directory
 from RAG.output_formatter import lamp_output_formatter
 from lamp_utils import get_lamp_args, create_retr_data, get_val_idx, get_lamp_dataset
-
-def list_files_in_directory(root_dir):
-    file_list = []
-    for root, _, files in os.walk(root_dir):
-        for file in files:
-            file_list.append(os.path.join(root, file))
-    return file_list
 
 all_res_files = sorted(list_files_in_directory("res_pkls"))
 args = get_lamp_args()

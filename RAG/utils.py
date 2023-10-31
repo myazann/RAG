@@ -1,4 +1,5 @@
 import argparse
+import os
 from configparser import ConfigParser
 
 from langchain.prompts import PromptTemplate
@@ -80,3 +81,10 @@ def get_NoOpChain(llm):
             return question
    
    return NoOpLLMChain()
+
+def list_files_in_directory(root_dir):
+    file_list = []
+    for root, _, files in os.walk(root_dir):
+        for file in files:
+            file_list.append(os.path.join(root, file))
+    return file_list
