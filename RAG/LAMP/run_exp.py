@@ -25,7 +25,7 @@ MAX_NEW_TOKENS = 64
 
 data, out_gts = get_lamp_dataset(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA"]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA"]
 if is_q:
     chatbot_names = [f"{bot_name}-GGUF" for bot_name in chatbot_names]
 if k == "0":
@@ -33,8 +33,11 @@ if k == "0":
 else:
     out_dir = f"res_pkls/D{dataset_num}/K{k}/{retriever}"
 os.makedirs(out_dir, exist_ok=True)
-print(f"Running experiments for the {dataset_num}th dataset with k={k} with {retriever}")
+print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever}")
 for chatbot_name in chatbot_names:
+    if chatbot_name == "LLAMA2-70B" and Q_BIT != "4":
+        print("LLaMA2-70B can only be run with 4-bit quantization!")
+        continue
     if Q_BIT not in [None, "5"]:
         bit_chatbot_name = f"{chatbot_name}-{Q_BIT}_bits"
     else:
@@ -89,7 +92,7 @@ for chatbot_name in chatbot_names:
         else:
             retr_docs = retr_doc_idxs[i]
             example_pairs = ""
-            if k == "max":
+            if "max" in k:
                 doc_k = len(retr_docs)-skip_k
             else:
                 doc_k = int(doc_k)
