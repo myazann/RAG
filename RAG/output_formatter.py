@@ -16,6 +16,10 @@ def lamp_output_formatter(output):
     if ex_index != -1:
         substring = substring[:ex_index]
     substring = substring.strip()
+    angle_b_index = substring.find("</s>")
+    if angle_b_index != -1:
+        substring = substring[:angle_b_index]
+    substring.strip()
     nl_index = substring.find("\n")
     if nl_index != -1:
         substring = substring[nl_index:]
