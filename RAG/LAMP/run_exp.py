@@ -35,7 +35,7 @@ else:
 os.makedirs(out_dir, exist_ok=True)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever}")
 for chatbot_name in chatbot_names:
-    if chatbot_name == "LLAMA2-70B" and Q_BIT != "4":
+    if "LLAMA2-70B" in chatbot_name and Q_BIT != "4":
         print("LLaMA2-70B can only be run with 4-bit quantization!")
         continue
     if Q_BIT not in [None, "5"]:
