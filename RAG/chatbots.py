@@ -7,14 +7,12 @@ import urllib.request
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM
 from langchain import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic, ChatOpenAI
-from langchain.llms import LlamaCpp, VLLM
+from langchain.llms import LlamaCpp
 from auto_gptq import AutoGPTQForCausalLM
-from awq import AutoAWQForCausalLM
 
 from RAG.output_formatter import strip_all
 
 def get_model_cfg():
-
     config = configparser.ConfigParser()
     config.read(os.path.join(Path(__file__).absolute().parent, "model_config.cfg"))
     return config
@@ -77,7 +75,7 @@ class Chatbot:
         self.repo_id = self.cfg.get("repo_id")
         self.model_basename = self.cfg.get("basename")
         self.context_length = self.cfg.get("context_length")
-        self.q_bit = str(q_bits)
+        self.q_bit = q_bits
         self.model_type = self.get_model_type()
         self.tokenizer = self.init_tokenizer()
         self.model_params = self.get_model_params(model_params)
@@ -149,14 +147,6 @@ class Chatbot:
                 "rope_freq_scale": rope_freq_scale
                 }
     
-    def awq_params(self):
-        return {
-            "fuse_layers": True,
-            # "trust_remote_code": True,
-            # "safetensors": True,
-            # "dtype": "half"
-        }
-    
     def default_model_params(self):
         return {}
     
@@ -166,8 +156,6 @@ class Chatbot:
                 return self.gptq_params()
             elif self.model_type == "GGUF":
                 return self.ggum_params()
-            elif self.model_type == "AWQ":
-                return self.awq_params()
             else:
                 return self.default_model_params()
         else:
@@ -179,10 +167,6 @@ class Chatbot:
                     self.repo_id,
                     model_basename=self.model_basename,
                     **self.model_params)
-        elif self.model_type == "AWQ":
-            return AutoAWQForCausalLM.from_quantized(
-                self.repo_id,
-                **self.model_params)
         elif "claude" in self.repo_id:
             return ChatAnthropic(model=self.repo_id, **self.gen_params)
         elif "gpt" in self.repo_id:
@@ -229,17 +213,14 @@ class Chatbot:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
                     **self.model_params,
+                    low_cpu_mem_usage=True if self.model_type == "AWQ" else False,
                     device_map="auto")
         
     def init_pipe(self):            
         if self.model_type in ["GGUF"] or "claude" in self.repo_id or "gpt" in self.repo_id:
             return self.model
         else:
-            if self.model_type == "AWQ":
-                model = self.model.model
-            else: 
-                model = self.model
-            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=model, tokenizer=self.tokenizer, **self.gen_params))
+            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
 
 class Vicuna(Chatbot):
 

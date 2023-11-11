@@ -24,37 +24,29 @@ args = get_args()
 file_name = args.document
 device = get_device()
 chatbot = choose_bot()
-
 file_loader = FileLoader()
 file = file_loader.load(file_name)
 file_type = file_loader.get_file_type(file_name)
-
 if chatbot.q_bit is None:
   test_name = f"QA_{chatbot.name}_{time.time()}"
 else:
   test_name = f"QA_{chatbot.name}_{chatbot.q_bit}-bit_{time.time()}"
 os.environ["LANGCHAIN_PROJECT"] = test_name
-
 if file_type == "db":
   db_chain = SQLDatabaseChain.from_llm(chatbot.pipe, file, verbose=True)
-
 elif file_type == "csv":
   df = file
   prompter = Prompter()
   csv_prompt = prompter.merge_with_template(chatbot, "csv")
   memory_prompt = prompter.merge_with_template(chatbot, "memory_summary")
-
   CSV_PROMPT = PromptTemplate(input_variables=["chat_history", "user_input"], template=csv_prompt)
   MEMORY_PROMPT = PromptTemplate(input_variables=["summary", "new_lines"], template=memory_prompt)
   csv_chain = ConversationChain(llm=chatbot.pipe, input_key="user_input", 
                                 memory=ConversationBufferWindowMemory(k=3, memory_key="chat_history"), prompt=CSV_PROMPT)
-
 else:
-
   doc = file_loader.LESSEN_preprocess(file)
   text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=250)
   texts = text_splitter.split_documents(doc)
-
   model_name = "BAAI/bge-base-en"
   model_kwargs = {"device": device}
   encode_kwargs = {"normalize_embeddings": True}
@@ -63,45 +55,34 @@ else:
       model_kwargs=model_kwargs,
       encode_kwargs=encode_kwargs
   )
-  
-  #embeddings = OpenAIEmbeddings()
   fs = LocalFileStore("./cache/")
   cached_embedder = CacheBackedEmbeddings.from_bytes_store(
       embeddings, fs, namespace=embeddings.model_name
   )
-
   # embeddings = HuggingFaceEmbeddings()
   db = Chroma.from_documents(texts, cached_embedder)
-
   retriever = Retriever(db)
   k = retriever.find_max_k(chatbot, [page.page_content for page in texts])
   retriever.init_base_retriever(k=k)
   retriever.add_embed_filter(embeddings, similarity_threshold=0.2)
   retriever.init_comp_retriever()
-
   prompter = Prompter()
   qa_prompt = prompter.merge_with_template(chatbot, "qa")
   memory_prompt = prompter.merge_with_template(chatbot, "memory_summary")
-
   QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "chat_history", "question"], template=qa_prompt)
   MEMORY_PROMPT = PromptTemplate(input_variables=["summary", "new_lines"], template=memory_prompt)
-
   memory = ConversationSummaryMemory(llm=chatbot.pipe, memory_key="chat_history", return_messages=False, prompt=MEMORY_PROMPT,
                                      input_key="question", output_key="answer")
-
   doc_chain = load_qa_chain(
       chatbot.pipe,
       chain_type="stuff",
       **{"prompt": QA_CHAIN_PROMPT},
   )
-
   qa = ConversationalRetrievalChain(retriever=retriever.comp_retriever, combine_docs_chain=doc_chain, 
                                     question_generator=get_NoOpChain(chatbot.pipe), memory=memory, get_chat_history=lambda h: h,
                                     return_source_documents=True)
-
 pretty_doc_name = " ".join(file_name.split(".")[:-1]).replace("_"," ")
 print(f"""\nHello, I am here to inform you about the {pretty_doc_name}. What do you want to learn? (Press 0 if you want to quit!) \n""")
-
 while True:
   print("User: ")
   query = input().strip()
