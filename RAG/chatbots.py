@@ -113,7 +113,6 @@ class Chatbot:
             return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
             
     def get_gen_params(self, gen_params):
-
         if self.model_type == "GGUF" or "gpt" in self.repo_id:
             name_token_var = "max_tokens"
         elif "claude" in self.repo_id:
@@ -153,9 +152,9 @@ class Chatbot:
     def awq_params(self):
         return {
             "fuse_layers": True,
-            "trust_remote_code": True,
-            "safetensors": True,
-            "dtype": "half"
+            # "trust_remote_code": True,
+            # "safetensors": True,
+            # "dtype": "half"
         }
     
     def default_model_params(self):
@@ -181,11 +180,8 @@ class Chatbot:
                     model_basename=self.model_basename,
                     **self.model_params)
         elif self.model_type == "AWQ":
-            return VLLM(
-                model=self.repo_id,
-                verbose=False,
-                vllm_kwargs={
-                    "quantization": "awq"},
+            return AutoAWQForCausalLM.from_quantized(
+                self.repo_id,
                 **self.model_params)
         elif "claude" in self.repo_id:
             return ChatAnthropic(model=self.repo_id, **self.gen_params)
@@ -236,10 +232,14 @@ class Chatbot:
                     device_map="auto")
         
     def init_pipe(self):            
-        if self.model_type in ["GGUF", "AWQ"] or "claude" in self.repo_id or "gpt" in self.repo_id:
+        if self.model_type in ["GGUF"] or "claude" in self.repo_id or "gpt" in self.repo_id:
             return self.model
         else:
-            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
+            if self.model_type == "AWQ":
+                model = self.model.model
+            else: 
+                model = self.model
+            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=model, tokenizer=self.tokenizer, **self.gen_params))
 
 class Vicuna(Chatbot):
 

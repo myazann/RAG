@@ -8,26 +8,26 @@ from evaluate import load
 import torch 
 
 from RAG.prompter import Prompter
-from RAG.chatbots import choose_bot, get_model_cfg
+from RAG.chatbots import choose_bot
 from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset
 
 args = get_lamp_args()
-is_q = bool(args.quant_bots)
+q_type = args.quant
 q_bits = args.q_bits
 dataset_num = args.dataset_num
 k = args.k
 retriever = args.retriever if k != 0 else None
 max_context_length = args.max_context_length
 
-Q_BIT = q_bits if is_q else None
 FINAL_DB_SIZE = 12121
 MAX_NEW_TOKENS = 64
 
 data, out_gts = get_lamp_dataset(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-v1.5", "VICUNA-13B-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA"]
-if is_q:
-    chatbot_names = [f"{bot_name}-GGUF" for bot_name in chatbot_names]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA"]
+# chatbot_names = ["VICUNA-7B-v1.5", "VICUNA-13B-v1.5"]
+if q_type is not None:
+    chatbot_names = [f"{bot_name}-{q_type}" for bot_name in chatbot_names]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/K{k}"
 else:
@@ -35,26 +35,29 @@ else:
 os.makedirs(out_dir, exist_ok=True)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever}")
 for chatbot_name in chatbot_names:
-    if "LLAMA2-70B" in chatbot_name and Q_BIT != "4":
-        print("LLaMA2-70B can only be run with 4-bit quantization!")
-        continue
-    if Q_BIT not in [None, "5"]:
-        bit_chatbot_name = f"{chatbot_name}-{Q_BIT}_bits"
-    else:
-        bit_chatbot_name = chatbot_name
-    print(bit_chatbot_name)
+    if "LLAMA2-70B" in chatbot_name:
+        if q_type is None:
+            print("Unquantized LLaMA2-70B cannot be run!") 
+            continue
+        elif q_type == "GGUF" and int(q_bits) > 4:
+            print("LLaMA2-70B can only be run in 4-bits (or less) with GGUF quantization!")
+            continue
     if k == "0":
-        test_name = f"LAMP_D{dataset_num}_K{k}_{bit_chatbot_name}"   
+        test_name = f"LAMP_D{dataset_num}_K{k}"   
     else:
-        test_name = f"LAMP_D{dataset_num}_K{k}_{retriever}_{bit_chatbot_name}"
-    file_out_path = os.path.join(out_dir, f"{bit_chatbot_name}")
-    def_ctx_length = get_model_cfg()[chatbot_name]["context_length"]
-    if k == "max" and def_ctx_length != max_context_length:
+        test_name = f"LAMP_D{dataset_num}_K{k}_{retriever}"
+    #file_out_path = os.path.join(out_dir, f"{bit_chatbot_name}")
+    chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=q_bits)
+    if k == "max" and int(chatbot.context_length) > int(max_context_length):
         exp_window = int(int(max_context_length)/1000)
-        test_name = f"{test_name}_{exp_window}K"
-        file_out_path = f"{file_out_path}_{exp_window}K"
-    os.environ["LANGCHAIN_PROJECT"] = test_name
-    file_out_path = f"{file_out_path}.pkl"
+        # test_name = f"{test_name}-{exp_window}K"
+        chatbot_name = f"{chatbot_name}-{exp_window}K"
+        chatbot.context_length = max_context_length
+    if q_type == "GGUF":
+        chatbot_name = f"{chatbot_name}-{q_bits}_bits"
+    print(chatbot_name)
+    os.environ["LANGCHAIN_PROJECT"] = f"{test_name}_{chatbot_name}"
+    file_out_path = f"{out_dir}/{chatbot_name}.pkl"
     if os.path.exists(file_out_path):
         with open(file_out_path, "rb") as f:
              all_res = pickle.load(f)
@@ -68,8 +71,6 @@ for chatbot_name in chatbot_names:
         queries = orig_queries[len(all_res):]
         corpuses = orig_corpuses[len(all_res):]
         titles = orig_titles[len(all_res):]
-    chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=Q_BIT)
-    chatbot.context_length = max_context_length
     if k == "0":
         lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
     else:

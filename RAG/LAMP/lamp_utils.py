@@ -14,13 +14,12 @@ from contriever.src.contriever import Contriever
 
 def get_lamp_args():
    parser = argparse.ArgumentParser()
-   parser.add_argument("-isq", "--quant_bots", default=0, type=int)
+   parser.add_argument("-q", "--quant", default=None, type=str)
    parser.add_argument("-b","--q_bits", default=5, type=str)
    parser.add_argument("-dn", "--dataset_num", default="5", type=str)
    parser.add_argument("-k", "--k", default="3", type=str)
    parser.add_argument("-r", "--retriever", default="bm25", type=str)
    parser.add_argument("-mcl", "--max_context_length", default="4096", type=str)
-
    return parser.parse_args()
 
 def get_lamp_dataset(dataset_num, modes="train_dev"):
@@ -66,7 +65,6 @@ def get_lamp_dataset(dataset_num, modes="train_dev"):
         all_gts["train_dev"] = sorted(train_dev_gts, key=lambda x: int(x["id"]))
     for mode, gts in all_gts.items():
         all_gts[mode] = [gt["output"] for gt in gts]
-
     return all_data, all_gts
 
 def get_val_idx(processed_gts, dataset_num=5):
