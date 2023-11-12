@@ -1,11 +1,10 @@
-import torch
 import configparser
 import os
 from pathlib import Path
 import urllib.request
 
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM
-from langchain import HuggingFacePipeline
+from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic, ChatOpenAI
 from langchain.llms import LlamaCpp
 from auto_gptq import AutoGPTQForCausalLM
@@ -44,9 +43,7 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
                 print("Please select from one of the options!")
             else:
                 break
-    if "FALCON" in model_name:
-        return Falcon(model_name, model_params, gen_params, q_bits)
-    elif "VICUNA" in model_name:
+    if "VICUNA" in model_name:
         return Vicuna(model_name, model_params, gen_params, q_bits)
     elif "LLAMA" in model_name:
         return LLaMA2(model_name, model_params, gen_params, q_bits)
@@ -85,6 +82,9 @@ class Chatbot:
 
     def prompt_template(self):
         return None
+    
+    def create_chatbot_prompt(self, prompt):
+        return strip_all(self.prompt_template()).format(prompt=strip_all(prompt))
     
     def count_tokens(self, prompt):
         if isinstance(prompt, str):
@@ -228,26 +228,10 @@ class Vicuna(Chatbot):
         super().__init__(model_name, model_params, gen_params, q_bits)
 
     def prompt_template(self):
-        return strip_all("""A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
+        return """A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
         USER: 
         {prompt}
-        ASSISTANT:""")
-
-class Falcon(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-    
-    def get_model_params(self):
-        return {
-                "torch_dtype": torch.bfloat16, 
-                "trust_remote_code": True,
-                "pad_token_id": self.tokenizer.eos_token_id,
-                "eos_token_id": self.tokenizer.eos_token_id,
-                "num_return_sequences": 1,
-                "do_sample": True,
-                "top_k": 10,
-                }
+        ASSISTANT:"""
     
 class LLaMA2(Chatbot):
 
@@ -255,7 +239,9 @@ class LLaMA2(Chatbot):
         super().__init__(model_name, model_params, gen_params, q_bits)
 
     def prompt_template(self):
-        return strip_all("""[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>{prompt}[/INST]""")
+        return """[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>
+                {prompt}
+                [/INST]"""
     
     def default_model_params(self):
         return {
@@ -271,11 +257,11 @@ class StableBeluga(Chatbot):
         super().__init__(model_name, model_params, gen_params, q_bits)
 
     def prompt_template(self):
-        return strip_all("""### System: 
+        return """### System: 
         You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.
         ### User: 
         {prompt}
-        ### Assistant:""")        
+        ### Assistant:"""     
     
 class Luna(Chatbot):
 
@@ -283,8 +269,8 @@ class Luna(Chatbot):
         super().__init__(model_name, model_params, gen_params, q_bits)
 
     def prompt_template(self):
-        return strip_all("""USER: {prompt}
-        ASSISTANT:""")
+        return """USER: {prompt}
+        ASSISTANT:"""
 
 class Claude(Chatbot):
 
@@ -292,8 +278,8 @@ class Claude(Chatbot):
         super().__init__(model_name, model_params, gen_params)
 
     def prompt_template(self):
-        return strip_all("""Human: {prompt}
-        Assistant:""")
+        return """Human: {prompt}
+        Assistant:"""
     
     def count_tokens(self, prompt):
         if isinstance(prompt, str):
@@ -307,7 +293,7 @@ class ChatGPT(Chatbot):
         super().__init__(model_name, model_params, gen_params)
 
     def prompt_template(self):
-        return strip_all("""{prompt}""")
+        return """{prompt}"""
     
     def count_tokens(self, prompt):
         if isinstance(prompt, str):
@@ -321,7 +307,7 @@ class Mistral(Chatbot):
         super().__init__(model_name, model_params, gen_params, q_bits)
 
     def prompt_template(self):
-        return strip_all("""<s>[INST] {prompt} [/INST]""")
+        return """<s>[INST] {prompt} [/INST]"""
 
 class Zephyr(Chatbot):
 
@@ -329,10 +315,10 @@ class Zephyr(Chatbot):
         super().__init__(model_name, model_params, gen_params, q_bits)
 
     def prompt_template(self):
-        return strip_all("""<|system|></s>
+        return """<|system|></s>
                          <|user|>
                          {prompt}</s> 
-                         <|assistant|>""")   
+                         <|assistant|>"""
 
 class WizardLM(Chatbot):
 
@@ -340,7 +326,7 @@ class WizardLM(Chatbot):
         super().__init__(model_name, model_params, gen_params, q_bits)
 
     def prompt_template(self):
-        return strip_all("""A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
+        return """A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
         USER: 
         {prompt}
-        ASSISTANT:""")  
+        ASSISTANT:""" 

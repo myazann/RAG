@@ -3,7 +3,8 @@ import time
 import pickle
 import sys
 
-from langchain import LLMChain, PromptTemplate
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
 from evaluate import load
 import torch 
 
@@ -25,7 +26,6 @@ MAX_NEW_TOKENS = 64
 data, out_gts = get_lamp_dataset(dataset_num)
 prompter = Prompter()
 chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA"]
-# chatbot_names = ["VICUNA-7B-v1.5", "VICUNA-13B-v1.5"]
 if q_type is not None:
     chatbot_names = [f"{bot_name}-{q_type}" for bot_name in chatbot_names]
 if k == "0":
@@ -33,6 +33,7 @@ if k == "0":
 else:
     out_dir = f"res_pkls/D{dataset_num}/K{k}/{retriever}"
 os.makedirs(out_dir, exist_ok=True)
+print(q_bits)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever}")
 for chatbot_name in chatbot_names:
     if "LLAMA2-70B" in chatbot_name:
@@ -72,9 +73,9 @@ for chatbot_name in chatbot_names:
         corpuses = orig_corpuses[len(all_res):]
         titles = orig_titles[len(all_res):]
     if k == "0":
-        lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}")
+        lamp_prompt = chatbot.create_chatbot_prompt(prompter.lamp_prompt(dataset_num, k=False))
     else:
-        lamp_prompt = prompter.merge_with_template(chatbot, f"lamp_{dataset_num}_with_k")
+        lamp_prompt = chatbot.create_chatbot_prompt(prompter.lamp_prompt(dataset_num))
         retr_doc_idxs = retrieved_idx(corpuses, queries, retriever)
         retr_doc_idxs = retr_doc_idxs[len(all_res):]
     llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))
