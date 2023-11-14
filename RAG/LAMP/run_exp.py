@@ -33,7 +33,6 @@ if k == "0":
 else:
     out_dir = f"res_pkls/D{dataset_num}/K{k}/{retriever}"
 os.makedirs(out_dir, exist_ok=True)
-print(q_bits)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever}")
 for chatbot_name in chatbot_names:
     if "LLAMA2-70B" in chatbot_name:
@@ -47,11 +46,9 @@ for chatbot_name in chatbot_names:
         test_name = f"LAMP_D{dataset_num}_K{k}"   
     else:
         test_name = f"LAMP_D{dataset_num}_K{k}_{retriever}"
-    #file_out_path = os.path.join(out_dir, f"{bit_chatbot_name}")
     chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=q_bits)
     if k == "max" and int(chatbot.context_length) > int(max_context_length):
         exp_window = int(int(max_context_length)/1000)
-        # test_name = f"{test_name}-{exp_window}K"
         chatbot_name = f"{chatbot_name}-{exp_window}K"
         chatbot.context_length = max_context_length
     if q_type == "GGUF":

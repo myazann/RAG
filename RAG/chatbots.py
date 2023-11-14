@@ -213,11 +213,11 @@ class Chatbot:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
                     **self.model_params,
-                    low_cpu_mem_usage=True if self.model_type == "AWQ" else False,
+                    low_cpu_mem_usage=True,
                     device_map="auto")
         
     def init_pipe(self):            
-        if self.model_type in ["GGUF"] or "claude" in self.repo_id or "gpt" in self.repo_id:
+        if self.model_type == "GGUF" or "claude" in self.repo_id or "gpt" in self.repo_id:
             return self.model
         else:
             return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
