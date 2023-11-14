@@ -70,9 +70,9 @@ for chatbot_name in chatbot_names:
         corpuses = orig_corpuses[len(all_res):]
         titles = orig_titles[len(all_res):]
     if k == "0":
-        lamp_prompt = chatbot.create_chatbot_prompt(prompter.lamp_prompt(dataset_num, k=False))
+        lamp_prompt = chatbot.prompt_chatbot(prompter.lamp_prompt(dataset_num, k=False))
     else:
-        lamp_prompt = chatbot.create_chatbot_prompt(prompter.lamp_prompt(dataset_num))
+        lamp_prompt = chatbot.prompt_chatbot(prompter.lamp_prompt(dataset_num))
         retr_doc_idxs = retrieved_idx(corpuses, queries, retriever)
         retr_doc_idxs = retr_doc_idxs[len(all_res):]
     llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))

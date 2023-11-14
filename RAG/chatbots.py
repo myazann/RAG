@@ -83,7 +83,7 @@ class Chatbot:
     def prompt_template(self):
         return None
     
-    def create_chatbot_prompt(self, prompt):
+    def prompt_chatbot(self, prompt):
         return strip_all(self.prompt_template()).format(prompt=strip_all(prompt))
     
     def count_tokens(self, prompt):

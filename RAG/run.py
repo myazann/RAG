@@ -37,7 +37,7 @@ if file_type == "db":
   db_chain = SQLDatabaseChain.from_llm(chatbot.pipe, file, verbose=True)
 elif file_type == "csv":
   df = file
-  csv_prompt = chatbot.create_chatbot_prompt(prompter.csv_prompt())
+  csv_prompt = chatbot.prompt_chatbot(prompter.csv_prompt())
   CSV_PROMPT = PromptTemplate(input_variables=["chat_history", "user_input"], template=csv_prompt)
   csv_chain = ConversationChain(llm=chatbot.pipe, input_key="user_input", 
                                 memory=ConversationBufferWindowMemory(k=3, memory_key="chat_history"), prompt=CSV_PROMPT)
@@ -64,8 +64,8 @@ else:
   retriever.init_base_retriever(k=k)
   retriever.add_embed_filter(embeddings, similarity_threshold=0.2)
   retriever.init_comp_retriever()
-  qa_prompt = chatbot.create_chatbot_prompt(prompter.qa_prompt())
-  memory_prompt = chatbot.create_chatbot_prompt(prompter.memory_summary())
+  qa_prompt = chatbot.prompt_chatbot(prompter.qa_prompt())
+  memory_prompt = chatbot.prompt_chatbot(prompter.memory_summary())
   QA_CHAIN_PROMPT = PromptTemplate(input_variables=["context", "chat_history", "question"], template=qa_prompt)
   MEMORY_PROMPT = PromptTemplate(input_variables=["summary", "new_lines"], template=memory_prompt)
   memory = ConversationSummaryMemory(llm=chatbot.pipe, memory_key="chat_history", return_messages=False, prompt=MEMORY_PROMPT,
