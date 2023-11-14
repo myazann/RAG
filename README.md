@@ -44,10 +44,10 @@ The prompts used can be found in the _prompter.py_ script.
 Task | Done? |
 ---| :---: |
 Reduce the amount of dependency on Langchain | ⬜️
-Add option to pass arguments for prompts | ⬜️
 Rethink the logic of counting tokens and get max k | ⬜️
 Remove langchain dependency from the loader | ⬜️
 Redesign the retriever class | ⬜️
+Add option to pass arguments for prompts | ✅
 Move the lamp dataset function to lamp utils | ✅
 Figure out a way to run AWQ | ✅
 Check better open-source alternatives to LLaMA | ✅
