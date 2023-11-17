@@ -16,7 +16,7 @@ def get_lamp_args():
    parser = argparse.ArgumentParser()
    parser.add_argument("-q", "--quant", default=None, type=str)
    parser.add_argument("-b","--q_bits", default="5", type=str)
-   parser.add_argument("-dn", "--dataset_num", default="5", type=str)
+   parser.add_argument("-dn", "--dataset_num", default=5, type=int)
    parser.add_argument("-k", "--k", default="3", type=str)
    parser.add_argument("-r", "--retriever", default="bm25", type=str)
    parser.add_argument("-mcl", "--max_context_length", default="4096", type=str)
@@ -78,15 +78,27 @@ def get_val_idx(processed_gts, dataset_num=5):
             continue
     return val_idx
 
-def create_retr_data(data, out_gts):
+def get_profvar_names(dataset_num):
+    if dataset_num == 5:
+        prof_gt_name = "title"
+        prof_text_name = "abstract"
+        prof_prompt_name = "abstract"
+    elif dataset_num == 3:
+        prof_gt_name = "score"
+        prof_text_name = "text"
+        prof_prompt_name = "review"
+    return prof_text_name, prof_gt_name, prof_prompt_name
+
+def create_retr_data(data, out_gts, dataset_num=5):
     queries = []
-    corpuses = []
-    titles = []
+    profile_text = []
+    profile_gts = []
+    prof_text_name, prof_gt_name, _  = get_profvar_names(dataset_num)
     for sample in data:
-        abstract_idx = sample["input"].find(":") + 1
-        queries.append(sample["input"][abstract_idx:].strip())
-        titles.append([p["title"] for p in sample["profile"]])
-        corpuses.append([p["abstract"] for p in sample["profile"]])
+        text_idx = sample["input"].find(":") + 1
+        queries.append(sample["input"][text_idx:].strip())
+        profile_gts.append([p[prof_gt_name] for p in sample["profile"]])
+        profile_text.append([p[prof_text_name] for p in sample["profile"]])
     query_lens = pd.Series([len(query.split(" ")) for query in queries])
     query_len_cutoff = query_lens.quantile(0.995)
     out_idx = []
@@ -95,22 +107,22 @@ def create_retr_data(data, out_gts):
             out_idx.append(i)
     queries = [i for j, i in enumerate(queries) if j not in out_idx]
     out_gts = [i for j, i in enumerate(out_gts) if j not in out_idx]
-    corpuses = [i for j, i in enumerate(corpuses) if j not in out_idx]
-    titles = [i for j, i in enumerate(titles) if j not in out_idx]
-    corp_lens = [[len(corp.split(" ")) for corp in corpus] for corpus in corpuses]
-    corp_lens = pd.Series(list(chain.from_iterable(corp_lens)))
-    corp_lens_cutoff = corp_lens.quantile(0.995)
-    for ic, corpus in enumerate(corpuses):
+    profile_text = [i for j, i in enumerate(profile_text) if j not in out_idx]
+    profile_gts = [i for j, i in enumerate(profile_gts) if j not in out_idx]
+    text_lens = [[len(t.split(" ")) for t in text] for text in profile_text]
+    text_lens = pd.Series(list(chain.from_iterable(text_lens)))
+    text_lens_cutoff = text_lens.quantile(0.995)
+    for ic, text in enumerate(profile_text):
         out_idx = []
-        for i, c in enumerate(corpus):
-            if len(c.split(" ")) > corp_lens_cutoff or "No abstract available" in c:
+        for i, c in enumerate(text):
+            if len(c.split(" ")) > text_lens_cutoff or f"No {prof_text_name} available" in c:
                 out_idx.append(i)
-        corpuses[ic] = [i for j, i in enumerate(corpuses[ic]) if j not in out_idx]
-        titles[ic] = [i for j, i in enumerate(titles[ic]) if j not in out_idx]
-    return queries, corpuses, titles, out_gts
+        profile_text[ic] = [i for j, i in enumerate(profile_text[ic]) if j not in out_idx]
+        profile_gts[ic] = [i for j, i in enumerate(profile_gts[ic]) if j not in out_idx]
+    return queries, profile_text, profile_gts, out_gts
 
-def retrieved_idx(corpuses, queries, model="bm25", device="cuda:0"):
-    retr_path = "retrievers"
+def retrieved_idx(prof_text, queries, dataset_num, model="bm25", device="cuda:0"):
+    retr_path = f"retrievers/{dataset_num}"
     os.makedirs(retr_path, exist_ok=True)
     file_path = os.path.join(retr_path, f"{model}.pkl")
     if os.path.exists(file_path):
@@ -119,8 +131,8 @@ def retrieved_idx(corpuses, queries, model="bm25", device="cuda:0"):
     else:
         retr_doc_idxs = []
         if model == "bm25":
-            for i in range(len(corpuses)):
-                bm25 = BM25Okapi(corpuses[i])
+            for i in range(len(prof_text)):
+                bm25 = BM25Okapi(prof_text[i])
                 doc_scores = bm25.get_scores(queries[i])
                 retr_doc_idxs.append(doc_scores.argsort()[::-1])
         elif model in ["contriever", "dpr"]:
@@ -132,8 +144,8 @@ def retrieved_idx(corpuses, queries, model="bm25", device="cuda:0"):
                 tokenizer = DPRQuestionEncoderTokenizer.from_pretrained("facebook/dpr-question_encoder-single-nq-base")  
             retr_model.to(device).eval()
             with torch.no_grad():
-                for i in range(len(corpuses)):
-                    inp = corpuses[i]
+                for i in range(len(prof_text)):
+                    inp = prof_text[i]
                     inp.append(queries[i]) 
                     inputs = tokenizer(inp, padding=True, truncation=True, return_tensors="pt")
                     inputs.to(device)

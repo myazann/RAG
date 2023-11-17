@@ -1,12 +1,32 @@
 class Prompter():
 
     def lamp_prompt(self, dataset, k=True):
-        if dataset == "2":
+        if dataset == 2:
             return """Your task is to categorize an article by choosing from one of the provided categories. You will only output the category name and nothing else.
                 Article: 
                 {article}
                 Categories: [women, religion, politics, style & beauty, entertainment, culture & arts, sports, science & technology, travel, business, crime, education, healthy living, parents, food & drink]"""
-        elif dataset == "5":
+        
+        elif dataset == 3:
+            if k:
+                return """
+                Here are a couple of review-rating pairs of a user. 
+                <EXAMPLES>
+                {examples}
+                </EXAMPLES>
+                With the given examples, give a score between [1, 2, 3, 4, 5] to the following review. Only output the score and nothing else.
+                Review: 
+                {prof_text}
+                Score:
+                """
+            else:
+                return """
+                Give a score between [1, 2, 3, 4, 5] to the following review. Only output the score and nothing else.
+                Review: 
+                {prof_text}
+                Score:
+                """  
+        elif dataset == 5:
             if k:
                 return """Here are a couple of abstract-title pairs of an author:
                 <EXAMPLES>
@@ -14,14 +34,14 @@ class Prompter():
                 </EXAMPLES>
                 With the given examples, generate a title for the given abstract by the same author. Only output the title and nothing else:
                 Abstract:
-                {abstract}
+                {prof_text}
                 Title:"""
             else:
                 return """Your task is to generate a title for the given abstract. You will only output the title and nothing else.
-                    Abstract:
-                    {abstract}
-                    Title:"""
-    
+                Abstract:
+                {prof_text}
+                Title:"""
+
     def eval_qa_prompt(self):
         return """Your job is to evaluate an answer given the question and the solution. You will output a score between 0 and 10 for the following categories:
         -Correctness: How correct is the answer given the solution? The answer does not have to exactly be the same as the solution but the context should be similar and it should include most of the information given in the solution. If the answer does not mention most of the solution, give it a low score. The answer should not include any false information.

@@ -10,7 +10,7 @@ import torch
 
 from RAG.prompter import Prompter
 from RAG.chatbots import choose_bot
-from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset
+from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset, get_profvar_names
 
 args = get_lamp_args()
 q_type = args.quant
@@ -20,10 +20,14 @@ k = args.k
 retriever = args.retriever if k != 0 else None
 max_context_length = args.max_context_length
 
-FINAL_DB_SIZE = 12121
+FINAL_DB_SIZE = {
+    3: 22388,
+    5: 12121
+}
 MAX_NEW_TOKENS = 64
 
 data, out_gts = get_lamp_dataset(dataset_num)
+prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
 chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA"]
 if q_type is not None:
@@ -61,19 +65,19 @@ for chatbot_name in chatbot_names:
              all_res = pickle.load(f)
     else:
         all_res = []
-    if len(all_res) == FINAL_DB_SIZE:
+    if len(all_res) == FINAL_DB_SIZE[dataset_num]:
         print("Experiment for this chatbot is already concluded!")
         continue
     else:
-        orig_queries, orig_corpuses, orig_titles, _ = create_retr_data(data["train_dev"], out_gts["train_dev"])
+        orig_queries, orig_prof_texts, orig_prof_gts, _ = create_retr_data(data["train_dev"], out_gts["train_dev"], dataset_num)
         queries = orig_queries[len(all_res):]
-        corpuses = orig_corpuses[len(all_res):]
-        titles = orig_titles[len(all_res):]
+        prof_texts = orig_prof_texts[len(all_res):]
+        prof_gts = orig_prof_gts[len(all_res):]
     if k == "0":
         lamp_prompt = chatbot.prompt_chatbot(prompter.lamp_prompt(dataset_num, k=False))
     else:
         lamp_prompt = chatbot.prompt_chatbot(prompter.lamp_prompt(dataset_num))
-        retr_doc_idxs = retrieved_idx(corpuses, queries, retriever)
+        retr_doc_idxs = retrieved_idx(prof_texts, queries, retriever)
         retr_doc_idxs = retr_doc_idxs[len(all_res):]
     llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))
     print(f"Starting from sample no. {len(all_res)}")
@@ -87,7 +91,7 @@ for chatbot_name in chatbot_names:
         skip_k = int(k.split("_")[-1])
     for i in range(len(queries)):
         if k == "0":
-            final_prompt = lamp_prompt.format(abstract=queries[i])        
+            final_prompt = lamp_prompt.format(prof_text=queries[i])        
         else:
             retr_docs = retr_doc_idxs[i]
             example_pairs = ""
@@ -95,15 +99,15 @@ for chatbot_name in chatbot_names:
                 doc_k = len(retr_docs)-skip_k
             else:
                 doc_k = int(doc_k)
-            retr_corpuses = [corpuses[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
-            retr_titles = [titles[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
-            for corp, title in zip(retr_corpuses, retr_titles):
-                example = f"""Abstract:\n{corp}\nTitle:\n{title}\n"""  
+            retr_texts = [prof_texts[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
+            retr_gts = [prof_gts[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
+            for text, gt in zip(retr_texts, retr_gts):
+                example = f"""{prof_prompt_name.capitalize()}:\n{text}\n{prof_gt_name.capitalize()}:\n{gt}\n"""  
                 if chatbot.count_tokens(example_pairs + "\n" + example + queries[i]) < avail_space:
                     example_pairs = example_pairs + "\n" + example   
                 else:
                     break   
-            final_prompt = lamp_prompt.format(examples=example_pairs, abstract=queries[i])
+            final_prompt = lamp_prompt.format(examples=example_pairs, prof_text=queries[i])
         res = chatbot.pipe(final_prompt)
         all_res.append(res)
         torch.cuda.empty_cache()
