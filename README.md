@@ -22,11 +22,13 @@ pip install -e .
 To run an experiment for the LaMP benchmark, run the following command with arguments:
 
 ```bash
-python LAMP/run_exp.py -dn 5 -isq 0 -k 3 -r bm25 -mcl 4096
+python LAMP/run_exp.py -dn 5 -ds train_dev -q None -b 5 -k 3 -r bm25 -mcl 4096
 ```
 
-- `--dn`: Number of the dataset, which should be an integer between 1-7. 
-- `--isq`: Bool to use quantized chatbots or not, should be 0 or 1.
+- `--dn`: Number of the dataset, which should be an integer between 1-7.
+- `--ds`: Split of the dataset that can be used. Should be between [train, dev, test]. Multiple splits can be combined by "_".
+- `--q`: Type of quantization to be used. Should be from one of the following: [None, GGUF, AWQ]. None refers to not quantizing.
+- `--b`: Number of quantization bits. Should be an integer between 2-8. Only relevant if GGUF quantization is used.
 - `--k`: Number of retrieved documents. Can be an integer, "max", or "<i>k</i>__skip_<i>_k</i>". "0" means no retrieval, "max" means the maximum number of documents that can be put into the context window of the window, and "<i>k</i>__skip_<i>_k</i>" means skip the second k number of docs and then get the first "k" documents. This is useful to test the performance without the top retrieved documents.
 - `--r`: Retriever, can be ["bm25", "contriever", "dpr"]. If k is 0, the retriever is not used.
 - `--mcl`: Maximum context length to use when k=max.
