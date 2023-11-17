@@ -15,11 +15,12 @@ from contriever.src.contriever import Contriever
 def get_lamp_args():
    parser = argparse.ArgumentParser()
    parser.add_argument("-q", "--quant", default=None, type=str)
-   parser.add_argument("-b","--q_bits", default="5", type=str)
+   parser.add_argument("-b","--q_bits", default=5, type=int)
    parser.add_argument("-dn", "--dataset_num", default=5, type=int)
+   parser.add_argument("-ds", "--dataset_split", default="train_dev", type=str)
    parser.add_argument("-k", "--k", default="3", type=str)
    parser.add_argument("-r", "--retriever", default="bm25", type=str)
-   parser.add_argument("-mcl", "--max_context_length", default="4096", type=str)
+   parser.add_argument("-mcl", "--max_context_length", default=4096, type=int)
    return parser.parse_args()
 
 def get_lamp_dataset(dataset_num, modes="train_dev"):
@@ -121,8 +122,8 @@ def create_retr_data(data, out_gts, dataset_num=5):
         profile_gts[ic] = [i for j, i in enumerate(profile_gts[ic]) if j not in out_idx]
     return queries, profile_text, profile_gts, out_gts
 
-def retrieved_idx(prof_text, queries, dataset_num, model="bm25", device="cuda:0"):
-    retr_path = f"retrievers/{dataset_num}"
+def retrieved_idx(prof_text, queries, dataset_num, dataset_split, model="bm25", device="cuda:0"):
+    retr_path = f"retrievers/{dataset_num}/{dataset_split}"
     os.makedirs(retr_path, exist_ok=True)
     file_path = os.path.join(retr_path, f"{model}.pkl")
     if os.path.exists(file_path):

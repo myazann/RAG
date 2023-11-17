@@ -16,13 +16,19 @@ args = get_lamp_args()
 q_type = args.quant
 q_bits = args.q_bits
 dataset_num = args.dataset_num
+dataset_split = args.dataset_split
 k = args.k
 retriever = args.retriever if k != 0 else None
 max_context_length = args.max_context_length
 
 FINAL_DB_SIZE = {
-    3: 22388,
-    5: 12121
+    3: {
+        "train_dev": 22388,
+        "dev": 2487
+    },
+    5: {
+        "train_dev": 12121
+    }  
 }
 MAX_NEW_TOKENS = 64
 
@@ -33,9 +39,9 @@ chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-16K-v1.5", 
 if q_type is not None:
     chatbot_names = [f"{bot_name}-{q_type}" for bot_name in chatbot_names]
 if k == "0":
-    out_dir = f"res_pkls/D{dataset_num}/K{k}"
+    out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 else:
-    out_dir = f"res_pkls/D{dataset_num}/K{k}/{retriever}"
+    out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}/{retriever}"
 os.makedirs(out_dir, exist_ok=True)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever}")
 for chatbot_name in chatbot_names:
@@ -47,9 +53,9 @@ for chatbot_name in chatbot_names:
             print("LLaMA2-70B can only be run in 4-bits (or less) with GGUF quantization!")
             continue
     if k == "0":
-        test_name = f"LAMP_D{dataset_num}_K{k}"   
+        test_name = f"LAMP_D{dataset_num}_{dataset_split}_K{k}"   
     else:
-        test_name = f"LAMP_D{dataset_num}_K{k}_{retriever}"
+        test_name = f"LAMP_D{dataset_num}_{dataset_split}_K{k}_{retriever}"
     chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=q_bits)
     if k == "max" and int(chatbot.context_length) > int(max_context_length):
         exp_window = int(int(max_context_length)/1000)
@@ -65,11 +71,11 @@ for chatbot_name in chatbot_names:
              all_res = pickle.load(f)
     else:
         all_res = []
-    if len(all_res) == FINAL_DB_SIZE[dataset_num]:
+    if len(all_res) == FINAL_DB_SIZE[dataset_num][dataset_split]:
         print("Experiment for this chatbot is already concluded!")
         continue
     else:
-        orig_queries, orig_prof_texts, orig_prof_gts, _ = create_retr_data(data["train_dev"], out_gts["train_dev"], dataset_num)
+        orig_queries, orig_prof_texts, orig_prof_gts, _ = create_retr_data(data[dataset_split], out_gts[dataset_split], dataset_num)
         queries = orig_queries[len(all_res):]
         prof_texts = orig_prof_texts[len(all_res):]
         prof_gts = orig_prof_gts[len(all_res):]
@@ -77,7 +83,7 @@ for chatbot_name in chatbot_names:
         lamp_prompt = chatbot.prompt_chatbot(prompter.lamp_prompt(dataset_num, k=False))
     else:
         lamp_prompt = chatbot.prompt_chatbot(prompter.lamp_prompt(dataset_num))
-        retr_doc_idxs = retrieved_idx(prof_texts, queries, retriever)
+        retr_doc_idxs = retrieved_idx(prof_texts, queries, dataset_num, dataset_split, retriever)
         retr_doc_idxs = retr_doc_idxs[len(all_res):]
     llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))
     print(f"Starting from sample no. {len(all_res)}")

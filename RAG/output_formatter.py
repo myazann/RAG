@@ -1,28 +1,36 @@
 import difflib
 import re
 
-def lamp_output_formatter(output):
-    dq_match = re.search(r'"([^"]*)"', output)
-    if dq_match:
-        substring = dq_match.group(0)
-    else:
-        substring = output
-    substring = substring.strip('"')
-    title_index = substring.find("Title:")
-    if title_index != -1:
-        substring = substring[title_index + len("Title:"):]
-    substring = substring.strip()
-    ex_index = substring.find("</EXAMPLES>")
-    if ex_index != -1:
-        substring = substring[:ex_index]
-    substring = substring.strip()
-    angle_b_index = substring.find("</s>")
-    if angle_b_index != -1:
-        substring = substring[:angle_b_index]
-    substring.strip()
-    nl_index = substring.find("\n")
-    if nl_index != -1:
-        substring = substring[nl_index:]
+def lamp_output_formatter(output, dataset_num):
+    if dataset_num == 3:
+        substring = "0"
+        for c in output:
+            if c.isdigit():
+                if int(c) in range(6):
+                    substring = c
+                    break
+    elif dataset_num == 5:
+        dq_match = re.search(r'"([^"]*)"', output)
+        if dq_match:
+            substring = dq_match.group(0)
+        else:
+            substring = output
+        substring = substring.strip('"')
+        title_index = substring.find("Title:")
+        if title_index != -1:
+            substring = substring[title_index + len("Title:"):]
+        substring = substring.strip()
+        ex_index = substring.find("</EXAMPLES>")
+        if ex_index != -1:
+            substring = substring[:ex_index]
+        substring = substring.strip()
+        angle_b_index = substring.find("</s>")
+        if angle_b_index != -1:
+            substring = substring[:angle_b_index]
+        substring.strip()
+        nl_index = substring.find("\n")
+        if nl_index != -1:
+            substring = substring[nl_index:]
 
     return substring.strip()
 

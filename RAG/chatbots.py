@@ -248,7 +248,7 @@ class LLaMA2(Chatbot):
                 "trust_remote_code": True,
                 "pad_token_id": self.tokenizer.eos_token_id,
                 "eos_token_id": self.tokenizer.eos_token_id,
-                "use_auth_token": True,
+                "token": True,
                 }
     
 class StableBeluga(Chatbot):
