@@ -177,7 +177,7 @@ class Chatbot:
             else:
                 hf_cache_path = os.getenv("HF_HOME")
             model_folder = os.path.join(hf_cache_path, self.repo_id.replace("/", "-"))
-            bit_range = [str(i) for i in range(2, 9)]
+            bit_range = range(2, 9)
             if self.q_bit not in bit_range:
                 print("This is a quantized model, please choose the number of quantization bits: ")
                 for i in bit_range:

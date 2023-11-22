@@ -14,7 +14,7 @@ class Prompter():
                 <EXAMPLES>
                 {examples}
                 </EXAMPLES>
-                With the given examples, give a score between [1, 2, 3, 4, 5] to the following review. Only output the score and nothing else.
+                With the given examples, give a score between [1, 2, 3, 4, 5] to the following review by the same user. Only output the score and nothing else.
                 Review: 
                 {prof_text}
                 Score:

@@ -102,14 +102,14 @@ def create_retr_data(data, out_gts, dataset_num=5):
         profile_text.append([p[prof_text_name] for p in sample["profile"]])
     query_lens = pd.Series([len(query.split(" ")) for query in queries])
     query_len_cutoff = query_lens.quantile(0.995)
-    out_idx = []
+    outgts_idx = []
     for i, q in enumerate(queries):
         if len(q.split(" ")) > query_len_cutoff:
-            out_idx.append(i)
-    queries = [i for j, i in enumerate(queries) if j not in out_idx]
-    out_gts = [i for j, i in enumerate(out_gts) if j not in out_idx]
-    profile_text = [i for j, i in enumerate(profile_text) if j not in out_idx]
-    profile_gts = [i for j, i in enumerate(profile_gts) if j not in out_idx]
+            outgts_idx.append(i)
+    queries = [i for j, i in enumerate(queries) if j not in outgts_idx]
+    out_gts = [i for j, i in enumerate(out_gts) if j not in outgts_idx]
+    profile_text = [i for j, i in enumerate(profile_text) if j not in outgts_idx]
+    profile_gts = [i for j, i in enumerate(profile_gts) if j not in outgts_idx]
     text_lens = [[len(t.split(" ")) for t in text] for text in profile_text]
     text_lens = pd.Series(list(chain.from_iterable(text_lens)))
     text_lens_cutoff = text_lens.quantile(0.995)
@@ -120,7 +120,7 @@ def create_retr_data(data, out_gts, dataset_num=5):
                 out_idx.append(i)
         profile_text[ic] = [i for j, i in enumerate(profile_text[ic]) if j not in out_idx]
         profile_gts[ic] = [i for j, i in enumerate(profile_gts[ic]) if j not in out_idx]
-    return queries, profile_text, profile_gts, out_gts
+    return queries, profile_text, profile_gts, out_gts, outgts_idx
 
 def retrieved_idx(prof_text, queries, dataset_num, dataset_split, model="bm25", device="cuda:0"):
     retr_path = f"retrievers/{dataset_num}/{dataset_split}"

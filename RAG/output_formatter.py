@@ -6,7 +6,7 @@ def lamp_output_formatter(output, dataset_num):
         substring = "0"
         for c in output:
             if c.isdigit():
-                if int(c) in range(6):
+                if 0 < int(c) and int(c) < 6:
                     substring = c
                     break
     elif dataset_num == 5:
