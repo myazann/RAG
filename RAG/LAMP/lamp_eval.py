@@ -41,7 +41,6 @@ for file in all_res_files:
     print(k, retriever, model_name)
     # preds = [preds[i] for i in val_idx]
     preds = [lamp_output_formatter(pred, dataset_num) for pred in preds]
-    print(pd.Series(preds).value_counts())
     if dataset_num > 3:
         rouge_results = rouge.compute(predictions=preds, references=out_gts)
         rouge_results["k"] = k
@@ -65,5 +64,6 @@ for file in all_res_files:
 df = pd.DataFrame(all_res)
 df["model"] = models
 df = df[cols]
+df = df.round(dict([(c, 4) for c in df.columns if df[c].dtype == "float64"]))
 # df = df.round(dict([(c, 4) for c in df.columns if "rouge" in c]))
 df.to_csv(f"lamp_{dataset_num}_eval_res.csv", index=False)

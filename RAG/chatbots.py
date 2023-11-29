@@ -61,6 +61,8 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
         return WizardLM(model_name, model_params, gen_params, q_bits)
     elif "ZEPHYR" in model_name:
         return Zephyr(model_name, model_params, gen_params, q_bits)
+    elif "OPENCHAT" in model_name:
+        return OpenChat(model_name, model_params, gen_params, q_bits)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
@@ -120,7 +122,7 @@ class Chatbot:
         if gen_params is None:
             return {
             name_token_var: 512,
-            "temperature": 0.7,
+            #"temperature": 0.7,
             }
         elif "max_new_tokens" or "max_tokens_to_sample" in gen_params.keys():
             value = gen_params.pop("max_new_tokens")
@@ -184,15 +186,18 @@ class Chatbot:
                     print(f"{i}")  
                 while True:
                     q_bit = input()
-                    if q_bit not in bit_range:
-                        print("Please select from one of the options!")
+                    if q_bit.isdigit():
+                        if int(q_bit) not in bit_range:
+                            print("Please select from one of the options!")
+                        else:
+                            self.q_bit = q_bit
+                            break
                     else:
-                        self.q_bit = q_bit
-                        break
+                        print("Please enter a number!")
             self.model_basename = "-".join(self.repo_id.split('/')[1].split("-")[:-1]).lower()
-            if self.q_bit in ["2", "6"]:
+            if self.q_bit in [2, 6]:
                 self.model_basename = f"{self.model_basename}.Q{self.q_bit}_K.gguf"
-            elif self.q_bit == "8":
+            elif self.q_bit == 8:
                 self.model_basename = f"{self.model_basename}.Q{self.q_bit}_0.gguf"
             else:    
                 self.model_basename = f"{self.model_basename}.Q{self.q_bit}_K_M.gguf"
@@ -330,3 +335,11 @@ class WizardLM(Chatbot):
         USER: 
         {prompt}
         ASSISTANT:""" 
+    
+class OpenChat(Chatbot):
+
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+        super().__init__(model_name, model_params, gen_params, q_bits)
+
+    def prompt_template(self):
+        return """GPT4 User: {prompt}<|end_of_turn|>GPT4 Assistant:"""
