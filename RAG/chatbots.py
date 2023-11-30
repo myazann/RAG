@@ -63,6 +63,8 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
         return Zephyr(model_name, model_params, gen_params, q_bits)
     elif "OPENCHAT" in model_name:
         return OpenChat(model_name, model_params, gen_params, q_bits)
+    elif "STARLING" in model_name:
+        return Starling(model_name, model_params, gen_params, q_bits)
     else:
         print("Chatbot not implemented yet! (or it doesn't exist?)")
 
@@ -343,3 +345,11 @@ class OpenChat(Chatbot):
 
     def prompt_template(self):
         return """GPT4 User: {prompt}<|end_of_turn|>GPT4 Assistant:"""
+    
+class Starling(Chatbot):
+
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+        super().__init__(model_name, model_params, gen_params, q_bits)
+
+    def prompt_template(self):
+        return """GPT4 Correct User: {prompt}<|end_of_turn|>GPT4 Correct Assistant:"""
