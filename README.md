@@ -43,13 +43,15 @@ The prompts used can be found in the _prompter.py_ script.
 
 ## Todo 
 
-Task | Done? |
----| :---: |
-Reduce the amount of dependency on Langchain | ⬜️
-Rethink the logic of counting tokens and get max k | ⬜️
-Remove langchain dependency from the loader | ⬜️
-Redesign the retriever class | ⬜️
-Add option to pass arguments for prompts | ✅
-Move the lamp dataset function to lamp utils | ✅
-Figure out a way to run AWQ | ✅
-Check better open-source alternatives to LLaMA | ✅
+Relevance | Task | Done? |
+---|---| :---: |
+❗❗ | Make combinations of RAG-evaluation questions | ⬜️
+❗❗ | Conceptualize the flaws in evaluation | ⬜️
+❗❗ | Rethink the logic of counting tokens and get max k | ⬜️
+❗ | Reduce the amount of dependency on Langchain | ⬜️
+❗ | Remove langchain dependency from the loader | ⬜️
+❗ | Redesign the retriever class | ⬜️
+❗❗ | Figure out a way to run AWQ | ✅
+❗❗ | Check better open-source alternatives to LLaMA | ✅
+❗ | Add option to pass arguments for prompts | ✅
+❗ | Move the lamp dataset function to lamp utils | ✅
