@@ -55,3 +55,7 @@ Relevance | Task | Done? |
 ❗❗ | Check better open-source alternatives to LLaMA | ✅
 ❗ | Add option to pass arguments for prompts | ✅
 ❗ | Move the lamp dataset function to lamp utils | ✅
+
+## Notes
+
+- When making evaluation questions, include prompts with multiple questions.
