@@ -59,3 +59,4 @@ Relevance | Task | Done? |
 ## Notes
 
 - When making evaluation questions, include prompts with multiple questions.
+- Study benchmark datasets and their shortcomings
