@@ -5,7 +5,6 @@ import sys
 
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from evaluate import load
 import torch 
 
 from RAG.prompter import Prompter
@@ -27,7 +26,8 @@ FINAL_DB_SIZE = {
         "dev": 2487
     },
     5: {
-        "train_dev": 12121
+        "train_dev": 12121,
+        "dev": 2487
     }  
 }
 MAX_NEW_TOKENS = 64
@@ -36,8 +36,6 @@ data, out_gts = get_lamp_dataset(dataset_num)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
 chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA"]
-if q_type is not None:
-    chatbot_names = [f"{bot_name}-{q_type}" for bot_name in chatbot_names]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 else:
@@ -56,11 +54,16 @@ for chatbot_name in chatbot_names:
         test_name = f"LAMP_D{dataset_num}_{dataset_split}_K{k}"   
     else:
         test_name = f"LAMP_D{dataset_num}_{dataset_split}_K{k}_{retriever}"
-    chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=q_bits)
+    if q_type is not None:
+        chatbot = choose_bot(model_name=f"{chatbot_name}-{q_type}", gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=q_bits)
+    else:
+        chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=q_bits)
     if k == "max" and int(chatbot.context_length) > int(max_context_length):
         exp_window = int(int(max_context_length)/1000)
         chatbot_name = f"{chatbot_name}-{exp_window}K"
         chatbot.context_length = max_context_length
+    if q_type is not None:
+        chatbot_name = f"{chatbot_name}-{q_type}"
     if q_type == "GGUF":
         chatbot_name = f"{chatbot_name}-{q_bits}_bits"
     print(chatbot_name)

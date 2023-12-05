@@ -6,7 +6,7 @@ from sklearn.metrics import f1_score
 
 from RAG.utils import list_files_in_directory
 from RAG.output_formatter import lamp_output_formatter
-from lamp_utils import get_lamp_args, create_retr_data, get_val_idx, get_lamp_dataset
+from lamp_utils import get_lamp_args, create_retr_data, get_lamp_dataset
 
 args = get_lamp_args()
 dataset_num = args.dataset_num
@@ -14,8 +14,6 @@ dataset_split = args.dataset_split
 all_res_files = sorted(list_files_in_directory(f"res_pkls/D{dataset_num}/{dataset_split}"))
 data, out_gts = get_lamp_dataset(dataset_num)
 _, _, _, out_gts, _ = create_retr_data(data[dataset_split], out_gts[dataset_split], dataset_num)
-# val_idx = get_val_idx(out_gts, dataset_num)
-# gts = [out_gts[i] for i in val_idx]
 all_res = []
 models = []
 cols = ["model", "retriever", "k"]
@@ -39,7 +37,6 @@ for file in all_res_files:
     model_name = file.split("/")[-1][:-4]
     models.append(model_name)
     print(k, retriever, model_name)
-    # preds = [preds[i] for i in val_idx]
     preds = [lamp_output_formatter(pred, dataset_num) for pred in preds]
     if dataset_num > 3:
         rouge_results = rouge.compute(predictions=preds, references=out_gts)
@@ -65,5 +62,4 @@ df = pd.DataFrame(all_res)
 df["model"] = models
 df = df[cols]
 df = df.round(dict([(c, 4) for c in df.columns if df[c].dtype == "float64"]))
-# df = df.round(dict([(c, 4) for c in df.columns if "rouge" in c]))
 df.to_csv(f"lamp_{dataset_num}_eval_res.csv", index=False)

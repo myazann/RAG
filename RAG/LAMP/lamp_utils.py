@@ -31,7 +31,7 @@ def get_lamp_dataset(dataset_num, modes="train_dev"):
     if modes == "train_dev":
         all_modes = modes.split("_")
     else:
-        all_modes = modes
+        all_modes = [modes]
     for mode in all_modes:
         data_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_{mode}_data.pkl")
         if os.path.exists(data_path):
@@ -67,17 +67,6 @@ def get_lamp_dataset(dataset_num, modes="train_dev"):
     for mode, gts in all_gts.items():
         all_gts[mode] = [gt["output"] for gt in gts]
     return all_data, all_gts
-
-def get_val_idx(processed_gts, dataset_num=5):
-    _, out_gts = get_lamp_dataset(dataset_num, ["dev"])
-    out_gts = out_gts["dev"]
-    val_idx = []
-    for og in out_gts:
-        try:
-            val_idx.append(processed_gts.index(og))
-        except ValueError:
-            continue
-    return val_idx
 
 def get_profvar_names(dataset_num):
     if dataset_num == 5:
