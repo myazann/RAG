@@ -35,7 +35,9 @@ MAX_NEW_TOKENS = 64
 data, out_gts = get_lamp_dataset(dataset_num)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA"]
+chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5",
+                  "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA", "OPENCHAT-3.5", "STARLING-7B-ALPHA"
+                  "YI-34B-CHAT"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 else:

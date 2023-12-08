@@ -7,7 +7,6 @@ from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic, ChatOpenAI
 from langchain.llms import LlamaCpp
-from auto_gptq import AutoGPTQForCausalLM
 
 from RAG.output_formatter import strip_all
 
@@ -43,30 +42,24 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
                 print("Please select from one of the options!")
             else:
                 break
-    if "VICUNA" in model_name:
-        return Vicuna(model_name, model_params, gen_params, q_bits)
-    elif "LLAMA" in model_name:
-        return LLaMA2(model_name, model_params, gen_params, q_bits)
-    elif "BELUGA" in model_name:
-        return StableBeluga(model_name, model_params, gen_params, q_bits)
-    elif "LUNA" in model_name:
-        return Luna(model_name, model_params, gen_params, q_bits)
-    elif "GPT" in model_name:
-        return ChatGPT(model_name, model_params, gen_params)
-    elif "CLAUDE" in model_name:
-        return Claude(model_name, model_params, gen_params)
-    elif "MISTRAL" in model_name:
-        return Mistral(model_name, model_params, gen_params, q_bits)
-    elif "WIZARDLM" in model_name:
-        return WizardLM(model_name, model_params, gen_params, q_bits)
-    elif "ZEPHYR" in model_name:
-        return Zephyr(model_name, model_params, gen_params, q_bits)
-    elif "OPENCHAT" in model_name:
-        return OpenChat(model_name, model_params, gen_params, q_bits)
-    elif "STARLING" in model_name:
-        return Starling(model_name, model_params, gen_params, q_bits)
+    model_dict = {
+        "VICUNA": Vicuna,
+        "LLAMA2": LLaMA2,
+        "BELUGA": StableBeluga,
+        "CHATGPT": ChatGPT,
+        "CLAUDE": Claude,
+        "MISTRAL": Mistral,
+        "WIZARDLM": WizardLM,
+        "ZEPHYR": Zephyr,
+        "OPENCHAT": OpenChat,
+        "STARLING": Starling,
+        "YI": Yi
+    }
+    model = model_name.split("-")[0]
+    if model in ["CHATGPT", "CLAUDE"]:
+        return model_dict[model](model_name, model_params, gen_params)
     else:
-        print("Chatbot not implemented yet! (or it doesn't exist?)")
+        return model_dict[model](model_name, model_params, gen_params, q_bits)
 
 class Chatbot:
 
@@ -103,21 +96,23 @@ class Chatbot:
             return "GGUF"
         elif self.repo_id.endswith("AWQ"):
             return "AWQ"
+        elif self.name in ["CLAUDE", "GPT"]:
+            return "proprietary"
         else:
             return "default"
         
     def init_tokenizer(self):
         if self.model_type == "GGUF":
             return AutoTokenizer.from_pretrained(self.cfg.get("tokenizer"), use_fast=True)
-        elif "claude" in self.repo_id or "gpt" in self.repo_id:
+        elif self.model_type == "proprietary":
             return None
         else:
             return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
             
     def get_gen_params(self, gen_params):
-        if self.model_type == "GGUF" or "gpt" in self.repo_id:
+        if self.model_type == "GGUF" or self.name == "GPT":
             name_token_var = "max_tokens"
-        elif "claude" in self.repo_id:
+        elif self.name == "CLAUDE":
             name_token_var = "max_tokens_to_sample"
         else:
             name_token_var = "max_new_tokens"
@@ -129,17 +124,7 @@ class Chatbot:
         elif "max_new_tokens" or "max_tokens_to_sample" in gen_params.keys():
             value = gen_params.pop("max_new_tokens")
             gen_params[name_token_var] = value
-
         return gen_params
-
-    def gptq_params(self):
-        return {
-                "device_map": "auto",
-                "use_safetensors": True,
-                "trust_remote_code": True,
-                "use_triton": False,
-                "quantize_config": None
-                }
     
     def ggum_params(self):
         rope_freq_scale = float(self.cfg.get("rope_freq_scale")) if self.cfg.get("rope_freq_scale") else 1
@@ -156,9 +141,7 @@ class Chatbot:
     
     def get_model_params(self, model_params):
         if model_params is None:
-            if self.model_type == "GPTQ":
-                return self.gptq_params()
-            elif self.model_type == "GGUF":
+            if self.model_type == "GGUF":
                 return self.ggum_params()
             else:
                 return self.default_model_params()
@@ -166,14 +149,9 @@ class Chatbot:
             return model_params
     
     def init_model(self):
-        if self.model_type == "GPTQ":
-            return AutoGPTQForCausalLM.from_quantized(
-                    self.repo_id,
-                    model_basename=self.model_basename,
-                    **self.model_params)
-        elif "claude" in self.repo_id:
+        if self.name == "CLAUDE":
             return ChatAnthropic(model=self.repo_id, **self.gen_params)
-        elif "gpt" in self.repo_id:
+        elif self.name == "GPT":
             return ChatOpenAI(model=self.repo_id, **self.gen_params)
         elif self.model_type == "GGUF":
             if os.getenv("HF_HOME") is None:
@@ -224,7 +202,7 @@ class Chatbot:
                     device_map="auto")
         
     def init_pipe(self):            
-        if self.model_type == "GGUF" or "claude" in self.repo_id or "gpt" in self.repo_id:
+        if self.model_type in ["GGUF", "proprietary"]:
             return self.model
         else:
             return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
@@ -269,15 +247,6 @@ class StableBeluga(Chatbot):
         ### User: 
         {prompt}
         ### Assistant:"""     
-    
-class Luna(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """USER: {prompt}
-        ASSISTANT:"""
 
 class Claude(Chatbot):
 
@@ -353,3 +322,13 @@ class Starling(Chatbot):
 
     def prompt_template(self):
         return """GPT4 Correct User: {prompt}<|end_of_turn|>GPT4 Correct Assistant:"""
+    
+class Yi(Chatbot):
+
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+        super().__init__(model_name, model_params, gen_params, q_bits)
+
+    def prompt_template(self):
+        return """<|im_start|>system<|im_end|>
+        <|im_start|>user{prompt}<|im_end|>
+        <|im_start|>assistant"""
