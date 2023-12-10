@@ -28,6 +28,10 @@ def lamp_output_formatter(output, dataset_num):
         if angle_b_index != -1:
             substring = substring[:angle_b_index]
         substring.strip()
+        note_index = substring.find("Note:")
+        if note_index != -1:
+            substring = substring[:note_index]
+        substring = substring.strip()
         nl_index = substring.find("\n")
         if nl_index != -1:
             substring = substring[nl_index:]

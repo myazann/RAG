@@ -36,7 +36,7 @@ data, out_gts = get_lamp_dataset(dataset_num)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
 chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5",
-                  "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA", "OPENCHAT-3.5", "STARLING-7B-ALPHA"
+                  "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA", "OPENCHAT-3.5", "STARLING-7B-ALPHA",
                   "YI-34B-CHAT"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
@@ -45,12 +45,12 @@ else:
 os.makedirs(out_dir, exist_ok=True)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever}")
 for chatbot_name in chatbot_names:
-    if "LLAMA2-70B" in chatbot_name:
+    if chatbot_name in ["LLAMA2-70B", "YI-34B-CHAT"]:
         if q_type is None:
-            print("Unquantized LLaMA2-70B cannot be run!") 
+            print("This model cannot be run unquantized!") 
             continue
         elif q_type == "GGUF" and int(q_bits) > 4:
-            print("LLaMA2-70B can only be run in 4-bits (or less) with GGUF quantization!")
+            print("This model can only be run in 4-bits (or less)!")
             continue
     if k == "0":
         test_name = f"LAMP_D{dataset_num}_{dataset_split}_K{k}"   
