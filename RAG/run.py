@@ -11,6 +11,7 @@ from langchain.prompts import PromptTemplate
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.memory import ConversationSummaryMemory, ConversationBufferWindowMemory
 import huggingface_hub
+import wandb
 
 from RAG.chatbots import choose_bot
 from RAG.utils import get_args, get_device, get_NoOpChain
@@ -19,6 +20,7 @@ from RAG.retriever import Retriever
 from RAG.prompter import Prompter
 from RAG.output_formatter import csv_output_formatter
 
+os.environ["LANGCHAIN_WANDB_TRACING"] = "true"
 huggingface_hub.login(new_session=False)
 args = get_args()
 file_name = args.document
@@ -33,6 +35,7 @@ if chatbot.q_bit is None:
 else:
   test_name = f"QA_{chatbot.name}_{chatbot.q_bit}-bit_{time.time()}"
 os.environ["LANGCHAIN_PROJECT"] = test_name
+wandb.init(project="QA", name=test_name, job_type="generation")
 if file_type == "db":
   db_chain = SQLDatabaseChain.from_llm(chatbot.pipe, file, verbose=True)
 elif file_type == "csv":
@@ -78,8 +81,8 @@ else:
   qa = ConversationalRetrievalChain(retriever=retriever.comp_retriever, combine_docs_chain=doc_chain, 
                                     question_generator=get_NoOpChain(chatbot.pipe), memory=memory, get_chat_history=lambda h: h,
                                     return_source_documents=True)
-pretty_doc_name = " ".join(file_name.split(".")[:-1]).replace("_"," ")
-print(f"""\nHello, I am here to inform you about the {pretty_doc_name}. What do you want to learn? (Press 0 if you want to quit!) \n""")
+# pretty_doc_name = " ".join(file_name.split(".")[:-1]).replace("_"," ")
+print(f"""\nHello, I am here to inform you about the {file_name}. What do you want to learn? (Press 0 if you want to quit!) \n""")
 while True:
   print("User: ")
   query = input().strip()

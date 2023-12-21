@@ -11,6 +11,7 @@ from RAG.prompter import Prompter
 from RAG.chatbots import choose_bot
 from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset, get_profvar_names
 
+# os.environ["LANGCHAIN_WANDB_TRACING"] = "true"
 args = get_lamp_args()
 q_type = args.quant
 q_bits = args.q_bits
@@ -35,9 +36,9 @@ MAX_NEW_TOKENS = 64
 data, out_gts = get_lamp_dataset(dataset_num)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "LLAMA2-13B", "LLAMA2-70B", "VICUNA-7B-16K-v1.5", "VICUNA-13B-16K-v1.5",
-                  "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-ALPHA", "ZEPHYR-7B-BETA", "OPENCHAT-3.5", "STARLING-7B-ALPHA",
-                  "YI-34B-CHAT"]
+chatbot_names = ["LLAMA2-7B", "ZEPHYR-7B-BETA", "OPENCHAT-3.5", "STARLING-7B-ALPHA",
+                 "VICUNA-7B-16K-v1.5", "MISTRAL-7B-v0.1-INSTRUCT",
+                 "LLAMA2-13B", "VICUNA-13B-16K-v1.5", "LLAMA2-70B", "YI-34B-CHAT"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 else:
@@ -51,6 +52,9 @@ for chatbot_name in chatbot_names:
             continue
         elif q_type == "GGUF" and int(q_bits) > 4:
             print("This model can only be run in 4-bits (or less)!")
+            continue
+        elif q_type == "GPTQ":
+            print("GPTQ implementation of this model is not stable!")
             continue
     if k == "0":
         test_name = f"LAMP_D{dataset_num}_{dataset_split}_K{k}"   
@@ -90,6 +94,7 @@ for chatbot_name in chatbot_names:
         lamp_prompt = chatbot.prompt_chatbot(prompter.lamp_prompt(dataset_num))
         retr_doc_idxs = retrieved_idx(prof_texts, queries, dataset_num, dataset_split, retriever)
         retr_doc_idxs = retr_doc_idxs[len(all_res):]
+    # run = wandb.init(project="LAMP", name=f"{test_name}_{chatbot_name}"[5:], id=f"{test_name}_{chatbot_name}"[5:], job_type="generation", resume=True)
     llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))
     print(f"Starting from sample no. {len(all_res)}")
     start_time = time.time()
@@ -127,3 +132,4 @@ for chatbot_name in chatbot_names:
                 pickle.dump(all_res, f)
     end_time = time.time()
     print(f"Took {(end_time-start_time)/3600} hours!")
+    # run.finish()

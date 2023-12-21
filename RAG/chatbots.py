@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import urllib.request
 
-from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM
+from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, GPTQConfig
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic, ChatOpenAI
 from langchain.llms import LlamaCpp
@@ -19,7 +19,7 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
     if model_name is None:
         model_cfg = get_model_cfg()
         models = model_cfg.sections()
-        model_families = dict({str(k): v for k, v in enumerate(sorted(set([model.split("-")[0] for model in models ])))})
+        model_families = dict({str(k): v for k, v in enumerate(sorted(set([model.split("-")[0] for model in models])))})
         print("Here are the available model families, please choose one:\n")
         for i, repo in model_families.items():
             print(f"{i}: {repo}")  
@@ -53,7 +53,8 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
         "ZEPHYR": Zephyr,
         "OPENCHAT": OpenChat,
         "STARLING": Starling,
-        "YI": Yi
+        "YI": Yi,
+        "SOLAR": Solar
     }
     model = model_name.split("-")[0]
     if model in ["CHATGPT", "CLAUDE"]:
@@ -135,6 +136,11 @@ class Chatbot:
                 "n_ctx": self.context_length,
                 "rope_freq_scale": rope_freq_scale
                 }
+    
+    def gptq_params(self):
+        config = GPTQConfig(max_input_length=self.context_length)
+        return {"quantization_config": config,
+                "revision": "main"}
     
     def default_model_params(self):
         return {}
@@ -332,3 +338,14 @@ class Yi(Chatbot):
         return """<|im_start|>system<|im_end|>
         <|im_start|>user{prompt}<|im_end|>
         <|im_start|>assistant"""
+    
+class Solar(Chatbot):
+
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+        super().__init__(model_name, model_params, gen_params, q_bits)
+
+    def prompt_template(self):
+        return """### User:
+        {prompt}
+        ### Assistant:
+        """
