@@ -2,9 +2,6 @@ import argparse
 import os
 from configparser import ConfigParser
 
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
-
 import GPUtil
 
 def get_device():
@@ -66,21 +63,6 @@ def add_line_breaks(text, max_length):
          lines[i] = formatted
    output = "\n".join(lines)
    return output
-
-def get_NoOpChain(llm):
-
-   class NoOpLLMChain(LLMChain):
-
-      def __init__(self):
-            super().__init__(llm=llm, prompt=PromptTemplate(template="", input_variables=[]))
-
-      def run(self, question: str, *args, **kwargs) -> str:
-            return question
-
-      async def arun(self, question: str, *args, **kwargs) -> str:
-            return question
-   
-   return NoOpLLMChain()
 
 def list_files_in_directory(root_dir):
     file_list = []

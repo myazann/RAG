@@ -3,8 +3,6 @@ import time
 import pickle
 import sys
 
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 import torch 
 
 from RAG.prompter import Prompter
@@ -95,7 +93,6 @@ for chatbot_name in chatbot_names:
         retr_doc_idxs = retrieved_idx(prof_texts, queries, dataset_num, dataset_split, retriever)
         retr_doc_idxs = retr_doc_idxs[len(all_res):]
     # run = wandb.init(project="LAMP", name=f"{test_name}_{chatbot_name}"[5:], id=f"{test_name}_{chatbot_name}"[5:], job_type="generation", resume=True)
-    llm_chain = LLMChain(llm=chatbot.pipe, prompt=PromptTemplate.from_template(lamp_prompt))
     print(f"Starting from sample no. {len(all_res)}")
     start_time = time.time()
     avail_space = int(chatbot.context_length) - chatbot.count_tokens(lamp_prompt)

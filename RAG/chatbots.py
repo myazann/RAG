@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import urllib.request
 
+import numpy as np
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, GPTQConfig
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain.chat_models import ChatAnthropic, ChatOpenAI
@@ -88,8 +89,17 @@ class Chatbot:
         if isinstance(prompt, str):
             return len(self.tokenizer(prompt).input_ids)
         if isinstance(prompt, list):
-            return max([len(self.tokenizer(chunk).input_ids) for chunk in prompt])
+            return [len(self.tokenizer(chunk).input_ids) for chunk in prompt]
         
+    def find_best_k(self, chunks, prompt, strategy="optim"):
+        avg_chunk_len = np.mean(self.count_tokens(chunks))
+        avail_space = int(self.context_length) - self.count_tokens(prompt)
+        if strategy == "max":
+            pass
+        elif strategy == "optim":
+            avail_space /= 2
+        return int(np.floor(avail_space/avg_chunk_len))
+
     def get_model_type(self):
         if self.repo_id.endswith("GPTQ"):
             return "GPTQ"
