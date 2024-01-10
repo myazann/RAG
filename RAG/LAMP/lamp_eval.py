@@ -2,7 +2,7 @@ import pickle
 
 import pandas as pd
 from evaluate import load
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, mean_absolute_error, mean_squared_error
 
 from RAG.utils import list_files_in_directory
 from RAG.output_formatter import lamp_output_formatter
@@ -21,7 +21,7 @@ if dataset_num > 3:
     rouge = load("rouge")
     cols.extend(["rouge1", "rouge2", "rougeL", "rougeLsum"])
 else:
-    cols.extend(["acc", "f1_macro"])
+    cols.extend(["acc", "f1_macro", "mae", "rmse"])
 for file in all_res_files:
     with open(file, "rb") as f:
         preds = pickle.load(f)
@@ -45,18 +45,25 @@ for file in all_res_files:
         all_res.append(rouge_results)
     else:
         f1_macro = f1_score(out_gts, preds, average="macro")
+        mae = mean_absolute_error(list(map(int, out_gts)), list(map(int, preds)))
+        rmse = mean_squared_error(list(map(int, out_gts)), list(map(int, preds)))
         print(f"F1 Macro: {f1_macro}")
+        print(f"MAE: {mae}")
+        print(f"RMSE: {rmse}")
         cor_pred = 0
         for i in range(len(out_gts)):
             if str(out_gts[i]) == str(preds[i]):
                 cor_pred += 1
         acc = cor_pred/len(out_gts)
         print(f"Accuracy: {acc}")
+        print()
         all_res.append({
             "k": k,
             "retriever": retriever,
             "acc": acc,
-            "f1_macro": f1_macro
+            "f1_macro": f1_macro,
+            "mae": mae,
+            "rmse": rmse
         })
 df = pd.DataFrame(all_res)
 df["model"] = models

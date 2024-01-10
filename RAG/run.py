@@ -1,15 +1,16 @@
 import time
 import os
 
-from langchain.embeddings import HuggingFaceBgeEmbeddings, CacheBackedEmbeddings
 from langchain.chains import ConversationChain
 from langchain.storage import LocalFileStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Chroma
 from langchain.prompts import PromptTemplate
-from langchain.retrievers.document_compressors import LLMChainExtractor, EmbeddingsFilter, DocumentCompressorPipeline
+from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.memory import ConversationBufferWindowMemory
+from langchain.embeddings import CacheBackedEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 import huggingface_hub
 
 from RAG.chatbots import choose_bot
@@ -61,11 +62,10 @@ else:
   qa_prompt = chatbot.prompt_chatbot(prompter.qa_prompt())
   memory_prompt = chatbot.prompt_chatbot(prompter.memory_summary())
   db = Chroma.from_documents(texts, cached_embedder)
-  emdeb_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.2)
-  context_comp_filter = LLMChainExtractor.from_llm(chatbot.pipe)
-  pipeline_compressor = DocumentCompressorPipeline(transformers=[emdeb_filter, context_comp_filter])
+  emdeb_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.6)
+  # context_comp_filter = LLMChainExtractor.from_llm(chatbot.pipe)
+  pipeline_compressor = DocumentCompressorPipeline(transformers=[emdeb_filter])
   k = chatbot.find_best_k([page.page_content for page in texts], qa_prompt)
-  print(k)
   retriever = Retriever(db, k=k, comp_pipe=pipeline_compressor)
 # pretty_doc_name = " ".join(file_name.split(".")[:-1]).replace("_"," ")
 print(f"""\nHello, I am here to inform you about the {file_name}. What do you want to learn? (Press 0 if you want to quit!) \n""")
@@ -91,12 +91,13 @@ while True:
         answer = e
     else:
       retr_docs = retriever.get_docs(query)
+      print(retr_docs[0])
       context = "\n".join([doc.page_content for doc in retr_docs])
-      QA_CHAIN_PROMPT = qa_prompt.format(question=query, chat_history=summary, context=retr_docs)
+      QA_CHAIN_PROMPT = qa_prompt.format(question=query, chat_history=summary, context=context)
       if chatbot.count_tokens(QA_CHAIN_PROMPT) > int(chatbot.context_length):
         print("Context exceeds context window, removing one document!")
         context = "\n".join([doc.page_content for doc in retr_docs[:-1]])
-        QA_CHAIN_PROMPT = qa_prompt.format(question=query, chat_history=summary, context=retr_docs)
+        QA_CHAIN_PROMPT = qa_prompt.format(question=query, chat_history=summary, context=context)
       answer = chatbot.pipe(QA_CHAIN_PROMPT).strip()
       current_conv = f"""Human: {query}\nAI: {answer}"""
       MEMORY_PROMPT = memory_prompt.format(summary=summary, new_lines=current_conv)

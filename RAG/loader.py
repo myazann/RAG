@@ -6,8 +6,8 @@ import pandas as pd
 from git import Repo
 import os
 
-from langchain.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader, SeleniumURLLoader, GitLoader
-from langchain.utilities import SQLDatabase
+from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader, SeleniumURLLoader, GitLoader
+from langchain_community.utilities import SQLDatabase
 
 class FileLoader():
 

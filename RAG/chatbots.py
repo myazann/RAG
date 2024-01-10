@@ -6,8 +6,8 @@ import urllib.request
 import numpy as np
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, GPTQConfig
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
-from langchain.chat_models import ChatAnthropic, ChatOpenAI
-from langchain.llms import LlamaCpp
+from langchain_community.chat_models import ChatAnthropic, ChatOpenAI
+from langchain_community.llms import LlamaCpp
 
 from RAG.output_formatter import strip_all
 

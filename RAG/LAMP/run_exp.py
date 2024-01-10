@@ -35,7 +35,7 @@ data, out_gts = get_lamp_dataset(dataset_num)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
 chatbot_names = ["LLAMA2-7B", "ZEPHYR-7B-BETA", "OPENCHAT-3.5", "STARLING-7B-ALPHA",
-                 "VICUNA-7B-16K-v1.5", "MISTRAL-7B-v0.1-INSTRUCT",
+                 "VICUNA-7B-16K-v1.5", "MISTRAL-7B-v0.1-INSTRUCT", "SOLAR-10.7B-INSTRUCT-1.0",
                  "LLAMA2-13B", "VICUNA-13B-16K-v1.5", "LLAMA2-70B", "YI-34B-CHAT"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
@@ -44,7 +44,7 @@ else:
 os.makedirs(out_dir, exist_ok=True)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever}")
 for chatbot_name in chatbot_names:
-    if chatbot_name in ["LLAMA2-70B", "YI-34B-CHAT"]:
+    if chatbot_name in ["LLAMA2-70B", "YI-34B-CHAT", "MISTRAL-8x7B-v0.1-INSTRUCT"]:
         if q_type is None:
             print("This model cannot be run unquantized!") 
             continue

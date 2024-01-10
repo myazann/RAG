@@ -13,15 +13,15 @@ class Retriever():
         fetch_k = k if k >= self.fetch_k else self.fetch_k
         base_retriever = self.database.as_retriever(search_type=search_type, search_kwargs={"k": k, "fetch_k": fetch_k})    
         if self.type == "base":
-            self.retriever = base_retriever
+            return base_retriever
         elif self.type == "comp":
             if comp_pipe is None:
                 print("No compression pipeline found, initializing retriever from the vector database!")
-                self.retriever = base_retriever
+                return base_retriever
             else:
-                self.retriever = ContextualCompressionRetriever(base_compressor=comp_pipe, base_retriever=base_retriever)
+                return ContextualCompressionRetriever(base_compressor=comp_pipe, base_retriever=base_retriever)
         elif self.type == "multiquery":
-            self.retriever = MultiQueryRetriever.from_llm(retriever=base_retriever, llm=llm, prompt=prompt)
+            return MultiQueryRetriever.from_llm(retriever=base_retriever, llm=llm, prompt=prompt)
 
     def get_docs(self, query):
         return self.retriever.invoke(query)
