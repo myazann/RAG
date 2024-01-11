@@ -27,11 +27,12 @@ class FileLoader():
                 all_urls.add(file_name)
                 parsed = urlparse(file_name)
                 base_url_path = f"{parsed.scheme}://{parsed.netloc}"
-                l1_all_urls = self.get_all_links(file_name, base_url_path)
-                all_urls.update(l1_all_urls)
-                for url in l1_all_urls:
-                    l2_urls = self.get_all_links(url, base_url_path)
-                    all_urls.update(l2_urls)
+                l1_all_urls = self.get_all_links(file_name, base_url_path)                
+                if l1_all_urls:
+                    all_urls.update(l1_all_urls)
+                    for url in l1_all_urls:
+                        l2_urls = self.get_all_links(url, base_url_path)
+                        all_urls.update(l2_urls)
                 all_urls = list(all_urls)
                 loader = SeleniumURLLoader(urls=all_urls)
             elif file_type == "git":
@@ -71,6 +72,8 @@ class FileLoader():
         urls = set()
         for a in soup.select("a"):
             href = a.get("href")
+            if href is None:
+                continue
             if base_url in href:
                 urls.add(href)
             elif href.startswith("/"):

@@ -82,6 +82,21 @@ class Prompter():
                                      
         User Input:
         {question}"""
+    
+    def conv_agent_prompt(self):
+        return """Your task is to have a conversation with a user. Information related to the user input is going to be provided. If you think that the information is relevant to answer the user, you can use it. Sometimes, the information may be unrelated or may not contain the answer the user is looking for. For those cases, you do not have to use the provided information. Therefore, you first need to decide whether the related information is actually useful to give the user a satisfactory answer. The provided information may contradict what you know. In those cases, provided information has priority. A summary of the chat history between you and the user is also going to be included after the related information, you can use it to put what the user said into context. Be aware of the following possibilities during the conversation: 1) You may not know the answer to the user's question. 2) The question the user asked can have multiple answers. If those possibilities arise, ask the user for more clarification. Your answer should be in the style of a friendly conversational assistant, and do not mention the related information or the chat history in your answer. 
+        Here is the related information:
+        <INFO>
+        {info}
+        </INFO>
+        Here is the chat history:
+        <CHAT HISTORY>
+        {chat_history}
+        </CHAT HISTORY>
+        Here is the user input:
+        <USER INPUT>
+        {user_input}
+        </USER INPUT>"""
 
     def condense_q_prompt(self):
         return """Output the given summary of the conversation history and the question, as is. Do not change anything.                                     
@@ -91,25 +106,11 @@ class Prompter():
         {question}"""
     
     def memory_summary(self):
-        return """Progressively summarize the lines of conversation provided, adding onto the previous summary returning a new summary. Do not output anything except the summary. Do not make a very long summary, keep it short.
-        EXAMPLE
-        Current summary:
-        The human asks what the AI thinks of artificial intelligence. The AI thinks artificial intelligence is a force for good.
-
-        New lines of conversation:
-        Human: Why do you think artificial intelligence is a force for good?
-        AI: Because artificial intelligence will help humans reach their full potential.
-
-        New summary:
-        The human asks what the AI thinks of artificial intelligence. The AI thinks artificial intelligence is a force for good because it will help humans reach their full potential.
-        END OF EXAMPLE
-
-        Current summary:
+        return """Your task is to summarize a conversation between a user and an assistant. The current summary and the new lines in the interaction will be provided to you. Progressively summarize the lines of conversation provided, adding onto the previous summary, and return a new summary. In the new summary, include the key information in the current summary and in the new lines of conversation that may come up later in the conversation, such as what the user asked, what did the user and the assistant talked previously. Do not output anything except the summary, and do not make it very long, keep it short.
+        Here is the current summary:
         {summary}
-
-        New lines of conversation:
+        Here are the new lines of conversation:
         {new_lines}
-
         New summary:"""
     
     def multi_query_prompt(self, n=3):

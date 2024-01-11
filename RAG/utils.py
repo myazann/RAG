@@ -24,7 +24,6 @@ def get_device():
       deviceID = GPUtil.getFirstAvailable(order="memory")
       print(f"\nChosen GPU: {deviceID}")
       device = f"cuda:{deviceID[0]}"
-
    return device
 
 def get_cfg_params():
@@ -35,7 +34,7 @@ def get_cfg_params():
 
 def get_args():
    parser = argparse.ArgumentParser()
-   parser.add_argument("-doc", "--document", default="https://python.langchain.com/docs/get_started/introduction", type=str)
+   parser.add_argument("-doc", "--document", default=None, type=str)
    parser.add_argument("-pt", "--perturb_test_type", default="test1", type=str)
    args = parser.parse_args()
 
