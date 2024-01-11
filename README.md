@@ -47,7 +47,6 @@ Relevance | Task | Done? |
 ---|---| :---: |
 ❗❗ | Make combinations of RAG-evaluation questions | ⬜️
 ❗❗ | Conceptualize the flaws in evaluation | ⬜️
-❗ | Redesign the main run script | ⬜️
 ❗ | Make the QA prompt more agent-like (tool usage) | ⬜️
 ❗ | Add weight to the base URL | ⬜️
 ❗ | Reduce the amount of dependency on Langchain | ⬜️
@@ -55,6 +54,7 @@ Relevance | Task | Done? |
 ❗❗ | Rethink the logic of counting tokens and get max k | ✅
 ❗❗ | Figure out a way to run AWQ | ✅
 ❗❗ | Check better open-source alternatives to LLaMA | ✅
+❗ | Redesign the main run script | ✅
 ❗ | Redesign the retriever class | ✅
 ❗ | Add option to pass arguments for prompts | ✅
 ❗ | Move the lamp dataset function to lamp utils | ✅
