@@ -47,6 +47,7 @@ Relevance | Task | Done? |
 ---|---| :---: |
 ❗❗ | Make combinations of RAG-evaluation questions | ⬜️
 ❗❗ | Conceptualize the flaws in evaluation | ⬜️
+❗ | Redesign the main run script | ⬜️
 ❗ | Make the QA prompt more agent-like (tool usage) | ⬜️
 ❗ | Add weight to the base URL | ⬜️
 ❗ | Reduce the amount of dependency on Langchain | ⬜️
