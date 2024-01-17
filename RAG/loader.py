@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from git import Repo
 import os
+from googlesearch import search
 
 from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader, SeleniumURLLoader, GitLoader
 from langchain_community.utilities import SQLDatabase
@@ -12,7 +13,6 @@ from langchain_community.utilities import SQLDatabase
 class FileLoader():
 
     def load(self, file_name, pdf_loader="unstructured"):
-
         file_type = self.get_file_type(file_name)
         if file_type == "db":
             print("Reading database!")
@@ -23,17 +23,12 @@ class FileLoader():
             if "telegram" in file_name:
                 loader = TelegramChatFileLoader(file_name)
             elif file_type == "url":
-                all_urls = set()
-                all_urls.add(file_name)
-                parsed = urlparse(file_name)
-                base_url_path = f"{parsed.scheme}://{parsed.netloc}"
-                l1_all_urls = self.get_all_links(file_name, base_url_path)                
-                if l1_all_urls:
-                    all_urls.update(l1_all_urls)
-                    for url in l1_all_urls:
-                        l2_urls = self.get_all_links(url, base_url_path)
-                        all_urls.update(l2_urls)
-                all_urls = list(all_urls)
+                if isinstance(file_name, str):
+                    all_urls = set()
+                    all_urls.add(file_name)
+                    all_urls = list(self.extend_url(file_name))
+                elif isinstance(file_name, list):
+                    all_urls = file_name
                 loader = SeleniumURLLoader(urls=all_urls)
             elif file_type == "git":
                 repo_name = "/".join(file_name.split("/")[-2:])
@@ -48,11 +43,24 @@ class FileLoader():
             elif file_type == "txt":
                 loader = TextLoader(file_name)
             doc = loader.load()
+        return doc, file_type
 
-        return doc
-
+    def extend_url(self, url):
+        all_urls = []
+        parsed = urlparse(url)
+        base_url_path = f"{parsed.scheme}://{parsed.netloc}"
+        l1_all_urls = self.get_all_links(url, base_url_path)                
+        if l1_all_urls:
+            all_urls.update(l1_all_urls)
+            for url in l1_all_urls:
+                l2_urls = self.get_all_links(url, base_url_path)
+                all_urls.update(l2_urls)
+        return all_urls
+    
     def get_file_type(self, file_name):
-        if file_name.startswith("http"):
+        if isinstance(file_name, list):
+            return "url"
+        elif file_name.startswith("http"):
             if "github.com" in file_name:
                 return "git"
             else:
@@ -86,3 +94,10 @@ class FileLoader():
             page.page_content = re.sub(r'\n+', '\n', page.page_content) 
             page.page_content = re.sub(r'\s{2,}', ' ', page.page_content)
         return doc
+    
+    def web_search(self, query):
+        urls = list(search(query, tld="co.in", num=10, stop=10, pause=2))
+        return self.load(urls)
+    
+    def get_processed_texts(self, splitter, file):
+        return [page.page_content for page in splitter.split_documents(self.remove_empty_space(file))]

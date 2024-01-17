@@ -35,7 +35,7 @@ def get_cfg_params():
 def get_args():
    parser = argparse.ArgumentParser()
    parser.add_argument("-doc", "--document", default=None, type=str)
-   parser.add_argument("-pt", "--perturb_test_type", default="test1", type=str)
+   parser.add_argument("-ws", "--web_search", action=argparse.BooleanOptionalAction)
    args = parser.parse_args()
 
    return args
