@@ -41,6 +41,10 @@ python lamp_eval.py
 
 The prompts used can be found in the _prompter.py_ script.
 
+## RAG Question Types 
+
+Questions with multiple possible answers.
+
 ## Todo 
 
 Relevance | Task | Done? |
