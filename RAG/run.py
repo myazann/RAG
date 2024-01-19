@@ -28,7 +28,7 @@ memory_prompt = chatbot.prompt_chatbot(prompter.memory_summary())
 db = VectorDB(file_loader)
 emdeb_filter = EmbeddingsFilter(embeddings=db.get_embed_func("hf_bge"), similarity_threshold=0.75)
 pipeline_compressor = DocumentCompressorPipeline(transformers=[emdeb_filter])
-print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nPress 1 if you want to add a document or a web page for the Chatbot!\n")
+print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
 summary = ""
 while True:
   print("User: ")
@@ -36,13 +36,6 @@ while True:
   if query == "0":
     print("Bye!")
     break
-  elif query == "1":
-    print("Please provide the path to the file or the url of the web page!")
-    try:
-      file_name = input()
-      db.add_file_to_db(file_name)
-    except Exception as e:
-      print("File not added!")
   else:
     start_time = time.time()
     if web_search:
@@ -54,8 +47,10 @@ while True:
       retr_docs = retriever.get_docs(query)
     else:
       retr_docs = []
+    info = ""
     while True:
-      info = "\n".join([doc.page_content for doc in retr_docs])
+      for i, doc in enumerate(retr_docs):
+        info += f"\n<INFO{i+1}>:\n {{'Content': \n{doc.page_content},\n'Source': \n{doc.metadata['source']}}}\n</INFO{i+1}>"
       CONV_CHAIN_PROMPT = conv_agent_prompt.format(user_input=query, chat_history=summary, info=info)
       if chatbot.count_tokens(CONV_CHAIN_PROMPT) > int(chatbot.context_length):
         print("Context exceeds context window, removing one document!")

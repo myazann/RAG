@@ -25,30 +25,30 @@ class FileLoader():
             file_name = self.web_search(file_name)
             file_type = "url"
         if file_type == "url":
-            if file_type == "git":
-                if not validators.url(file_type):
-                    print("Could not find the repository!")
+            if isinstance(file_name, str):
+                if not validators.url(file_name):
+                    print("Not a valid url!")
                     return None
-                print("Reading Git repo!")
-                repo_name = "/".join(file_name.split("/")[-2:])
-                repo_path = f"./files/git/{repo_name}"
-                if os.path.exists(repo_path):
-                    r = Repo(repo_path)
-                else:
-                    r = Repo.clone_from(file_name, repo_path)
-                loader = GitLoader(repo_path=repo_path, branch=r.heads[0])
+                print("Reading web page!")
+                all_urls = set()
+                all_urls.add(file_name)
+                all_urls = list(self.extend_url(all_urls, file_name))
+            elif isinstance(file_name, list):
+                all_urls = file_name
+            loader = SeleniumURLLoader(urls=all_urls)
+            file_name = all_urls
+        elif file_type == "git":
+            if not validators.url(file_name):
+                print("Could not find the repository!")
+                return None
+            print("Reading Git repo!")
+            repo_name = "/".join(file_name.split("/")[-2:])
+            repo_path = f"./files/git/{repo_name}"
+            if os.path.exists(repo_path):
+                r = Repo(repo_path)
             else:
-                if isinstance(file_name, str):
-                    if not validators.url(file_type):
-                        print("Not a valid url!")
-                        return None
-                    all_urls = set()
-                    all_urls.add(file_name)
-                    all_urls = list(self.extend_url(file_name))
-                elif isinstance(file_name, list):
-                    all_urls = file_name
-                loader = SeleniumURLLoader(urls=all_urls)
-                file_name = all_urls
+                r = Repo.clone_from(file_name, repo_path)
+            loader = GitLoader(repo_path=repo_path, branch=r.heads[0])
         else:
             if not os.path.exists(file_name):
                 print("Could not find the file!")
@@ -68,8 +68,7 @@ class FileLoader():
         print("Done!")
         return doc, file_type
 
-    def extend_url(self, url):
-        all_urls = []
+    def extend_url(self, all_urls, url):
         parsed = urlparse(url)
         base_url_path = f"{parsed.scheme}://{parsed.netloc}"
         l1_all_urls = self.get_all_links(url, base_url_path)                
