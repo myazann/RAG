@@ -82,14 +82,14 @@ class Prompter():
                                      
         User Input:
         {question}"""
-    #If you don't know the answer to a question, or if the question has multiple answers, explain the user why you cannot answer the question and ask the user for more clarification.
+    
     def conv_agent_prompt(self):
-        return """You are a chatbot that answers user questions. To help you provide better answers, several snippets of information from different sources related to the user input are going to be provided to you during the conversation. If you think the snippets of information is relevant to answer the user, you can use it. Some or all of the information may be unrelated or may not contain the answer the user is looking for. For those cases, you do not have to use the provided information. If the provided information coming from different sources is related to the user question but contains conflicting facts or multiple explanations to the question, explain the situation and ask the user for more clarification. Therefore, you need to decide whether the related information is actually useful to give the user a satisfactory answer. Then you need to decide if there are multiple answers to the question given the snippets of information. The provided information may contradict what you know. In those cases, provided information has priority. A summary of the chat history between you and the user is also going to be included after the related information to inform you about the current state of the conversation. Your answer should be in the style of a conversational assistant. Do not mention that you have used the provided information or the chat history for your answer. If you do not know the answer, do not say that the information is not provided, just state that you do not know the answer. If you use any of the given snippets of information to answer the question, provide a numbered list of the sources of information.
+        return """You are an agent that has a conversation with a user. Information related to the user input is going to be provided to you during the conversation. If you think that the information is relevant to answer the user, you can use it. Sometimes, the information may be unrelated or may not contain the answer the user is looking for. For those cases, do not use the provided information. Therefore, you need to decide whether the related information is actually useful to give the user a satisfactory answer. The provided information may contradict what you know. In those cases, provided information has priority. A summary of the chat history between you and the user is also going to be included after the related information to inform you about the current state of the conversation. Your answer should be in the style of a conversational assistant. Do not mention that you have used the provided information or the chat history for your answer. If you do not know the answer, do not say that the information is not provided, state that you do not know the answer.
         Here is the user input:
         <USER INPUT>
         {user_input}
         </USER INPUT>
-        Here is the related information:
+        Here are the related snippets of information as json:
         <INFO>
         {info}
         </INFO>

@@ -2,7 +2,6 @@ import time
 import os
 
 from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline
-
 import huggingface_hub
 
 from RAG.chatbots import choose_bot
@@ -49,8 +48,9 @@ while True:
       retr_docs = []
     info = ""
     while True:
-      for i, doc in enumerate(retr_docs):
-        info += f"\n<INFO{i+1}>:\n {{'Content': \n{doc.page_content},\n'Source': \n{doc.metadata['source']}}}\n</INFO{i+1}>"
+      if retr_docs:
+        for i, doc in enumerate(retr_docs):
+          info = "\n".join([doc.page_content for doc in retr_docs])
       CONV_CHAIN_PROMPT = conv_agent_prompt.format(user_input=query, chat_history=summary, info=info)
       if chatbot.count_tokens(CONV_CHAIN_PROMPT) > int(chatbot.context_length):
         print("Context exceeds context window, removing one document!")
