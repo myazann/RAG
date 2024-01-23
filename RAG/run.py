@@ -10,6 +10,7 @@ from RAG.vectordb import VectorDB
 from RAG.loader import FileLoader
 from RAG.retriever import Retriever
 from RAG.prompter import Prompter
+from RAG.output_formatter import query_reform_formatter
 
 huggingface_hub.login(new_session=False)
 args = get_args()
@@ -23,6 +24,7 @@ else:
   test_name = f"QA_{chatbot.name}_{chatbot.q_bit}-bit_{time.time()}"
 os.environ["LANGCHAIN_PROJECT"] = test_name
 conv_agent_prompt = chatbot.prompt_chatbot(prompter.conv_agent_prompt())
+query_gen_prompt = chatbot.prompt_chatbot(prompter.query_gen_prompt())
 memory_prompt = chatbot.prompt_chatbot(prompter.memory_summary())
 db = VectorDB(file_loader)
 emdeb_filter = EmbeddingsFilter(embeddings=db.get_embed_func("hf_bge"), similarity_threshold=0.75)
@@ -32,17 +34,26 @@ summary = ""
 while True:
   print("User: ")
   query = input().strip()
+  QUERY_GEN_PROMPT = query_gen_prompt.format(user_input=query)
   if query == "0":
     print("Bye!")
     break
   else:
+    reform_query = ""
     start_time = time.time()
-    if web_search:
-      db.add_file_to_db(query, web_search)
+    if os.path.exists(query):
+      db.add_file_to_db(query)
+      reform_query = query
+    elif web_search:
+      reform_query = query_reform_formatter(chatbot.pipe(QUERY_GEN_PROMPT).strip())
+      if "NO QUERY" not in reform_query:
+        db.add_file_to_db(reform_query, web_search)
     all_db_docs = db.query_db()["documents"]
     if all_db_docs:
       k = chatbot.find_best_k(all_db_docs, conv_agent_prompt)
       retriever = Retriever(db.vector_db, k=k, comp_pipe=pipeline_compressor)
+      if reform_query == "":
+        reform_query = query_reform_formatter(chatbot.pipe(QUERY_GEN_PROMPT).strip())
       retr_docs = retriever.get_docs(query)
     else:
       retr_docs = []

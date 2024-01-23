@@ -56,7 +56,8 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
         "STARLING": Starling,
         "YI": Yi,
         "SOLAR": Solar,
-        "STABLELM": StableLM
+        "STABLELM": StableLM,
+        "PHI2": Phi2
     }
     model = model_name.split("-")[0]
     if model in ["CHATGPT", "CLAUDE"]:
@@ -216,8 +217,7 @@ class Chatbot:
                     self.repo_id,
                     **self.model_params,
                     low_cpu_mem_usage=True,
-                    device_map="auto",
-                    trust_remote_code=True)
+                    device_map="auto")
         
     def init_pipe(self):            
         if self.model_type in ["GGUF", "proprietary"]:
@@ -369,3 +369,11 @@ class StableLM(Chatbot):
 
     def prompt_template(self):
         return "<|user|>{prompt}<|endoftext|><|assistant|>"
+    
+class Phi2(Chatbot):
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+        super().__init__(model_name, model_params, gen_params, q_bits)
+
+    def prompt_template(self):
+        return """### Human: {prompt}
+                ### Assistant:"""

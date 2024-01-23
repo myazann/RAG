@@ -85,19 +85,36 @@ class Prompter():
     
     def conv_agent_prompt(self):
         return """You are an agent that has a conversation with a user. Information related to the user input is going to be provided to you during the conversation. If you think that the information is relevant to answer the user, you can use it. Sometimes, the information may be unrelated or may not contain the answer the user is looking for. For those cases, do not use the provided information. Therefore, you need to decide whether the related information is actually useful to give the user a satisfactory answer. The provided information may contradict what you know. In those cases, provided information has priority. A summary of the chat history between you and the user is also going to be included after the related information to inform you about the current state of the conversation. Your answer should be in the style of a conversational assistant. Do not mention that you have used the provided information or the chat history for your answer. If you do not know the answer, do not say that the information is not provided, state that you do not know the answer.
-        Here is the user input:
-        <USER INPUT>
-        {user_input}
-        </USER INPUT>
-        Here are the related snippets of information as json:
-        <INFO>
+        Here is the related information:
         {info}
-        </INFO>
-        Here is the chat history:
-        <CHAT HISTORY>
+        Here is the summary of the chat history:
         {chat_history}
-        </CHAT HISTORY>"""
+        Here is the user input:
+        {user_input}"""
 
+    def query_gen_prompt(self):
+        return """Your task is to transform user inputs into web search queries. The queries should not be longer than 10 words. If the input is already in the format of a query, output the user input without any modifications. Do not output anything expect the query and do not give an explanation. For the following situations, do not transform the input into a query and output only "NO QUERY": 1) If the user input is directing a question to someone using a pronoun\n2)If the input is composed of a single word like a number or an object.
+        Here are some examples:
+        <EXAMPLES>
+        User Input: Project_Proposal.pdf
+        Query: Project_Proposal.pdf
+        User Input: 5
+        Query: NO QUERY
+        User Input: Which teams were in the finals of the last world cup
+        Query: Last world cup finalists
+        User Input: Why does he act like this?
+        Query: NO QUERY
+        User Input: Why did the colossus fall over?
+        Query: colossus fall reasons
+        User Input: best new year resolutions
+        Query: best new year resolutions
+        User Input: Apple
+        Query: NO QUERY
+        </EXAMPLES>
+        Here is the user input:
+        User Input: {user_input}
+        Query:"""
+    
     def condense_q_prompt(self):
         return """Output the given summary of the conversation history and the question, as is. Do not change anything.                                     
         Summary of the conversation history:
@@ -106,7 +123,7 @@ class Prompter():
         {question}"""
     
     def memory_summary(self):
-        return """Your task is to summarize a conversation between a user and an assistant. The current summary and the new lines in the interaction will be provided to you. Progressively summarize the lines of conversation provided, adding onto the previous summary, and return a new summary. In the new summary, include the key information in the current summary and in the new lines of conversation that may come up later in the conversation, such as what the user asked, what did the user and the assistant talked previously. Do not output anything except the summary, and do not make it very long, keep it short. It should not exceed 256 words.
+        return """Your task is to summarize a conversation between a user and an assistant. The current summary and the new lines in the conversation will be provided to you. Progressively summarize the lines of conversation provided, adding onto the previous summary. The new summary should include key information that may come up later in the conversation, such as what the user asked and what did the user and the assistant talked previously. If there is no current summary, only use the new lines of conversation for the summary. Do not output anything except the summary, and do not make it very long, keep it short. It should not exceed 256 words.
         Here is the current summary:
         {summary}
         Here are the new lines of conversation:

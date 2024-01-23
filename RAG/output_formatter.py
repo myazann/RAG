@@ -38,6 +38,14 @@ def lamp_output_formatter(output, dataset_num):
 
     return substring.strip()
 
+def query_reform_formatter(query):
+    if query.endswith("."):
+        query = query[:-1]
+    end_idx = len(query)
+    if query.endswith("GPT4"):
+        end_idx = query.find("GPT4")
+    return query[:end_idx]
+
 def csv_output_formatter(output):
     code_match = re.search(r"```([\s\S]*?)```", output)
     if code_match:
