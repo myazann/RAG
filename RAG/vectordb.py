@@ -31,7 +31,8 @@ class VectorDB:
 
     def add_file_to_db(self, file_name, web_search):
         files = self.file_loader.load(file_name, web_search)
-        text_chunks, sources, file_types = self.file_loader.get_processed_texts(files)
-        for chunk, source, file_type in zip(text_chunks, sources, file_types):
+        text_chunks, sources = self.file_loader.get_processed_texts(files)
+        for chunk, source in zip(text_chunks, sources):
+            ## https://stackoverflow.com/questions/76265631/chromadb-add-single-document-only-if-it-doesnt-exist
             self.indb_files.append(source)
-            self.vector_db.add_texts(texts=[chunk], metadatas=[{"source": source, "file_type": file_type}])
+            self.vector_db.add_texts(texts=[chunk], metadatas=[{"source": source}])

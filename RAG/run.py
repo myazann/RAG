@@ -43,8 +43,8 @@ while True:
   else:
     reform_query = ""
     start_time = time.time()
-    if os.path.exists(query):
-      db.add_file_to_db(query)
+    if file_loader.get_file_type(query) in ["pdf", "git", "url"]:
+      db.add_file_to_db(query, web_search=False)
       reform_query = query
     elif web_search:
       reform_query = query_reform_formatter(chatbot.name, chatbot.pipe(QUERY_GEN_PROMPT).strip())
@@ -70,6 +70,7 @@ while True:
         retr_docs = retr_docs[:-1]
       else:
         break
+    print(f"Time passed until generation: {time.time()-start_time}")
     answer = chatbot.pipe(CONV_CHAIN_PROMPT).strip()
     current_conv = f"""User: {query}\nAssistant: {answer}"""
     MEMORY_PROMPT = memory_prompt.format(summary=summary, new_lines=current_conv)

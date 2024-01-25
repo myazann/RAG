@@ -64,13 +64,6 @@ class FileLoader():
             elif file_type == "txt":
                 loader = TextLoader(file_name)
         all_docs.append(loader.load())
-        if file_type == "git":
-            for doc in all_docs:
-                for script in doc:
-                    script.metadata["source"] = {
-                        "git_url": file_name,
-                        "file": script.metadata["source"]
-                        }
         print("Done!")
         return all_docs
 
@@ -131,7 +124,6 @@ class FileLoader():
         time.sleep(5)
         new_files = os.listdir()
         diff_files = [f for f in new_files if f not in init_files]
-        print(new_files)
         if diff_files:
             for f in diff_files:
                 if f.endswith("pdf"):
@@ -141,11 +133,9 @@ class FileLoader():
     def get_processed_texts(self, file):
         all_chunks = []
         all_sources = []
-        all_file_types = []
         for f in file:
             all_pages = self.splitter.split_documents(self.remove_empty_space(f))
             for page in all_pages:
                 all_chunks.append(page.page_content)
                 all_sources.append(page.metadata["source"])
-                all_file_types.append(self.get_file_type(page.metadata["source"]))
-        return all_chunks, all_sources, all_file_types
+        return all_chunks, all_sources
