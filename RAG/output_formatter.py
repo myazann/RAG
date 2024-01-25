@@ -38,13 +38,18 @@ def lamp_output_formatter(output, dataset_num):
 
     return substring.strip()
 
-def query_reform_formatter(query):
+def query_reform_formatter(bot_name, query):
     if query.endswith("."):
         query = query[:-1]
     end_idx = len(query)
-    if query.endswith("GPT4"):
-        end_idx = query.find("GPT4")
-    return query[:end_idx]
+    if "OPENCHAT" in bot_name:
+        if query.endswith("GPT4"):
+            end_idx = query.find("GPT4")
+        query = query[:end_idx]
+    new_line = query.find("\n")
+    if new_line != -1:
+        query = query[:new_line]
+    return query
 
 def csv_output_formatter(output):
     code_match = re.search(r"```([\s\S]*?)```", output)

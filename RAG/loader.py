@@ -1,28 +1,33 @@
 import re
 import requests
 import os
+import time
 
 import validators
-import pandas as pd
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from git import Repo
 from googlesearch import search
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, TelegramChatFileLoader, SeleniumURLLoader, GitLoader
-from langchain_community.utilities import SQLDatabase
+from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, SeleniumURLLoader, GitLoader
 
 class FileLoader():
 
     def __init__(self, splitter_params={"chunk_size": 2000, "chunk_overlap": 500}):
         self.splitter = RecursiveCharacterTextSplitter(**splitter_params)
     
-    def load(self, file_name, web_search, pdf_loader="unstructured"):
+    def load(self, file_name, web_search=False, pdf_loader="unstructured"):
+        all_docs = []
         file_type = self.get_file_type(file_name)
         if file_type == "string" and web_search:
             print("Searching Web!")
             file_name = self.web_search(file_name)
+            for file in file_name:
+                if self.get_file_type(file) == "pdf":
+                    search_doc = self.load(file)
+                    all_docs.append(search_doc[0])
+                    os.remove(file)
             file_type = "url"
         if file_type == "url":
             if isinstance(file_name, str):
@@ -54,19 +59,20 @@ class FileLoader():
                 print("Could not find the file!")
                 return None
             print("Processing file!")
-            if file_type == "db":
-                print("Reading database!")
-                doc = SQLDatabase.from_uri(f"sqlite:///{file_name}") 
-            elif file_type == "csv":
-                print("Reading CSV!")
-                doc = pd.read_csv(file_name)
-            elif file_type == "pdf":
+            if file_type == "pdf":
                 loader = self.pdf_loaders()[pdf_loader](file_name)
             elif file_type == "txt":
                 loader = TextLoader(file_name)
-        doc = loader.load()
+        all_docs.append(loader.load())
+        if file_type == "git":
+            for doc in all_docs:
+                for script in doc:
+                    script.metadata["source"] = {
+                        "git_url": file_name,
+                        "file": script.metadata["source"]
+                        }
         print("Done!")
-        return doc, file_type
+        return all_docs
 
     def extend_url(self, all_urls, url):
         parsed = urlparse(url)
@@ -120,8 +126,26 @@ class FileLoader():
         return doc
     
     def web_search(self, query):
-        return list(search(query, tld="co.in", num=10, stop=10, pause=2))
+        init_files = os.listdir()
+        search_res = list(search(query, tld="co.in", num=10, stop=10, pause=2))
+        time.sleep(5)
+        new_files = os.listdir()
+        diff_files = [f for f in new_files if f not in init_files]
+        print(new_files)
+        if diff_files:
+            for f in diff_files:
+                if f.endswith("pdf"):
+                    search_res.extend(f)
+        return search_res
     
     def get_processed_texts(self, file):
-        all_pages = self.splitter.split_documents(self.remove_empty_space(file))
-        return [page.page_content for page in all_pages], [page.metadata["source"] for page in all_pages]
+        all_chunks = []
+        all_sources = []
+        all_file_types = []
+        for f in file:
+            all_pages = self.splitter.split_documents(self.remove_empty_space(f))
+            for page in all_pages:
+                all_chunks.append(page.page_content)
+                all_sources.append(page.metadata["source"])
+                all_file_types.append(self.get_file_type(page.metadata["source"]))
+        return all_chunks, all_sources, all_file_types

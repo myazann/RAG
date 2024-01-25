@@ -1,5 +1,6 @@
 import time
 import os
+import subprocess
 
 from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline
 import huggingface_hub
@@ -17,6 +18,7 @@ args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
 chatbot = choose_bot()
+print(subprocess.run("gpustat"))
 prompter = Prompter()
 if chatbot.q_bit is None:
   test_name = f"QA_{chatbot.name}_{time.time()}"
@@ -45,7 +47,7 @@ while True:
       db.add_file_to_db(query)
       reform_query = query
     elif web_search:
-      reform_query = query_reform_formatter(chatbot.pipe(QUERY_GEN_PROMPT).strip())
+      reform_query = query_reform_formatter(chatbot.name, chatbot.pipe(QUERY_GEN_PROMPT).strip())
       if "NO QUERY" not in reform_query:
         db.add_file_to_db(reform_query, web_search)
     all_db_docs = db.query_db()["documents"]
@@ -54,7 +56,7 @@ while True:
       retriever = Retriever(db.vector_db, k=k, comp_pipe=pipeline_compressor)
       if reform_query == "":
         reform_query = query_reform_formatter(chatbot.pipe(QUERY_GEN_PROMPT).strip())
-      retr_docs = retriever.get_docs(query)
+      retr_docs = retriever.get_docs(reform_query)
     else:
       retr_docs = []
     info = ""

@@ -7,6 +7,7 @@ from RAG.utils import get_device
 
 class VectorDB:
     def __init__(self, file_loader, embedding_function="hf_bge"):
+        self.indb_files = []
         self.file_loader = file_loader
         self.embedding_function = self.get_embed_func(embedding_function)
         self.vector_db =  Chroma(embedding_function=self.embedding_function)
@@ -28,8 +29,9 @@ class VectorDB:
             cached_embedder = CacheBackedEmbeddings.from_bytes_store(embeddings, fs, namespace=embeddings.model_name)
             return cached_embedder
 
-    def add_file_to_db(self, file_name, web_search=False):
-        file, file_type = self.file_loader.load(file_name, web_search)
-        text_chunks, sources = self.file_loader.get_processed_texts(file)
-        for chunk, source in zip(text_chunks, sources):
+    def add_file_to_db(self, file_name, web_search):
+        files = self.file_loader.load(file_name, web_search)
+        text_chunks, sources, file_types = self.file_loader.get_processed_texts(files)
+        for chunk, source, file_type in zip(text_chunks, sources, file_types):
+            self.indb_files.append(source)
             self.vector_db.add_texts(texts=[chunk], metadatas=[{"source": source, "file_type": file_type}])

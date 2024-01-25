@@ -301,7 +301,7 @@ class Mistral(Chatbot):
         super().__init__(model_name, model_params, gen_params, q_bits)
 
     def prompt_template(self):
-        return """<s>[INST] {prompt} [/INST]"""
+        return """<s> [INST] {prompt} [/INST]"""
 
 class Zephyr(Chatbot):
 
