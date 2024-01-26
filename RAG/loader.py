@@ -15,7 +15,8 @@ from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoa
 class FileLoader():
 
     def __init__(self, splitter_params={"chunk_size": 2000, "chunk_overlap": 500}):
-        self.splitter = RecursiveCharacterTextSplitter(**splitter_params)
+        self.splitter_params = splitter_params
+        self.splitter = RecursiveCharacterTextSplitter(**self.splitter_params)
     
     def load(self, file_name, web_search=False, pdf_loader="unstructured"):
         all_docs = []
@@ -120,8 +121,7 @@ class FileLoader():
     
     def web_search(self, query):
         init_files = os.listdir()
-        search_res = list(search(query, tld="co.in", num=10, stop=10, pause=2))
-        time.sleep(5)
+        search_res = list(search(query, num_results=5))
         new_files = os.listdir()
         diff_files = [f for f in new_files if f not in init_files]
         if diff_files:

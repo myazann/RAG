@@ -49,6 +49,9 @@ def query_reform_formatter(bot_name, query):
     new_line = query.find("\n")
     if new_line != -1:
         query = query[:new_line]
+    parantheses = query.find("(")
+    if parantheses != -1:
+        query = query[:parantheses]
     return query
 
 def csv_output_formatter(output):

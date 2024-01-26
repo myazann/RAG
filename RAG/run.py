@@ -1,6 +1,8 @@
 import time
 import os
 import subprocess
+import warnings
+warnings.filterwarnings("ignore")
 
 from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline
 import huggingface_hub
@@ -42,24 +44,32 @@ while True:
     break
   else:
     reform_query = ""
+    retr_docs = []
+    info = ""
+    added_files = []
     start_time = time.time()
     if file_loader.get_file_type(query) in ["pdf", "git", "url"]:
-      db.add_file_to_db(query, web_search=False)
-      reform_query = query
+      if query not in added_files:
+        db.add_file_to_db(query, web_search=False)
+        added_files.append(query)
+        reform_query = query
+      else:
+        print("File already in the system!")
+      print(f"Time passed processing file: {time.time()-start_time}")
     elif web_search:
       reform_query = query_reform_formatter(chatbot.name, chatbot.pipe(QUERY_GEN_PROMPT).strip())
       if "NO QUERY" not in reform_query:
         db.add_file_to_db(reform_query, web_search)
+        print(f"Time passed in web search: {time.time()-start_time}")
     all_db_docs = db.query_db()["documents"]
     if all_db_docs:
       k = chatbot.find_best_k(all_db_docs, conv_agent_prompt)
       retriever = Retriever(db.vector_db, k=k, comp_pipe=pipeline_compressor)
       if reform_query == "":
-        reform_query = query_reform_formatter(chatbot.pipe(QUERY_GEN_PROMPT).strip())
-      retr_docs = retriever.get_docs(reform_query)
-    else:
-      retr_docs = []
-    info = ""
+        reform_query = query_reform_formatter(chatbot.name, chatbot.pipe(QUERY_GEN_PROMPT).strip())
+      if "NO QUERY" not in reform_query:
+        retr_docs = retriever.get_docs(reform_query)
+        print(f"Time passed in retrieval: {time.time()-start_time}")
     while True:
       if retr_docs:
         for i, doc in enumerate(retr_docs):

@@ -1,3 +1,5 @@
+import hashlib
+
 from langchain_community.vectorstores import Chroma
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
@@ -7,10 +9,9 @@ from RAG.utils import get_device
 
 class VectorDB:
     def __init__(self, file_loader, embedding_function="hf_bge"):
-        self.indb_files = []
         self.file_loader = file_loader
         self.embedding_function = self.get_embed_func(embedding_function)
-        self.vector_db =  Chroma(embedding_function=self.embedding_function)
+        self.vector_db =  Chroma(embedding_function=self.embedding_function, persist_directory="./chroma_db")
 
     def query_db(self):
         return self.vector_db.get()
@@ -32,7 +33,8 @@ class VectorDB:
     def add_file_to_db(self, file_name, web_search):
         files = self.file_loader.load(file_name, web_search)
         text_chunks, sources = self.file_loader.get_processed_texts(files)
-        for chunk, source in zip(text_chunks, sources):
-            ## https://stackoverflow.com/questions/76265631/chromadb-add-single-document-only-if-it-doesnt-exist
-            self.indb_files.append(source)
-            self.vector_db.add_texts(texts=[chunk], metadatas=[{"source": source}])
+        splitter_params = self.file_loader.splitter_params
+        ids = [hashlib.sha256(f"{source}-chunksize:{splitter_params['chunk_size']}-chunkoverlap:{splitter_params['chunk_overlap']}-{i}".encode()).hexdigest()
+               for i, source in enumerate(sources)]
+        sources = [{"source": i} for i in sources]
+        self.vector_db.add_texts(ids=ids, texts=text_chunks, metadatas=sources)
