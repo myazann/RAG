@@ -43,7 +43,8 @@ The prompts used can be found in the _prompter.py_ script.
 
 ## RAG Question Types 
 
-Questions with multiple possible answers.
+- Questions with multiple possible answers
+- Open domain questions vs. single answer questions (factual)
 
 ## Todo 
 
