@@ -19,7 +19,7 @@ huggingface_hub.login(new_session=False)
 args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
-chatbot = choose_bot()
+chatbot = choose_bot(vllm=False)
 print(subprocess.run("gpustat"))
 prompter = Prompter()
 if chatbot.q_bit is None:
@@ -31,14 +31,14 @@ conv_agent_prompt = chatbot.prompt_chatbot(prompter.conv_agent_prompt())
 query_gen_prompt = chatbot.prompt_chatbot(prompter.query_gen_prompt())
 memory_prompt = chatbot.prompt_chatbot(prompter.memory_summary())
 db = VectorDB(file_loader)
-emdeb_filter = EmbeddingsFilter(embeddings=db.get_embed_func("hf_bge"), similarity_threshold=0.75)
+emdeb_filter = EmbeddingsFilter(embeddings=db.get_embed_func("hf_bge"), similarity_threshold=0.8)
 pipeline_compressor = DocumentCompressorPipeline(transformers=[emdeb_filter])
 print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
 summary = ""
 while True:
   print("User: ")
   query = input().strip()
-  QUERY_GEN_PROMPT = query_gen_prompt.format(user_input=query)
+  QUERY_GEN_PROMPT = query_gen_prompt.format(summary=summary, user_input=query)
   if query == "0":
     print("Bye!")
     break

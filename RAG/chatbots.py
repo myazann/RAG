@@ -7,7 +7,7 @@ import numpy as np
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, GPTQConfig
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain_community.chat_models import ChatAnthropic, ChatOpenAI
-from langchain_community.llms import LlamaCpp
+from langchain_community.llms import LlamaCpp, VLLM
 
 from RAG.output_formatter import strip_all
 
@@ -16,7 +16,7 @@ def get_model_cfg():
     config.read(os.path.join(Path(__file__).absolute().parent, "model_config.cfg"))
     return config
 
-def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None):
+def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None, vllm=False):
     if model_name is None:
         model_cfg = get_model_cfg()
         models = model_cfg.sections()
@@ -43,33 +43,14 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
                 print("Please select from one of the options!")
             else:
                 break
-    model_dict = {
-        "VICUNA": Vicuna,
-        "LLAMA2": LLaMA2,
-        "BELUGA": StableBeluga,
-        "CHATGPT": ChatGPT,
-        "CLAUDE": Claude,
-        "MISTRAL": Mistral,
-        "WIZARDLM": WizardLM,
-        "ZEPHYR": Zephyr,
-        "OPENCHAT": OpenChat,
-        "STARLING": Starling,
-        "YI": Yi,
-        "SOLAR": Solar,
-        "STABLELM": StableLM,
-        "PHI2": Phi2
-    }
-    model = model_name.split("-")[0]
-    if model in ["CHATGPT", "CLAUDE"]:
-        return model_dict[model](model_name, model_params, gen_params)
-    else:
-        return model_dict[model](model_name, model_params, gen_params, q_bits)
+    return Chatbot(model_name, model_params, gen_params, q_bits, vllm)
 
 class Chatbot:
 
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None, vllm=False) -> None:
         self.cfg = get_model_cfg()[model_name]
         self.name = model_name
+        self.family = model_name.split("-")[0]
         self.repo_id = self.cfg.get("repo_id")
         self.model_basename = self.cfg.get("basename")
         self.context_length = self.cfg.get("context_length")
@@ -78,20 +59,57 @@ class Chatbot:
         self.tokenizer = self.init_tokenizer()
         self.model_params = self.get_model_params(model_params)
         self.gen_params = self.get_gen_params(gen_params)
-        self.model = self.init_model()
+        self.model = self.init_model(vllm)
         self.pipe = self.init_pipe()
 
     def prompt_template(self):
-        return None
+        prompt_dict = {
+            "VICUNA": """A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
+                         USER: 
+                         {prompt}
+                         ASSISTANT:""",
+            "LLAMA2": """[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>
+                         {prompt}
+                         [/INST]""",
+            "CHATGPT": """{prompt}""",
+            "CLAUDE": """Human: {prompt}
+                         Assistant:""",
+            "MISTRAL": """<s> [INST] {prompt} [/INST]""",
+            "ZEPHYR": """<|system|></s>
+                         <|user|>
+                         {prompt}</s> 
+                         <|assistant|>""",
+            "OPENCHAT": """GPT4 User: {prompt}<|end_of_turn|>GPT4 Assistant:""",
+            "YI": """<|im_start|>system<|im_end|>
+                     <|im_start|>user{prompt}<|im_end|>
+                     <|im_start|>assistant""",
+            "SOLAR": """### User:
+                        {prompt}
+                        ### Assistant:
+                        """,
+            "STABLELM": "<|user|>{prompt}<|endoftext|><|assistant|>",
+            "PHI2": """### Human: {prompt}
+                       ### Assistant:"""}
+        return prompt_dict[self.family]
     
     def prompt_chatbot(self, prompt):
         return strip_all(self.prompt_template()).format(prompt=strip_all(prompt))
     
     def count_tokens(self, prompt):
         if isinstance(prompt, str):
-            return len(self.tokenizer(prompt).input_ids)
+            if self.family == "CHATGPT":
+                return self.model.get_num_tokens(prompt)
+            elif self.family == "CLAUDE":
+                return self.model.count_tokens(prompt)
+            else:
+                return len(self.tokenizer(prompt).input_ids)
         if isinstance(prompt, list):
-            return [len(self.tokenizer(chunk).input_ids) for chunk in prompt]
+            if self.family == "CHATGPT":
+                return [self.model.get_num_tokens(chunk) for chunk in prompt]
+            elif self.family == "CLAUDE":
+                return [self.model.count_tokens(chunk) for chunk in prompt]
+            else:
+                return [len(self.tokenizer(chunk).input_ids) for chunk in prompt]
         
     def find_best_k(self, chunks, prompt, strategy="optim"):
         avg_chunk_len = np.mean(self.count_tokens(chunks))
@@ -155,7 +173,15 @@ class Chatbot:
                 "revision": "main"}
     
     def default_model_params(self):
-        return {}
+        if self.family == "LLAMA2":
+            return {
+                "trust_remote_code": True,
+                "pad_token_id": self.tokenizer.eos_token_id,
+                "eos_token_id": self.tokenizer.eos_token_id,
+                "token": True,
+                }
+        else:
+            return {}
     
     def get_model_params(self, model_params):
         if model_params is None:
@@ -166,7 +192,7 @@ class Chatbot:
         else:
             return model_params
     
-    def init_model(self):
+    def init_model(self, vllm):
         if self.name == "CLAUDE":
             return ChatAnthropic(model=self.repo_id, **self.gen_params)
         elif self.name == "GPT":
@@ -212,6 +238,13 @@ class Chatbot:
                     model_path=os.path.join(model_folder, self.model_basename),
                     **self.model_params,
                     **self.gen_params)     
+        elif vllm and self.model_type == "default":
+            return VLLM(
+                model=self.repo_id,
+                **self.model_params,
+                device_map="auto",
+                # trust_remote_code=True
+                )
         else:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
@@ -224,156 +257,3 @@ class Chatbot:
             return self.model
         else:
             return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
-
-class Vicuna(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
-        USER: 
-        {prompt}
-        ASSISTANT:"""
-    
-class LLaMA2(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>
-                {prompt}
-                [/INST]"""
-    
-    def default_model_params(self):
-        return {
-                "trust_remote_code": True,
-                "pad_token_id": self.tokenizer.eos_token_id,
-                "eos_token_id": self.tokenizer.eos_token_id,
-                "token": True,
-                }
-    
-class StableBeluga(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """### System: 
-        You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.
-        ### User: 
-        {prompt}
-        ### Assistant:"""     
-
-class Claude(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None) -> None:
-        super().__init__(model_name, model_params, gen_params)
-
-    def prompt_template(self):
-        return """Human: {prompt}
-        Assistant:"""
-    
-    def count_tokens(self, prompt):
-        if isinstance(prompt, str):
-            return self.model.count_tokens(prompt)
-        if isinstance(prompt, list):
-            return max([self.model.count_tokens(chunk) for chunk in prompt])
-        
-class ChatGPT(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None) -> None:
-        super().__init__(model_name, model_params, gen_params)
-
-    def prompt_template(self):
-        return """{prompt}"""
-    
-    def count_tokens(self, prompt):
-        if isinstance(prompt, str):
-            return self.model.get_num_tokens(prompt)
-        if isinstance(prompt, list):
-            return max([self.model.get_num_tokens(chunk) for chunk in prompt])
-        
-class Mistral(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """<s> [INST] {prompt} [/INST]"""
-
-class Zephyr(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """<|system|></s>
-                         <|user|>
-                         {prompt}</s> 
-                         <|assistant|>"""
-
-class WizardLM(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
-        USER: 
-        {prompt}
-        ASSISTANT:""" 
-    
-class OpenChat(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """GPT4 User: {prompt}<|end_of_turn|>GPT4 Assistant:"""
-    
-class Starling(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """GPT4 Correct User: {prompt}<|end_of_turn|>GPT4 Correct Assistant:"""
-    
-class Yi(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """<|im_start|>system<|im_end|>
-        <|im_start|>user{prompt}<|im_end|>
-        <|im_start|>assistant"""
-    
-class Solar(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """### User:
-        {prompt}
-        ### Assistant:
-        """
-    
-class StableLM(Chatbot):
-
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return "<|user|>{prompt}<|endoftext|><|assistant|>"
-    
-class Phi2(Chatbot):
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
-        super().__init__(model_name, model_params, gen_params, q_bits)
-
-    def prompt_template(self):
-        return """### Human: {prompt}
-                ### Assistant:"""

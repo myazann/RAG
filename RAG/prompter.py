@@ -92,25 +92,39 @@ class Prompter():
         {user_input}"""
 
     def query_gen_prompt(self):
-        return """Your task is to transform user inputs into web search queries. The queries should not be longer than 10 words. If the input is already in the format of a query, output the user input without any modifications. Do not output anything expect the query and do not give an explanation. For the following situations, do not transform the input into a query and output only "NO QUERY": 1) If the user input is directing a question to someone using a pronoun\n2)If the input is composed of a single word like a number or an object.
+        return """Your task is to transform user inputs into web search queries, given the summary of the chat history. User input can be ambigous or not clear. For example, the user input may reference an object from the previous interaction. For those cases, clear the ambiguity using the summary. If the input is already in the format of a query, output the user input without any modifications. Do not output anything expect the query and do not give an explanation. For the following situations, do not transform the input into a query and output only "NO QUERY": 1) If the user input is directing a question to someone using a pronoun 2)If the input is composed of a single word like a number or an object 3) If the user query is ambigous but the chat summary is empty or it does not provide information for clarification.
         Here are some examples:
         <EXAMPLES>
+        Chat Summary:
         User Input: Project_Proposal.pdf
         Query: Project_Proposal.pdf
+        Chat Summary: The user asked the assistant what are the most common approaches for normalizing inputs. Assistant gave the user an overview.
         User Input: 5
         Query: NO QUERY
+        Chat Summary: The user claimed that they are interested in football and asked the assistant about the origins of football. Assistant explained that modern football was originated in England in the mid 19th century.
         User Input: Which teams were in the finals of the last world cup
         Query: Last world cup finalists
+        Chat Summary: The user is complaining about the actions of his ex-boyfriend, who stopped communicating with the user. The assistant gave an overview about possible reasons, trying to show both sides of the story. The user told the assistant that they are very angry.
         User Input: Why does he act like this?
         Query: NO QUERY
-        User Input: Why did the colossus fall over?
+        Chat Summary: The user mentions that they like the video game Starcraft 2 a lot, then explains the assistant that there is a very powerful unit in the game called colossus. The user explains that the colossus is prone to falling.
+        User Input: Why did the it fall over?
         Query: colossus fall reasons
+        Chat Summary:
+        User Input: What is the best way to do it?
+        Query: NO QUERY
+        Chat Summary: The user asked why "Attention is All You Need" paper is a milestone in NLP research. The assistant explained the attention concept, and gave an overview of how it changed the current paradigm in NLP.
+        User Input: What are the findings of the paper?
+        Query: attention is all you need findings
+        Chat Summary:
         User Input: best new year resolutions
         Query: best new year resolutions
+        Chat Summary: User is a big fan of the brand "Apple", and they own all their products. The assistant congratulates the user and gives examples about the popularity of Apple all around the world. The user then wants an overview of the differences between iOS and Android products. The assistant explains that they are both operating systems and provides the user with a table highlighting their differences.
         User Input: Apple
         Query: NO QUERY
         </EXAMPLES>
         Here is the user input:
+        Chat Summary: {summary}
         User Input: {user_input}
         Query:"""
     

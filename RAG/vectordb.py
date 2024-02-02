@@ -2,7 +2,7 @@ import hashlib
 
 from langchain_community.vectorstores import Chroma
 from langchain.embeddings import CacheBackedEmbeddings
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
 from langchain.storage import LocalFileStore
 
 from RAG.utils import get_device
@@ -26,9 +26,12 @@ class VectorDB:
                 model_kwargs=model_kwargs,
                 encode_kwargs=encode_kwargs
             )
-            fs = LocalFileStore("./embed_cache/")
-            cached_embedder = CacheBackedEmbeddings.from_bytes_store(embeddings, fs, namespace=embeddings.model_name)
-            return cached_embedder
+        elif type == "hf_st":
+            model_name = "stsb-xlm-r-multilingual"
+            embeddings = HuggingFaceEmbeddings(model_name=model_name)
+        fs = LocalFileStore("./embed_cache/")
+        cached_embedder = CacheBackedEmbeddings.from_bytes_store(embeddings, fs, namespace=embeddings.model_name)
+        return cached_embedder
 
     def add_file_to_db(self, file_name, web_search):
         files = self.file_loader.load(file_name, web_search)

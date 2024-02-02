@@ -43,8 +43,9 @@ def query_reform_formatter(bot_name, query):
         query = query[:-1]
     end_idx = len(query)
     if "OPENCHAT" in bot_name:
-        if query.endswith("GPT4"):
-            end_idx = query.find("GPT4")
+        query_words = query.split(" ")
+        if "GPT4" in query_words[-2:]:
+            end_idx = query.find(" GPT4")
         query = query[:end_idx]
     new_line = query.find("\n")
     if new_line != -1:

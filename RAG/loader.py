@@ -87,7 +87,7 @@ class FileLoader():
                 return "url"
         else:
             file_ext = file_name.split(".")[-1]
-            if len(file_ext) == 3:
+            if file_ext in ["pdf", "txt"]:
                 return file_ext
             else:
                 return "string"
@@ -121,7 +121,9 @@ class FileLoader():
     
     def web_search(self, query):
         init_files = os.listdir()
-        search_res = list(search(query, num_results=5))
+        search_res = list(search(query, num_results=5, lang="en"))
+        if not search_res:
+            print("Web query empty!")
         new_files = os.listdir()
         diff_files = [f for f in new_files if f not in init_files]
         if diff_files:
