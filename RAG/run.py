@@ -32,7 +32,7 @@ query_gen_prompt = chatbot.prompt_chatbot(prompter.query_gen_prompt())
 memory_prompt = chatbot.prompt_chatbot(prompter.memory_summary())
 db = VectorDB(file_loader)
 emdeb_filter = EmbeddingsFilter(embeddings=db.get_embed_func("hf_bge"), similarity_threshold=0.8)
-compressor = CohereRerank(cohere_api_key="RchaCL6jeh0FAazvWfB2G1qmAWNHeQiF3Qmg9ANO")
+compressor = CohereRerank()
 pipeline_compressor = DocumentCompressorPipeline(transformers=[emdeb_filter, compressor])
 print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
 summary = ""
