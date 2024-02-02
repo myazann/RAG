@@ -4,7 +4,7 @@ import subprocess
 import warnings
 warnings.filterwarnings("ignore")
 
-from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline
+from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline, CohereRerank
 import huggingface_hub
 
 from RAG.chatbots import choose_bot
@@ -19,7 +19,7 @@ huggingface_hub.login(new_session=False)
 args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
-chatbot = choose_bot(vllm=False)
+chatbot = choose_bot()
 print(subprocess.run("gpustat"))
 prompter = Prompter()
 if chatbot.q_bit is None:
@@ -32,7 +32,8 @@ query_gen_prompt = chatbot.prompt_chatbot(prompter.query_gen_prompt())
 memory_prompt = chatbot.prompt_chatbot(prompter.memory_summary())
 db = VectorDB(file_loader)
 emdeb_filter = EmbeddingsFilter(embeddings=db.get_embed_func("hf_bge"), similarity_threshold=0.8)
-pipeline_compressor = DocumentCompressorPipeline(transformers=[emdeb_filter])
+compressor = CohereRerank(cohere_api_key="RchaCL6jeh0FAazvWfB2G1qmAWNHeQiF3Qmg9ANO")
+pipeline_compressor = DocumentCompressorPipeline(transformers=[emdeb_filter, compressor])
 print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
 summary = ""
 while True:

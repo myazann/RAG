@@ -7,7 +7,7 @@ import numpy as np
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, GPTQConfig
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain_community.chat_models import ChatAnthropic, ChatOpenAI
-from langchain_community.llms import LlamaCpp, VLLM
+from langchain_community.llms import LlamaCpp
 
 from RAG.output_formatter import strip_all
 
@@ -16,7 +16,7 @@ def get_model_cfg():
     config.read(os.path.join(Path(__file__).absolute().parent, "model_config.cfg"))
     return config
 
-def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None, vllm=False):
+def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None):
     if model_name is None:
         model_cfg = get_model_cfg()
         models = model_cfg.sections()
@@ -43,11 +43,11 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None,
                 print("Please select from one of the options!")
             else:
                 break
-    return Chatbot(model_name, model_params, gen_params, q_bits, vllm)
+    return Chatbot(model_name, model_params, gen_params, q_bits)
 
 class Chatbot:
 
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None, vllm=False) -> None:
+    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
         self.cfg = get_model_cfg()[model_name]
         self.name = model_name
         self.family = model_name.split("-")[0]
@@ -59,7 +59,7 @@ class Chatbot:
         self.tokenizer = self.init_tokenizer()
         self.model_params = self.get_model_params(model_params)
         self.gen_params = self.get_gen_params(gen_params)
-        self.model = self.init_model(vllm)
+        self.model = self.init_model()
         self.pipe = self.init_pipe()
 
     def prompt_template(self):
@@ -192,7 +192,7 @@ class Chatbot:
         else:
             return model_params
     
-    def init_model(self, vllm):
+    def init_model(self):
         if self.name == "CLAUDE":
             return ChatAnthropic(model=self.repo_id, **self.gen_params)
         elif self.name == "GPT":
@@ -238,13 +238,6 @@ class Chatbot:
                     model_path=os.path.join(model_folder, self.model_basename),
                     **self.model_params,
                     **self.gen_params)     
-        elif vllm and self.model_type == "default":
-            return VLLM(
-                model=self.repo_id,
-                **self.model_params,
-                device_map="auto",
-                # trust_remote_code=True
-                )
         else:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
