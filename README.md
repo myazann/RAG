@@ -5,8 +5,11 @@ A simple implementation of retrieval augmented generation for a variety of model
 ## Usage
 
 ```bash
-python run.py -doc "URL or path to the document"
+python run.py -ws 
 ```
+
+- `--ws`: If passed, does web search on the queries
+  
 The script will ask you to choose a chatbot, and retrieval will be done from the given document or URL using Langchain. If you want to use OpenAI or Anthropic models, you need to add the corresponding API keys as environment variables. Opensource models can require a Huggingface API key.
 
 ## Installation
