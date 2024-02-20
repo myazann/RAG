@@ -85,16 +85,11 @@ for chatbot_name in chatbot_names:
         queries = orig_queries[len(all_res):]
         prof_texts = orig_prof_texts[len(all_res):]
         prof_gts = orig_prof_gts[len(all_res):]
-    if k == "0":
-        lamp_prompt = chatbot.prompt_chatbot(prompter.lamp_prompt(dataset_num, k=False))
-    else:
-        lamp_prompt = chatbot.prompt_chatbot(prompter.lamp_prompt(dataset_num))
+    if k != "0":
         retr_doc_idxs = retrieved_idx(prof_texts, queries, dataset_num, dataset_split, retriever)
         retr_doc_idxs = retr_doc_idxs[len(all_res):]
-    # run = wandb.init(project="LAMP", name=f"{test_name}_{chatbot_name}"[5:], id=f"{test_name}_{chatbot_name}"[5:], job_type="generation", resume=True)
     print(f"Starting from sample no. {len(all_res)}")
     start_time = time.time()
-    avail_space = int(chatbot.context_length) - chatbot.count_tokens(lamp_prompt)
     sys.stdout.flush()
     skip_k = 0
     doc_k = k
@@ -103,7 +98,7 @@ for chatbot_name in chatbot_names:
         skip_k = int(k.split("_")[-1])
     for i in range(len(queries)):
         if k == "0":
-            final_prompt = lamp_prompt.format(prof_text=queries[i])        
+            lamp_prompt = prompter.lamp_prompt(dataset_num, prof_text=queries[i])     
         else:
             retr_docs = retr_doc_idxs[i]
             example_pairs = ""
@@ -115,12 +110,13 @@ for chatbot_name in chatbot_names:
             retr_gts = [prof_gts[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
             for text, gt in zip(retr_texts, retr_gts):
                 example = f"""{prof_prompt_name.capitalize()}:\n{text}\n{prof_gt_name.capitalize()}:\n{gt}\n"""  
+                lamp_prompt = prompter.lamp_prompt(dataset_num, prof_text=queries[i], examples=example_pairs)
+                avail_space = int(chatbot.context_length) - chatbot.count_tokens(lamp_prompt)
                 if chatbot.count_tokens(example_pairs + "\n" + example + queries[i]) < avail_space:
                     example_pairs = example_pairs + "\n" + example   
                 else:
                     break   
-            final_prompt = lamp_prompt.format(examples=example_pairs, prof_text=queries[i])
-        res = chatbot.pipe(final_prompt)
+        res = chatbot.prompt_chatbot(lamp_prompt)
         all_res.append(res)
         torch.cuda.empty_cache()
         if (i+1)%500==0 or (i+1)==len(queries):

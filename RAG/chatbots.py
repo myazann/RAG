@@ -5,15 +5,12 @@ import urllib.request
 import sys
 import time
 
+import tiktoken
 import numpy as np
-from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, TextStreamer
-from langchain.llms.huggingface_pipeline import HuggingFacePipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from langchain_community.chat_models import ChatAnthropic
-from langchain_openai import ChatOpenAI
-from langchain_community.llms import LlamaCpp
-from langchain.schema import HumanMessage, SystemMessage
-
-from RAG.output_formatter import strip_all
+from openai import OpenAI
+from llama_cpp import Llama
 
 def get_model_cfg():
     config = configparser.ConfigParser()
@@ -63,28 +60,21 @@ class Chatbot:
         self.model_params = self.get_model_params(model_params)
         self.gen_params = self.get_gen_params(gen_params)
         self.model = self.init_model()
-        self.pipe = self.init_pipe() 
 
     def prompt_chatbot(self, prompt):
-        if not isinstance(prompt, list):
-            prompt = [
-                        SystemMessage(
-                            content=""
-                        ),
-                        HumanMessage(
-                            content=prompt.strip_all()
-                        ),
+        if self.model_type in ["default", "AWQ", "GPTQ"]:
+            if self.family == "MISTRAL":
+                prompt = [
+                    {
+                        "role": "user",
+                        "content": f"{prompt[0]['content']}\n{prompt[1]['content']}"
+                    },
                     ]
-        else:
-            prompt = [
-                        SystemMessage(
-                            content=prompt[0]["content"]
-                        ),
-                        HumanMessage(
-                            content=prompt[1]["content"]
-                        ),
-                    ]     
-        return self.pipe(prompt)  
+            pipe = pipeline("conversational", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
+            return pipe(prompt).messages[-1]["content"]
+        elif self.family == "CHATGPT" or self.model_type == "PPLX":
+            response = self.model.chat.completions.create(model=self.repo_id, messages=prompt, **self.gen_params)
+            return response.choices[0].message.content
     
     def stream_output(self, output):
         def word_by_word_generator(text):
@@ -96,19 +86,19 @@ class Chatbot:
               time.sleep(0.02)
     
     def count_tokens(self, prompt):
-        full_prompt = ""
-        for turn in prompt:
-            full_prompt = f"{full_prompt}\n{turn['content']}"
-        if self.family == "CHATGPT" or self.model_type == "PPLX":
-            return self.model.get_num_tokens(full_prompt)
+        if isinstance(prompt, list):
+            prompt = f"{prompt[0]['content']}\n{prompt[1]['content']}"
+        if self.family == "CHATGPT":
+            encoding = tiktoken.encoding_for_model(self.repo_id)
+            return len(encoding.encode(prompt))
         elif self.family == "CLAUDE":
-            return self.model.count_tokens(full_prompt)
+            return self.model.count_tokens(prompt)
         else:
-            return len(self.tokenizer(full_prompt).input_ids)
+            return len(self.tokenizer(prompt).input_ids)
 
     def find_best_k(self, chunks, strategy="optim"):
         prompt_spc = 256
-        avg_chunk_len = np.mean(self.count_tokens(chunks))
+        avg_chunk_len = np.mean([self.count_tokens(c) for c in chunks])
         avail_space = int(self.context_length) - prompt_spc
         if strategy == "max":
             pass
@@ -131,9 +121,9 @@ class Chatbot:
             return "default"
         
     def init_tokenizer(self):
-        if self.model_type == "GGUF":
+        if self.model_type in ["GGUF", "AWQ", "GPTQ", "PPLX"]:
             return AutoTokenizer.from_pretrained(self.cfg.get("tokenizer"), use_fast=True)
-        elif self.model_type in ["proprietary", "PPLX"]:
+        elif self.model_type in ["proprietary"]:
             return None
         else:
             return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
@@ -179,8 +169,8 @@ class Chatbot:
                 }
             elif self.model_type == "PPLX":
                 return {
-                        "openai_api_base": "https://api.perplexity.ai",
-                        "openai_api_key": "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"
+                        "base_url": "https://api.perplexity.ai",
+                        "api_key": os.getenv("PPLX_API_KEY")
                 }
             else:
                 return self.default_model_params()
@@ -191,7 +181,7 @@ class Chatbot:
         if self.family == "CLAUDE":
             return ChatAnthropic(model=self.repo_id, streaming=True, **self.gen_params)
         elif self.family == "CHATGPT" or self.model_type == "PPLX":
-            return ChatOpenAI(model=self.repo_id, streaming=True, **self.model_params, **self.gen_params)
+            return OpenAI(**self.model_params)
         elif self.model_type == "GGUF":
             if os.getenv("HF_HOME") is None:
                 hf_cache_path = os.path.join(os.path.expanduser('~'), ".cache", "huggingface", "transformers")
@@ -239,10 +229,3 @@ class Chatbot:
                     **self.model_params,
                     low_cpu_mem_usage=True,
                     device_map="auto")
-        
-    def init_pipe(self):            
-        if self.model_type in ["GGUF", "proprietary", "PPLX"]:
-            return self.model
-        else:
-            streamer = TextStreamer(self.tokenizer)
-            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, streamer=streamer, **self.gen_params))

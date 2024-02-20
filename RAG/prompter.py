@@ -2,9 +2,9 @@ from RAG.output_formatter import strip_all
 
 class Prompter():
 
-    def lamp_prompt(self, dataset, prof_text, examples=None, k=True):
+    def lamp_prompt(self, dataset, prof_text, examples=None):
         if dataset == 3:
-            if k:
+            if examples:
                 return [
                     {
                         "role": "system",
@@ -29,7 +29,7 @@ class Prompter():
                     }]
 
         elif dataset == 5:
-            if k:
+            if examples:
                 return [
                     {
                         "role": "system",
