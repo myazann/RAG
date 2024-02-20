@@ -55,6 +55,13 @@ def query_reform_formatter(bot_name, query):
         query = query[:parantheses]
     return query
 
+def remove_exc_output(bot_name, input):
+    if "MISTRAL-8x7B-v0.1-INSTRUCT" in bot_name:
+        note_idx = input.find("(Note")
+        if note_idx != -1 :
+            input = input[:note_idx].strip()
+    return input
+
 def csv_output_formatter(output):
     code_match = re.search(r"```([\s\S]*?)```", output)
     if code_match:

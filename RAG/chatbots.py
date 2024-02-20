@@ -2,12 +2,16 @@ import configparser
 import os
 from pathlib import Path
 import urllib.request
+import sys
+import time
 
 import numpy as np
-from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, GPTQConfig
+from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, TextStreamer
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
-from langchain_community.chat_models import ChatAnthropic, ChatOpenAI
+from langchain_community.chat_models import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langchain_community.llms import LlamaCpp
+from langchain.schema import HumanMessage, SystemMessage
 
 from RAG.output_formatter import strip_all
 
@@ -49,10 +53,9 @@ class Chatbot:
 
     def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
         self.cfg = get_model_cfg()[model_name]
-        self.name = model_name
+        self.model_name = model_name
         self.family = model_name.split("-")[0]
         self.repo_id = self.cfg.get("repo_id")
-        self.model_basename = self.cfg.get("basename")
         self.context_length = self.cfg.get("context_length")
         self.q_bit = q_bits
         self.model_type = self.get_model_type()
@@ -60,60 +63,53 @@ class Chatbot:
         self.model_params = self.get_model_params(model_params)
         self.gen_params = self.get_gen_params(gen_params)
         self.model = self.init_model()
-        self.pipe = self.init_pipe()
+        self.pipe = self.init_pipe() 
 
-    def prompt_template(self):
-        prompt_dict = {
-            "VICUNA": """A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user"s questions.
-                         USER: 
-                         {prompt}
-                         ASSISTANT:""",
-            "LLAMA2": """[INST] <<SYS>> You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. If you don"t know the answer to a question, please don"t share false information.<</SYS>>
-                         {prompt}
-                         [/INST]""",
-            "CHATGPT": """{prompt}""",
-            "CLAUDE": """Human: {prompt}
-                         Assistant:""",
-            "MISTRAL": """<s> [INST] {prompt} [/INST]""",
-            "ZEPHYR": """<|system|></s>
-                         <|user|>
-                         {prompt}</s> 
-                         <|assistant|>""",
-            "OPENCHAT": """GPT4 User: {prompt}<|end_of_turn|>GPT4 Assistant:""",
-            "YI": """<|im_start|>system<|im_end|>
-                     <|im_start|>user{prompt}<|im_end|>
-                     <|im_start|>assistant""",
-            "SOLAR": """### User:
-                        {prompt}
-                        ### Assistant:
-                        """,
-            "STABLELM": "<|user|>{prompt}<|endoftext|><|assistant|>",
-            "PHI2": """### Human: {prompt}
-                       ### Assistant:"""}
-        return prompt_dict[self.family]
-    
     def prompt_chatbot(self, prompt):
-        return strip_all(self.prompt_template()).format(prompt=strip_all(prompt))
+        if not isinstance(prompt, list):
+            prompt = [
+                        SystemMessage(
+                            content=""
+                        ),
+                        HumanMessage(
+                            content=prompt.strip_all()
+                        ),
+                    ]
+        else:
+            prompt = [
+                        SystemMessage(
+                            content=prompt[0]["content"]
+                        ),
+                        HumanMessage(
+                            content=prompt[1]["content"]
+                        ),
+                    ]     
+        return self.pipe(prompt)  
+    
+    def stream_output(self, output):
+        def word_by_word_generator(text):
+            for word in text.split():
+                yield word        
+        for chunk in word_by_word_generator(output):
+              sys.stdout.write(chunk + ' ')
+              sys.stdout.flush()
+              time.sleep(0.02)
     
     def count_tokens(self, prompt):
-        if isinstance(prompt, str):
-            if self.family == "CHATGPT":
-                return self.model.get_num_tokens(prompt)
-            elif self.family == "CLAUDE":
-                return self.model.count_tokens(prompt)
-            else:
-                return len(self.tokenizer(prompt).input_ids)
-        if isinstance(prompt, list):
-            if self.family == "CHATGPT":
-                return [self.model.get_num_tokens(chunk) for chunk in prompt]
-            elif self.family == "CLAUDE":
-                return [self.model.count_tokens(chunk) for chunk in prompt]
-            else:
-                return [len(self.tokenizer(chunk).input_ids) for chunk in prompt]
-        
-    def find_best_k(self, chunks, prompt, strategy="optim"):
+        full_prompt = ""
+        for turn in prompt:
+            full_prompt = f"{full_prompt}\n{turn['content']}"
+        if self.family == "CHATGPT" or self.model_type == "PPLX":
+            return self.model.get_num_tokens(full_prompt)
+        elif self.family == "CLAUDE":
+            return self.model.count_tokens(full_prompt)
+        else:
+            return len(self.tokenizer(full_prompt).input_ids)
+
+    def find_best_k(self, chunks, strategy="optim"):
+        prompt_spc = 256
         avg_chunk_len = np.mean(self.count_tokens(chunks))
-        avail_space = int(self.context_length) - self.count_tokens(prompt)
+        avail_space = int(self.context_length) - prompt_spc
         if strategy == "max":
             pass
         elif strategy == "optim":
@@ -121,13 +117,15 @@ class Chatbot:
         return int(np.floor(avail_space/avg_chunk_len))
 
     def get_model_type(self):
-        if self.repo_id.endswith("GPTQ"):
+        if self.model_name.endswith("GPTQ"):
             return "GPTQ"
-        elif self.repo_id.endswith("GGUF") or self.repo_id.endswith("GGML"):
+        elif self.model_name.endswith("GGUF") or self.repo_id.endswith("GGML"):
             return "GGUF"
-        elif self.repo_id.endswith("AWQ"):
+        elif self.model_name.endswith("AWQ"):
             return "AWQ"
-        elif self.name in ["CLAUDE", "GPT"]:
+        elif self.model_name.endswith("PPLX"):
+            return "PPLX"
+        elif self.family in ["CLAUDE", "CHATGPT"]:
             return "proprietary"
         else:
             return "default"
@@ -135,15 +133,15 @@ class Chatbot:
     def init_tokenizer(self):
         if self.model_type == "GGUF":
             return AutoTokenizer.from_pretrained(self.cfg.get("tokenizer"), use_fast=True)
-        elif self.model_type == "proprietary":
+        elif self.model_type in ["proprietary", "PPLX"]:
             return None
         else:
             return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
             
     def get_gen_params(self, gen_params):
-        if self.model_type == "GGUF" or self.name == "GPT":
+        if self.model_type in ["GGUF", "PPLX"] or self.family == "CHATGPT":
             name_token_var = "max_tokens"
-        elif self.name == "CLAUDE":
+        elif self.family == "CLAUDE":
             name_token_var = "max_tokens_to_sample"
         else:
             name_token_var = "max_new_tokens"
@@ -156,21 +154,6 @@ class Chatbot:
             value = gen_params.pop("max_new_tokens")
             gen_params[name_token_var] = value
         return gen_params
-    
-    def ggum_params(self):
-        rope_freq_scale = float(self.cfg.get("rope_freq_scale")) if self.cfg.get("rope_freq_scale") else 1
-        return {
-                "n_gpu_layers": -1,
-                "n_batch": 512,
-                "verbose": False,
-                "n_ctx": self.context_length,
-                "rope_freq_scale": rope_freq_scale
-                }
-    
-    def gptq_params(self):
-        config = GPTQConfig(max_input_length=self.context_length)
-        return {"quantization_config": config,
-                "revision": "main"}
     
     def default_model_params(self):
         if self.family == "LLAMA2":
@@ -186,17 +169,29 @@ class Chatbot:
     def get_model_params(self, model_params):
         if model_params is None:
             if self.model_type == "GGUF":
-                return self.ggum_params()
+                rope_freq_scale = float(self.cfg.get("rope_freq_scale")) if self.cfg.get("rope_freq_scale") else 1
+                return {
+                    "n_gpu_layers": -1,
+                    "n_batch": 512,
+                    "verbose": False,
+                    "n_ctx": self.context_length,
+                    "rope_freq_scale": rope_freq_scale
+                }
+            elif self.model_type == "PPLX":
+                return {
+                        "openai_api_base": "https://api.perplexity.ai",
+                        "openai_api_key": "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"
+                }
             else:
                 return self.default_model_params()
         else:
             return model_params
     
     def init_model(self):
-        if self.name == "CLAUDE":
-            return ChatAnthropic(model=self.repo_id, **self.gen_params)
-        elif self.name == "GPT":
-            return ChatOpenAI(model=self.repo_id, **self.gen_params)
+        if self.family == "CLAUDE":
+            return ChatAnthropic(model=self.repo_id, streaming=True, **self.gen_params)
+        elif self.family == "CHATGPT" or self.model_type == "PPLX":
+            return ChatOpenAI(model=self.repo_id, streaming=True, **self.model_params, **self.gen_params)
         elif self.model_type == "GGUF":
             if os.getenv("HF_HOME") is None:
                 hf_cache_path = os.path.join(os.path.expanduser('~'), ".cache", "huggingface", "transformers")
@@ -218,24 +213,24 @@ class Chatbot:
                             break
                     else:
                         print("Please enter a number!")
-            self.model_basename = "-".join(self.repo_id.split('/')[1].split("-")[:-1]).lower()
+            model_basename = "-".join(self.repo_id.split('/')[1].split("-")[:-1]).lower()
             if self.q_bit in [2, 6]:
-                self.model_basename = f"{self.model_basename}.Q{self.q_bit}_K.gguf"
+                model_basename = f"{model_basename}.Q{self.q_bit}_K.gguf"
             elif self.q_bit == 8:
-                self.model_basename = f"{self.model_basename}.Q{self.q_bit}_0.gguf"
+                model_basename = f"{model_basename}.Q{self.q_bit}_0.gguf"
             else:    
-                self.model_basename = f"{self.model_basename}.Q{self.q_bit}_K_M.gguf"
-            model_url_path = f"https://huggingface.co/{self.repo_id}/resolve/main/{self.model_basename}"
-            if not os.path.exists(os.path.join(model_folder, self.model_basename)):
+                model_basename = f"{model_basename}.Q{self.q_bit}_K_M.gguf"
+            model_url_path = f"https://huggingface.co/{self.repo_id}/resolve/main/{model_basename}"
+            if not os.path.exists(os.path.join(model_folder, model_basename)):
                 os.makedirs(model_folder, exist_ok=True)
                 try:
                     print("Downloading model!")
-                    urllib.request.urlretrieve(model_url_path, os.path.join(model_folder, self.model_basename))
+                    urllib.request.urlretrieve(model_url_path, os.path.join(model_folder, model_basename))
                 except Exception as e:
                     print(e)
                     print("Couldn't find the model, please choose again! (Maybe the model isn't quantized with this bit?)")
             return LlamaCpp(
-                    model_path=os.path.join(model_folder, self.model_basename),
+                    model_path=os.path.join(model_folder, model_basename),
                     **self.model_params,
                     **self.gen_params)     
         else:
@@ -246,7 +241,8 @@ class Chatbot:
                     device_map="auto")
         
     def init_pipe(self):            
-        if self.model_type in ["GGUF", "proprietary"]:
+        if self.model_type in ["GGUF", "proprietary", "PPLX"]:
             return self.model
         else:
-            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params))
+            streamer = TextStreamer(self.tokenizer)
+            return HuggingFacePipeline(pipeline=pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, streamer=streamer, **self.gen_params))
