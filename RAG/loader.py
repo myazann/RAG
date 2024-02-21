@@ -1,7 +1,6 @@
 import re
 import requests
 import os
-import time
 
 import validators
 from urllib.parse import urlparse

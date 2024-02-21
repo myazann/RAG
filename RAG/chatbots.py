@@ -63,7 +63,7 @@ class Chatbot:
 
     def prompt_chatbot(self, prompt):
         if self.model_type in ["default", "AWQ", "GPTQ"]:
-            if self.family == "MISTRAL":
+            if self.family in ["MISTRAL", "GEMMA"]:
                 prompt = [
                     {
                         "role": "user",
@@ -219,7 +219,7 @@ class Chatbot:
                 except Exception as e:
                     print(e)
                     print("Couldn't find the model, please choose again! (Maybe the model isn't quantized with this bit?)")
-            return LlamaCpp(
+            return Llama(
                     model_path=os.path.join(model_folder, model_basename),
                     **self.model_params,
                     **self.gen_params)     

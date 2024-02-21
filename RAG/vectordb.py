@@ -5,8 +5,6 @@ from langchain.embeddings import CacheBackedEmbeddings
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
 from langchain.storage import LocalFileStore
 
-from RAG.utils import get_device
-
 class VectorDB:
     def __init__(self, file_loader, embedding_function="hf_bge"):
         self.file_loader = file_loader
@@ -19,7 +17,7 @@ class VectorDB:
     def get_embed_func(self, type):
         if type == "hf_bge":
             model_name = "BAAI/bge-base-en"
-            model_kwargs = {"device": get_device()}
+            model_kwargs = {"device": "cuda:0"}
             encode_kwargs = {"normalize_embeddings": True}
             embeddings = HuggingFaceBgeEmbeddings(
                 model_name=model_name,
