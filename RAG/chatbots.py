@@ -77,13 +77,10 @@ class Chatbot:
             return response.choices[0].message.content
     
     def stream_output(self, output):
-        def word_by_word_generator(text):
-            for word in text.split():
-                yield word        
-        for chunk in word_by_word_generator(output):
-              sys.stdout.write(chunk + ' ')
-              sys.stdout.flush()
-              time.sleep(0.02)
+        for char in output:
+            sys.stdout.write(char)
+            sys.stdout.flush()
+            time.sleep(0.005)
     
     def count_tokens(self, prompt):
         if isinstance(prompt, list):

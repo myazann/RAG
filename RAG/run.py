@@ -67,6 +67,7 @@ while True:
       if reform_query == "":
         reform_query = query_reform_formatter(chatbot.model_name, chatbot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
       if "NO QUERY" not in reform_query:
+        print(reform_query)
         retr_docs = retriever.get_docs(reform_query)
         print(f"Time passed in retrieval: {round(time.time()-start_time, 2)} secs")
     while True:

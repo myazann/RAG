@@ -115,7 +115,7 @@ class Prompter():
         return [
             {
                 "role": "system",
-                "content": strip_all("""Your task is to transform user inputs into web search queries, given the summary of the chat history. User input can be ambigous or not clear. For example, the user input may reference an object from the previous interaction. For those cases, clear the ambiguity using the summary. If the input is already in the format of a query, output the user input without any modifications. Do not output anything expect the query and do not give an explanation. For the following situations, do not transform the input into a query and output only "NO QUERY": 1) If the user input is directing a question to someone using a pronoun 2)If the input is composed of a single word like a number or an object 3) If the user query is ambigous but the chat summary is empty or it does not provide information for clarification.
+                "content": strip_all("""Your task is to transform user inputs into web search queries, given the summary of the chat history. User input can be ambigous or not clear. For example, the user input may reference an object from the previous interaction. For those cases, clear the ambiguity using the summary. If the input is already in the format of a query, output the user input without any modifications. Do not output anything expect the query and do not give an explanation. For the following situations, do not transform the input into a query and output only "NO QUERY": 1) If the user input is directing a question to you or someone using a pronoun 2) If the input is composed of a single word like a number or an object 3) If the user query is ambigous but the chat summary is empty or it does not provide information for clarification.
                                         Here are some examples:
                                         Chat Summary:
                                         User Input: Project_Proposal.pdf
@@ -130,7 +130,7 @@ class Prompter():
                                         User Input: Why does he act like this?
                                         Query: NO QUERY
                                         Chat Summary: The user mentions that they like the video game Starcraft 2 a lot, then explains the assistant that there is a very powerful unit in the game called colossus. The user explains that the colossus is prone to falling.
-                                        User Input: Why did the it fall over?
+                                        User Input: Why did it fall over?
                                         Query: colossus fall reasons
                                         Chat Summary:
                                         User Input: What is the best way to do it?
