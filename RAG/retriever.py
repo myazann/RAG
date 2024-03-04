@@ -3,7 +3,7 @@ from langchain.retrievers.multi_query import MultiQueryRetriever
 
 class Retriever():
 
-    def __init__(self, database, type="comp", search_type="mmr", k="5", fetch_k=20, comp_pipe=None, llm=None, mq_prompt=None) -> None:
+    def __init__(self, database, type="comp", search_type="mmr", k="5", fetch_k=50, comp_pipe=None, llm=None, mq_prompt=None) -> None:
         self.database = database
         self.fetch_k = fetch_k
         self.type = type

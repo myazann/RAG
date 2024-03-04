@@ -3,8 +3,8 @@ import os
 import warnings
 warnings.filterwarnings("ignore")
 
-from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline, CohereRerank
 import huggingface_hub
+from langchain.retrievers.document_compressors import EmbeddingsFilter, DocumentCompressorPipeline
 
 from RAG.chatbots import choose_bot
 from RAG.utils import get_args
@@ -27,8 +27,7 @@ else:
 os.environ["LANGCHAIN_PROJECT"] = test_name
 db = VectorDB(file_loader)
 emdeb_filter = EmbeddingsFilter(embeddings=db.get_embed_func("hf_bge"), similarity_threshold=0.8)
-compressor = CohereRerank()
-pipeline_compressor = DocumentCompressorPipeline(transformers=[emdeb_filter, compressor])
+pipeline_compressor = DocumentCompressorPipeline(transformers=[emdeb_filter])
 print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
 summary = ""
 while True:
@@ -67,7 +66,6 @@ while True:
       if reform_query == "":
         reform_query = query_reform_formatter(chatbot.model_name, chatbot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
       if "NO QUERY" not in reform_query:
-        print(reform_query)
         retr_docs = retriever.get_docs(reform_query)
         print(f"Time passed in retrieval: {round(time.time()-start_time, 2)} secs")
     while True:

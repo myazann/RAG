@@ -120,7 +120,7 @@ class FileLoader():
     
     def web_search(self, query):
         init_files = os.listdir()
-        search_res = list(search(query, num_results=5, lang="en"))
+        search_res = list(search(query, num_results=10, lang="en"))
         if not search_res:
             print("Web query empty!")
         new_files = os.listdir()
