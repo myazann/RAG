@@ -1,16 +1,15 @@
 import configparser
 import os
 from pathlib import Path
-import urllib.request
 import sys
 import time
 
 import tiktoken
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from langchain_community.chat_models import ChatAnthropic
 from openai import OpenAI
-from llama_cpp import Llama
+from groq import Groq
+from anthropic import Anthropic
 
 def get_model_cfg():
     config = configparser.ConfigParser()
@@ -72,9 +71,17 @@ class Chatbot:
                     ]
             pipe = pipeline("conversational", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
             return pipe(prompt).messages[-1]["content"]
-        elif self.family == "CHATGPT" or self.model_type == "PPLX":
+        elif self.model_type in ["PPLX", "GROQ"] or self.family == "CHATGPT":
             response = self.model.chat.completions.create(model=self.repo_id, messages=prompt, **self.gen_params)
             return response.choices[0].message.content
+        elif self.family == "CLAUDE":
+            response = self.model.messages.create(model=self.repo_id, messages=[
+                    {
+                        "role": "user",
+                        "content": f"{prompt[1]['content']}"
+                    },
+                    ], system=prompt[0]['content'], **self.gen_params)
+            return response.content[0].text
     
     def stream_output(self, output):
         for char in output:
@@ -106,19 +113,19 @@ class Chatbot:
     def get_model_type(self):
         if self.model_name.endswith("GPTQ"):
             return "GPTQ"
-        elif self.model_name.endswith("GGUF") or self.repo_id.endswith("GGML"):
-            return "GGUF"
         elif self.model_name.endswith("AWQ"):
             return "AWQ"
         elif self.model_name.endswith("PPLX"):
             return "PPLX"
+        elif self.model_name.endswith("GROQ"):
+            return "GROQ"
         elif self.family in ["CLAUDE", "CHATGPT"]:
             return "proprietary"
         else:
             return "default"
         
     def init_tokenizer(self):
-        if self.model_type in ["GGUF", "AWQ", "GPTQ", "PPLX"]:
+        if self.model_type in ["AWQ", "GPTQ", "PPLX", "GROQ"]:
             return AutoTokenizer.from_pretrained(self.cfg.get("tokenizer"), use_fast=True)
         elif self.model_type in ["proprietary"]:
             return None
@@ -126,10 +133,8 @@ class Chatbot:
             return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
             
     def get_gen_params(self, gen_params):
-        if self.model_type in ["GGUF", "PPLX"] or self.family == "CHATGPT":
+        if self.model_type in ["PPLX", "GROQ", "proprietary"]:
             name_token_var = "max_tokens"
-        elif self.family == "CLAUDE":
-            name_token_var = "max_tokens_to_sample"
         else:
             name_token_var = "max_new_tokens"
         if gen_params is None:
@@ -137,7 +142,7 @@ class Chatbot:
             name_token_var: 512,
             #"temperature": 0.7,
             }
-        elif "max_new_tokens" or "max_tokens_to_sample" in gen_params.keys():
+        elif "max_new_tokens" in gen_params.keys():
             value = gen_params.pop("max_new_tokens")
             gen_params[name_token_var] = value
         return gen_params
@@ -155,19 +160,22 @@ class Chatbot:
     
     def get_model_params(self, model_params):
         if model_params is None:
-            if self.model_type == "GGUF":
-                rope_freq_scale = float(self.cfg.get("rope_freq_scale")) if self.cfg.get("rope_freq_scale") else 1
-                return {
-                    "n_gpu_layers": -1,
-                    "n_batch": 512,
-                    "verbose": False,
-                    "n_ctx": self.context_length,
-                    "rope_freq_scale": rope_freq_scale
-                }
-            elif self.model_type == "PPLX":
+            if self.model_type == "PPLX":
                 return {
                         "base_url": "https://api.perplexity.ai",
                         "api_key": os.getenv("PPLX_API_KEY")
+                }
+            elif self.model_type == "GROQ":
+                return {
+                    "api_key": os.getenv("GROQ_API_KEY")
+                }
+            elif self.family == "CLAUDE":
+                return {
+                    "api_key": os.getenv("ANTHROPIC_API_KEY")
+                }
+            elif self.family == "CHATGPT":
+                return {
+                    "api_key": os.getenv("OPENAI_API_KEY")
                 }
             else:
                 return self.default_model_params()
@@ -176,50 +184,11 @@ class Chatbot:
     
     def init_model(self):
         if self.family == "CLAUDE":
-            return ChatAnthropic(model=self.repo_id, streaming=True, **self.gen_params)
+            return Anthropic(**self.model_params)
         elif self.family == "CHATGPT" or self.model_type == "PPLX":
             return OpenAI(**self.model_params)
-        elif self.model_type == "GGUF":
-            if os.getenv("HF_HOME") is None:
-                hf_cache_path = os.path.join(os.path.expanduser('~'), ".cache", "huggingface", "transformers")
-            else:
-                hf_cache_path = os.getenv("HF_HOME")
-            model_folder = os.path.join(hf_cache_path, self.repo_id.replace("/", "-"))
-            bit_range = range(2, 9)
-            if self.q_bit not in bit_range:
-                print("This is a quantized model, please choose the number of quantization bits: ")
-                for i in bit_range:
-                    print(f"{i}")  
-                while True:
-                    q_bit = input()
-                    if q_bit.isdigit():
-                        if int(q_bit) not in bit_range:
-                            print("Please select from one of the options!")
-                        else:
-                            self.q_bit = q_bit
-                            break
-                    else:
-                        print("Please enter a number!")
-            model_basename = "-".join(self.repo_id.split('/')[1].split("-")[:-1]).lower()
-            if self.q_bit in [2, 6]:
-                model_basename = f"{model_basename}.Q{self.q_bit}_K.gguf"
-            elif self.q_bit == 8:
-                model_basename = f"{model_basename}.Q{self.q_bit}_0.gguf"
-            else:    
-                model_basename = f"{model_basename}.Q{self.q_bit}_K_M.gguf"
-            model_url_path = f"https://huggingface.co/{self.repo_id}/resolve/main/{model_basename}"
-            if not os.path.exists(os.path.join(model_folder, model_basename)):
-                os.makedirs(model_folder, exist_ok=True)
-                try:
-                    print("Downloading model!")
-                    urllib.request.urlretrieve(model_url_path, os.path.join(model_folder, model_basename))
-                except Exception as e:
-                    print(e)
-                    print("Couldn't find the model, please choose again! (Maybe the model isn't quantized with this bit?)")
-            return Llama(
-                    model_path=os.path.join(model_folder, model_basename),
-                    **self.model_params,
-                    **self.gen_params)     
+        elif self.model_type == "GROQ":
+            return Groq(**self.model_params)
         else:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
