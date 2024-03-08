@@ -16,7 +16,7 @@ def get_model_cfg():
     config.read(os.path.join(Path(__file__).absolute().parent, "model_config.cfg"))
     return config
 
-def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None):
+def choose_bot(model_name=None, model_params=None, gen_params=None):
     if model_name is None:
         model_cfg = get_model_cfg()
         models = model_cfg.sections()
@@ -43,24 +43,25 @@ def choose_bot(model_name=None, model_params=None, gen_params=None, q_bits=None)
                 print("Please select from one of the options!")
             else:
                 break
-    return Chatbot(model_name, model_params, gen_params, q_bits)
+    return Chatbot(model_name, model_params, gen_params)
 
 class Chatbot:
 
-    def __init__(self, model_name, model_params=None, gen_params=None, q_bits=None) -> None:
+    def __init__(self, model_name, model_params=None, gen_params=None) -> None:
         self.cfg = get_model_cfg()[model_name]
         self.model_name = model_name
         self.family = model_name.split("-")[0]
         self.repo_id = self.cfg.get("repo_id")
         self.context_length = self.cfg.get("context_length")
-        self.q_bit = q_bits
         self.model_type = self.get_model_type()
         self.tokenizer = self.init_tokenizer()
         self.model_params = self.get_model_params(model_params)
         self.gen_params = self.get_gen_params(gen_params)
         self.model = self.init_model()
 
-    def prompt_chatbot(self, prompt):
+    def prompt_chatbot(self, prompt, chat_history=[]):
+        if chat_history:
+            chat_history = self.trunc_chat_history(prompt, chat_history)
         if self.model_type in ["default", "AWQ", "GPTQ"]:
             if self.family in ["MISTRAL", "GEMMA"]:
                 prompt = [
@@ -69,18 +70,25 @@ class Chatbot:
                         "content": f"{prompt[0]['content']}\n{prompt[1]['content']}"
                     },
                     ]
+                message = chat_history + prompt
+            else:
+                message = [prompt[0]] + chat_history + [prompt[1]]
             pipe = pipeline("conversational", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
-            return pipe(prompt).messages[-1]["content"]
+            return pipe(message).messages[-1]["content"]
         elif self.model_type in ["PPLX", "GROQ"] or self.family == "CHATGPT":
-            response = self.model.chat.completions.create(model=self.repo_id, messages=prompt, **self.gen_params)
+            message = [prompt[0]] + chat_history + [prompt[1]]
+            response = self.model.chat.completions.create(model=self.repo_id, messages=message, **self.gen_params)
             return response.choices[0].message.content
         elif self.family == "CLAUDE":
-            response = self.model.messages.create(model=self.repo_id, messages=[
+            message = chat_history + [
                     {
                         "role": "user",
                         "content": f"{prompt[1]['content']}"
                     },
-                    ], system=prompt[0]['content'], **self.gen_params)
+                    ]
+            print(chat_history)
+            print(prompt)
+            response = self.model.messages.create(model=self.repo_id, messages=message, system=prompt[0]['content'], **self.gen_params)
             return response.content[0].text
     
     def stream_output(self, output):
@@ -100,10 +108,17 @@ class Chatbot:
         else:
             return len(self.tokenizer(prompt).input_ids)
 
+    def trunc_chat_history(self, prompt, chat_history):
+        hist_dedic_space = int(self.context_length)//3 - self.count_tokens(prompt)
+        total_hist_tokens = sum(self.count_tokens(tm['content']) for tm in chat_history)
+        while total_hist_tokens > hist_dedic_space:
+            removed_message = chat_history.pop(0)
+            total_hist_tokens -= self.count_tokens(removed_message['content'])
+        return chat_history
+
     def find_best_k(self, chunks, strategy="optim"):
-        prompt_spc = 256
         avg_chunk_len = np.mean([self.count_tokens(c) for c in chunks])
-        avail_space = int(self.context_length) - prompt_spc
+        avail_space = 2*int(self.context_length)//3
         if strategy == "max":
             pass
         elif strategy == "optim":

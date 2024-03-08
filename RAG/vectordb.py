@@ -1,35 +1,35 @@
 import hashlib
+import os
 
-from langchain_community.vectorstores import Chroma
-from langchain.embeddings import CacheBackedEmbeddings
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
-from langchain.storage import LocalFileStore
+import chromadb
+import chromadb.utils.embedding_functions as embedding_functions
 
 class VectorDB:
-    def __init__(self, file_loader, embedding_function="hf_bge"):
+    def __init__(self, file_loader, embedding_function="hf"):
         self.file_loader = file_loader
         self.embedding_function = self.get_embed_func(embedding_function)
-        self.vector_db =  Chroma(embedding_function=self.embedding_function, persist_directory="./chroma_db")
+        self.client = chromadb.PersistentClient()
+        self.vector_db = self.client.get_or_create_collection(name="my_collection", embedding_function=self.embedding_function, metadata={"hnsw:space": "cosine"})
 
-    def query_db(self):
-        return self.vector_db.get()
+    def query_db(self, query=None, k=5, distance_threshold=0.5):
+        if query:
+            retr_docs = self.vector_db.query(query_texts=query, n_results=k)
+            len_filt_docs = len([v for v in retr_docs["distances"][0] if v <= distance_threshold])
+            return retr_docs["documents"][0][:len_filt_docs], retr_docs["distances"][0][:len_filt_docs], retr_docs["metadatas"][0][:len_filt_docs]
+        else:
+            return self.vector_db.get()
 
     def get_embed_func(self, type):
-        if type == "hf_bge":
-            model_name = "BAAI/bge-base-en"
-            model_kwargs = {"device": "cuda:0"}
-            encode_kwargs = {"normalize_embeddings": True}
-            embeddings = HuggingFaceBgeEmbeddings(
-                model_name=model_name,
-                model_kwargs=model_kwargs,
-                encode_kwargs=encode_kwargs
+        if type == "hf":
+            return embedding_functions.HuggingFaceEmbeddingFunction(
+            api_key=os.getenv("HF_API_KEY"),
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
+        elif type == "openai":
+            return embedding_functions.OpenAIEmbeddingFunction(
+                api_key=os.getenv("OPENAI_API_KEY"),
+                model_name="text-embedding-ada-002"
             )
-        elif type == "hf_st":
-            model_name = "stsb-xlm-r-multilingual"
-            embeddings = HuggingFaceEmbeddings(model_name=model_name)
-        fs = LocalFileStore("./embed_cache/")
-        cached_embedder = CacheBackedEmbeddings.from_bytes_store(embeddings, fs, namespace=embeddings.model_name)
-        return cached_embedder
 
     def add_file_to_db(self, file_name, web_search):
         files = self.file_loader.load(file_name, web_search)
@@ -38,4 +38,4 @@ class VectorDB:
         ids = [hashlib.sha256(f"{source}-chunksize:{splitter_params['chunk_size']}-chunkoverlap:{splitter_params['chunk_overlap']}-{i}".encode()).hexdigest()
                for i, source in enumerate(sources)]
         sources = [{"source": i} for i in sources]
-        self.vector_db.add_texts(ids=ids, texts=text_chunks, metadatas=sources)
+        self.vector_db.add(ids=ids, documents=text_chunks, metadatas=sources)

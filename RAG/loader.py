@@ -9,7 +9,7 @@ from git import Repo
 from googlesearch import search
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, SeleniumURLLoader, GitLoader
+from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, SeleniumURLLoader, UnstructuredURLLoader, GitLoader
 
 class FileLoader():
 
@@ -18,17 +18,12 @@ class FileLoader():
         self.splitter = RecursiveCharacterTextSplitter(**self.splitter_params)
     
     def load(self, file_name, web_search=False, pdf_loader="unstructured"):
-        all_docs = []
-        file_type = self.get_file_type(file_name)
-        if file_type == "string" and web_search:
+        if web_search:
             print("Searching Web!")
             file_name = self.web_search(file_name)
-            for file in file_name:
-                if self.get_file_type(file) == "pdf":
-                    search_doc = self.load(file)
-                    all_docs.append(search_doc[0])
-                    os.remove(file)
             file_type = "url"
+        else:
+            file_type = self.get_file_type(file_name)
         if file_type == "url":
             if isinstance(file_name, str):
                 if not validators.url(file_name):
@@ -40,7 +35,7 @@ class FileLoader():
                 all_urls = list(self.extend_url(all_urls, file_name))
             elif isinstance(file_name, list):
                 all_urls = file_name
-            loader = SeleniumURLLoader(urls=all_urls)
+            loader = UnstructuredURLLoader(urls=all_urls)
             file_name = all_urls
         elif file_type == "git":
             if not validators.url(file_name):
@@ -63,9 +58,7 @@ class FileLoader():
                 loader = self.pdf_loaders()[pdf_loader](file_name)
             elif file_type == "txt":
                 loader = TextLoader(file_name)
-        all_docs.append(loader.load())
-        print("Done!")
-        return all_docs
+        return loader.load()
 
     def extend_url(self, all_urls, url):
         parsed = urlparse(url)
@@ -118,25 +111,17 @@ class FileLoader():
             page.page_content = re.sub(r'\s{2,}', ' ', page.page_content)
         return doc
     
-    def web_search(self, query):
-        init_files = os.listdir()
-        search_res = list(search(query, num_results=10, lang="en"))
-        if not search_res:
-            print("Web query empty!")
-        new_files = os.listdir()
-        diff_files = [f for f in new_files if f not in init_files]
-        if diff_files:
-            for f in diff_files:
-                if f.endswith("pdf"):
-                    search_res.extend(f)
-        return search_res
+    def web_search(self, queries, num_results=3, lang="en"):
+        all_links = []
+        for query in queries:
+            all_links.extend(list(search(query, num_results=num_results, lang=lang)))
+        return list(set(all_links))
     
     def get_processed_texts(self, file):
         all_chunks = []
         all_sources = []
-        for f in file:
-            all_pages = self.splitter.split_documents(self.remove_empty_space(f))
-            for page in all_pages:
-                all_chunks.append(page.page_content)
-                all_sources.append(page.metadata["source"])
+        all_pages = self.splitter.split_documents(self.remove_empty_space(file))
+        for page in all_pages:
+            all_chunks.append(page.page_content)
+            all_sources.append(page.metadata["source"])
         return all_chunks, all_sources

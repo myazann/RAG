@@ -95,18 +95,16 @@ class Prompter():
                                         {question}""")
             }]
     
-    def conv_agent_prompt(self, info, chat_history, user_input):
+    def conv_agent_prompt(self, info, user_input):
         return [
             {
                 "role": "system",
-                "content": strip_all("You are an agent that has a conversation with a user. Information related to the user input is going to be provided to you during the conversation. If you think that the information is relevant to answer the user, you can use it. Sometimes, the information may be unrelated or may not contain the answer the user is looking for. For those cases, do not use the provided information. Therefore, you need to decide whether the related information is actually useful to give the user a satisfactory answer. The provided information may contradict what you know. In those cases, provided information has priority. A summary of the chat history between you and the user is also going to be included after the related information to inform you about the current state of the conversation. Your answer should be in the style of a conversational assistant. Do not mention that you have used the provided information or the chat history for your answer. If you do not know the answer, do not say that the information is not provided, state that you do not know the answer. If the user input is empty or composed of a single word that is not related to the provided information and the chat history, ask the user for clarification.")
+                "content": strip_all("You are an agent that has a conversation with a user. Information related to the user input is going to be provided to you during the conversation. If you think that the information is relevant to answer the user, you can use it. Sometimes, the information may be unrelated or may not contain the answer the user is looking for. For those cases, do not use the provided information. Therefore, you need to decide whether the related information is actually useful to give the user a satisfactory answer. The provided information may contradict what you know. In those cases, provided information has priority. Do not mention that you have used the provided information. If you do not know the answer, do not say that the information is not provided, state that you do not know the answer. If the user input is empty or composed of a single word that is not related to the provided information, ask the user for clarification. Your answer should be in the style of a conversational assistant.")
             }, 
             {
                 "role": "user",
                 "content": strip_all(f"""Related information:
                                         {info}
-                                        Summary of the chat history:
-                                        {chat_history}
                                         User input:
                                         {user_input}""")
             }]
@@ -117,9 +115,6 @@ class Prompter():
                 "role": "system",
                 "content": strip_all("""Your task is to transform user inputs into web search queries, given the summary of the chat history. User input can be ambigous or not clear. For example, the user input may reference an object from the previous interaction. For those cases, clear the ambiguity using the summary. If the input is already in the format of a query, output the user input without any modifications. Do not output anything expect the query and do not give an explanation. For the following situations, do not transform the input into a query and output only "NO QUERY": 1) If the user input is directing a question to you or someone using a pronoun 2) If the input is composed of a single word like a number or an object 3) If the user query is ambigous but the chat summary is empty or it does not provide information for clarification.
                                         Here are some examples:
-                                        Chat Summary:
-                                        User Input: Project_Proposal.pdf
-                                        Query: Project_Proposal.pdf
                                         Chat Summary: The user asked the assistant what are the most common approaches for normalizing inputs. Assistant gave the user an overview.
                                         User Input: 5
                                         Query: NO QUERY
@@ -171,7 +166,7 @@ class Prompter():
         return [
             {
                 "role": "system",
-                "content": strip_all(f"Your task is to generate {n} different versions of the given user question to retrieve relevant documents from a vector database. By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitations of the distance-based similarity search. Provide these alternative questions seperated by newlines. Do not output anything besides the questions, and don't put a blank line between the questions.")
+                "content": strip_all(f"Your task is to generate {n} different search queries from the given user question to retrieve relevant documents. By generating multiple perspectives on the user question, your goal is to help the user overcome some of the limitations of the distance-based similarity search. Provide these alternative questions seperated by newlines. Do not output anything besides the queries, do not put the queries inside quotes, and don't put a blank line between the questions.")
             }, 
             {
                 "role": "user",
