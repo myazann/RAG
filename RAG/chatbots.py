@@ -61,7 +61,7 @@ class Chatbot:
 
     def prompt_chatbot(self, prompt, chat_history=[]):
         if chat_history:
-            chat_history = self.trunc_chat_history(prompt, chat_history)
+            chat_history = self.trunc_chat_history(chat_history)
         if self.model_type in ["default", "AWQ", "GPTQ"]:
             if self.family in ["MISTRAL", "GEMMA"]:
                 prompt = [
@@ -86,8 +86,6 @@ class Chatbot:
                         "content": f"{prompt[1]['content']}"
                     },
                     ]
-            print(chat_history)
-            print(prompt)
             response = self.model.messages.create(model=self.repo_id, messages=message, system=prompt[0]['content'], **self.gen_params)
             return response.content[0].text
     
@@ -108,8 +106,8 @@ class Chatbot:
         else:
             return len(self.tokenizer(prompt).input_ids)
 
-    def trunc_chat_history(self, prompt, chat_history):
-        hist_dedic_space = int(self.context_length)//3 - self.count_tokens(prompt)
+    def trunc_chat_history(self, chat_history):
+        hist_dedic_space = int(self.context_length)//8
         total_hist_tokens = sum(self.count_tokens(tm['content']) for tm in chat_history)
         while total_hist_tokens > hist_dedic_space:
             removed_message = chat_history.pop(0)

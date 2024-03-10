@@ -21,19 +21,16 @@ prompter = Prompter()
 db = VectorDB(file_loader)
 
 print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
-summary = ""
 chat_history = []
 while True:
   print("User: ")
   query = input().strip()
-  QUERY_GEN_PROMPT = prompter.query_gen_prompt(summary=summary, user_input=query)
+  hist_to_str = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in chatbot.trunc_chat_history(chat_history)])
+  QUERY_GEN_PROMPT = prompter.query_gen_prompt(chat_history=hist_to_str, user_input=query)
   if query == "0":
     print("Bye!")
     break
   else:
-    if summary != "":
-      MEMORY_PROMPT = prompter.memory_summary(summary=summary, new_lines=current_conv)
-      summary = mixtral_bot.prompt_chatbot(MEMORY_PROMPT).strip()
     reform_query = ""
     retr_docs = []
     info = ""
@@ -43,7 +40,8 @@ while True:
       reform_query = query
       print(f"Time passed processing file: {round(time.time()-start_time, 2)} secs")
     else:
-      reform_query = query_reform_formatter(chatbot.model_name, mixtral_bot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
+      reform_query = query_reform_formatter(mixtral_bot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
+      print(reform_query)
       if web_search:
         if "NO QUERY" not in reform_query:
           all_web_queries = mixtral_bot.prompt_chatbot(prompter.multi_query_prompt(question=reform_query)).strip()
@@ -53,11 +51,10 @@ while True:
     if all_db_docs:
       k = chatbot.find_best_k(all_db_docs)
       if reform_query == "":
-        reform_query = query_reform_formatter(chatbot.model_name, mixtral_bot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
+        reform_query = query_reform_formatter(mixtral_bot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
       if "NO QUERY" not in reform_query:
         retr_docs, distances, metadatas = db.query_db(query=reform_query, k=k)
         print(distances)
-        print(metadatas)
         print(f"Time passed in retrieval: {round(time.time()-start_time, 2)} secs")
     info = ""
     while True:
