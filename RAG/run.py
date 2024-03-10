@@ -8,7 +8,6 @@ from RAG.chatbots import choose_bot
 from RAG.utils import get_args
 from RAG.vectordb import VectorDB
 from RAG.loader import FileLoader
-from RAG.retriever import Retriever
 from RAG.prompter import Prompter
 from RAG.output_formatter import query_reform_formatter
 
