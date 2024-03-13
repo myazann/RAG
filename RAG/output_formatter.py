@@ -35,7 +35,6 @@ def lamp_output_formatter(output, dataset_num):
         nl_index = substring.find("\n")
         if nl_index != -1:
             substring = substring[nl_index:]
-
     return substring.strip()
 
 def query_reform_formatter(query):
@@ -48,6 +47,8 @@ def query_reform_formatter(query):
     parantheses = query.find("(")
     if parantheses != -1:
         query = query[:parantheses]
+    if query.startswith("[") and query.endswith("]"):
+        query = query[1:-1]
     return query
 
 def remove_exc_output(bot_name, input):

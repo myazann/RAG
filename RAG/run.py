@@ -1,8 +1,7 @@
 import time
 import warnings
 warnings.filterwarnings("ignore")
-
-import huggingface_hub
+import os
 
 from RAG.chatbots import choose_bot
 from RAG.utils import get_args
@@ -11,7 +10,7 @@ from RAG.loader import FileLoader
 from RAG.prompter import Prompter
 from RAG.output_formatter import query_reform_formatter
 
-huggingface_hub.login(new_session=False)
+# huggingface_hub.login(new_session=False)
 args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
@@ -36,6 +35,9 @@ while True:
     info = ""
     start_time = time.time()
     if file_loader.get_file_type(query) in ["pdf", "git", "url"]:
+      if not os.path.exists(query):
+        print("Could not find file!")
+        continue
       db.add_file_to_db(query, web_search=False)
       reform_query = query
       print(f"Time passed processing file: {round(time.time()-start_time, 2)} secs")
@@ -50,11 +52,13 @@ while True:
     all_db_docs = db.query_db()["documents"]
     if all_db_docs:
       k = chatbot.find_best_k(all_db_docs)
+      print(k)
       if reform_query == "":
         reform_query = query_reform_formatter(mixtral_bot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
       if "NO QUERY" not in reform_query:
-        retr_docs, distances, metadatas = db.query_db(query=reform_query, k=k)
+        retr_docs, distances, metadatas = db.query_db(query=reform_query, k=k, distance_threshold=0.75)
         print(distances)
+        print(metadatas)
         print(f"Time passed in retrieval: {round(time.time()-start_time, 2)} secs")
     info = ""
     while True:
