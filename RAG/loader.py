@@ -17,10 +17,8 @@ class FileLoader():
         self.splitter_params = splitter_params
         self.splitter = RecursiveCharacterTextSplitter(**self.splitter_params)
     
-    def load(self, file_name, web_search=False, pdf_loader="unstructured"):
-        if web_search:
-            print("Searching Web!")
-            file_name = self.web_search(file_name)
+    def load(self, file_name, pdf_loader="unstructured"):
+        if isinstance(file_name, list):
             file_type = "url"
         else:
             file_type = self.get_file_type(file_name)

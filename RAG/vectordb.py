@@ -31,8 +31,8 @@ class VectorDB:
                 model_name="text-embedding-ada-002"
             )
 
-    def add_file_to_db(self, file_name, web_search):
-        files = self.file_loader.load(file_name, web_search)
+    def add_file_to_db(self, file_name):
+        files = self.file_loader.load(file_name)
         text_chunks, sources = self.file_loader.get_processed_texts(files)
         splitter_params = self.file_loader.splitter_params
         ids = [hashlib.sha256(f"{source}-chunksize:{splitter_params['chunk_size']}-chunkoverlap:{splitter_params['chunk_overlap']}-{i}".encode()).hexdigest()

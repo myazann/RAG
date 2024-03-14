@@ -15,7 +15,7 @@ args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
 chatbot = choose_bot()
-mixtral_bot = choose_bot(model_name="MISTRAL-8x7B-v0.1-INSTRUCT-GROQ")
+mixtral_bot = choose_bot(model_name="MISTRAL-8x7B-v0.1-INSTRUCT-PPLX")
 prompter = Prompter()
 db = VectorDB(file_loader)
 
@@ -38,7 +38,7 @@ while True:
       if not os.path.exists(query):
         print("Could not find file!")
         continue
-      db.add_file_to_db(query, web_search=False)
+      db.add_file_to_db(query)
       reform_query = query
       print(f"Time passed processing file: {round(time.time()-start_time, 2)} secs")
     else:
@@ -47,7 +47,8 @@ while True:
       if web_search:
         if "NO QUERY" not in reform_query:
           all_web_queries = mixtral_bot.prompt_chatbot(prompter.multi_query_prompt(question=reform_query)).strip()
-          db.add_file_to_db(all_web_queries.split("\n"), web_search)
+          search_urls = file_loader.web_search(all_web_queries.split("\n"))
+          db.add_file_to_db(search_urls)
           print(f"Time passed in web search: {round(time.time()-start_time, 2)} secs")
     all_db_docs = db.query_db()["documents"]
     if all_db_docs:
@@ -67,8 +68,6 @@ while True:
           info = "\n".join([doc for doc in retr_docs])
       CONV_CHAIN_PROMPT = prompter.conv_agent_prompt(user_input=query, info=info)
       if chatbot.count_tokens(CONV_CHAIN_PROMPT) > int(chatbot.context_length):
-        if not retr_docs:
-          raise Exception("The prompt is too long for the chosen chatbot!")
         print("Context exceeds context window, removing one document!")
         retr_docs = retr_docs[:-1]
       else:

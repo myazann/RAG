@@ -27,7 +27,6 @@ class Prompter():
                         "content": strip_all(f"""Review: {prof_text}
                                                 Score:""")
                     }]
-
         elif dataset == 5:
             if examples:
                 return [
@@ -53,6 +52,30 @@ class Prompter():
                         "content": strip_all(f"""Abstract: {prof_text}
                                                  Title:""")
                     }]
+            
+    def amazon_cust_analysis_prompt(self, cust_hist):
+        return [
+            {
+                "role": "system",
+                "content": strip_all("""Given their previous purchases, summarize the characteristics and personality of the customer in 5 points, each starting with a hyphen and separated by a new line character. Do not mention the names of the products. Only output the summary and nothing else.""")
+            },
+            {
+                "role": "user",
+                "content": strip_all(f"Customer Purchase History:\n\n{cust_hist}")
+            }
+        ]
+    
+    def amazon_np_pred_with_conv(self, cust_hist):
+        return [
+            {
+                "role": "system",
+                "content": strip_all("""Generate a conversation between a customer and a digital assistant where the assistant will look into the customer messages and their purchase history to come up with a recommendation for the customer. The assistant will ask questions to the customer to better predict what type of product they would like. While creating the customer messages, use their product reviews to replicate their conversation style and keep those messages short. Start the assistant messages with "A:" and customer messages with "C:". The assistant should describe the type of product the customer would like, instead of directly recommending a product. After the conversation ends, give a less than 10-word brief description of the product assistant recommended, as JSON.""")
+            },
+            {
+                "role": "user",
+                "content": strip_all(f"Customer Purchase History:\n\n{cust_hist}")
+            }
+        ]   
 
     def eval_qa_prompt(self, question, solution, answer):
         return [
