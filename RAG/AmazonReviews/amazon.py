@@ -77,7 +77,6 @@ def create_user_data(df, df_meta, category):
         for _, row in sample_user.iterrows():
             date_time = datetime.datetime.fromtimestamp(row["unixReviewTime"])
             formatted_date = date_time.strftime("%Y-%m-%d %H:%M:%S")
-            print(formatted_date)
             prod_info = {
                 "Name": row['title'],
                 "Categories": row["category"],
@@ -102,26 +101,35 @@ def create_user_data(df, df_meta, category):
         json.dump(all_user_data, f)
     return all_user_data
 
+def run_prompt(chatbot, prompt_type="conv_gen"):
+    prompter = Prompter()
+    all_analysis = {}
+    print(f"Total number of customers: {len(all_user_data.keys())}")
+    for user in all_user_data.keys():
+        cust_hist = ""
+        for prod in all_user_data[user]["History"]:
+            all_cats = "\n".join(prod["Categories"]).strip()
+            all_descs = "\n".join(prod["Descriptions"]).strip()
+            prod_desc = f"Product Title:\n{prod['Name']}\nProduct Categories:\n{all_cats}\nProduct Descriptions:\n{all_descs}\nCustomer Review:\n{prod['Review']}\nCustomer Score:\n{prod['Score']}\n"
+            cust_hist = f"{cust_hist}\n{prod_desc}"
+        if prompt_type == "cust_analysis":
+            prompt = prompter.amazon_cust_analysis_prompt(cust_hist=cust_hist.strip())
+        elif prompt_type == "conv_gen":
+            prompt = prompter.amazon_np_pred_with_conv(cust_hist=cust_hist.strip())
+        if chatbot.count_tokens(prompt) < int(chatbot.context_length):
+            user_analysis = chatbot.prompt_chatbot(prompt)
+            print(user_analysis)
+            print()
+            all_analysis[user] = user_analysis
+        else:
+            print("User has a very long history!")
+            print(chatbot.count_tokens(prompt))
+    return all_analysis
+
 category = "All_Beauty"
 download_datasets(category)
 df, df_meta = get_dfs(category)
 all_user_data = create_user_data(df, df_meta, category)
 
 chatbot = choose_bot()
-prompter = Prompter()
-
-for user in all_user_data.keys():
-    cust_hist = ""
-    for prod in all_user_data[user]["History"]:
-        all_cats = "\n".join(prod["Categories"]).strip()
-        all_descs = "\n".join(prod["Descriptions"]).strip()
-        prod_desc = f"Product Title:\n{prod['Name']}\nProduct Categories:\n{all_cats}\nProduct Descriptions:\n{all_descs}\nCustomer Review:\n{prod['Review']}\nCustomer Score:\n{prod['Score']}\n"
-        cust_hist = f"{cust_hist}\n{prod_desc}"
-    cust_analysis_prompt = prompter.amazon_cust_analysis_prompt(cust_hist=cust_hist.strip())
-    print(f"User: {user}")
-    if chatbot.count_tokens(cust_analysis_prompt) < int(chatbot.context_length):
-        user_analysis = chatbot.prompt_chatbot(cust_analysis_prompt)
-        print(user_analysis)
-    else:
-        print("User has a very long history!")
-        print(chatbot.count_tokens(cust_analysis_prompt))
+run_prompt(chatbot)
