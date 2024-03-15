@@ -9,7 +9,7 @@ from git import Repo
 from googlesearch import search
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, SeleniumURLLoader, UnstructuredURLLoader, GitLoader
+from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, GitLoader
 
 class FileLoader():
 
@@ -33,7 +33,17 @@ class FileLoader():
                 all_urls = list(self.extend_url(all_urls, file_name))
             elif isinstance(file_name, list):
                 all_urls = file_name
-            loader = UnstructuredURLLoader(urls=all_urls)
+                web_pages = []
+                metadatas = []
+                for url in all_urls:
+                    response = requests.get(url)
+                    if response.status_code == 200:
+                        html_content = response.text
+                        soup = BeautifulSoup(html_content, 'html.parser')
+                        page_text = soup.get_text()
+                        web_pages.append(page_text)
+                        metadatas.append({"source": url})
+                return self.splitter.create_documents(web_pages, metadatas=metadatas)
             file_name = all_urls
         elif file_type == "git":
             if not validators.url(file_name):
