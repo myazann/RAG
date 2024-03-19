@@ -15,7 +15,8 @@ args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
 chatbot = choose_bot()
-mixtral_bot = choose_bot(model_name="MISTRAL-8x7B-v0.1-INSTRUCT-PPLX")
+# mixtral_bot = choose_bot(model_name="MISTRAL-8x7B-v0.1-INSTRUCT-PPLX")
+mixtral_bot = choose_bot(model_name="CHATGPT-3.5")
 prompter = Prompter()
 db = VectorDB(file_loader)
 
@@ -52,8 +53,9 @@ while True:
           print(f"Time passed in web search: {round(time.time()-start_time, 2)} secs")
     all_db_docs = db.query_db()["documents"]
     if all_db_docs:
-      k = chatbot.find_best_k(all_db_docs)
-      print(k)
+      # k = chatbot.find_best_k(all_db_docs)
+      # print(k)
+      k = 10
       if reform_query == "":
         reform_query = query_reform_formatter(mixtral_bot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
       if "NO QUERY" not in reform_query:

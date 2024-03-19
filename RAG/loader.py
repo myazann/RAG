@@ -36,13 +36,18 @@ class FileLoader():
                 web_pages = []
                 metadatas = []
                 for url in all_urls:
-                    response = requests.get(url)
-                    if response.status_code == 200:
-                        html_content = response.text
-                        soup = BeautifulSoup(html_content, 'html.parser')
-                        page_text = soup.get_text()
-                        web_pages.append(page_text)
-                        metadatas.append({"source": url})
+                    try:
+                        response = requests.get(url, timeout=3)
+                        if response.status_code == 200:
+                            html_content = response.text
+                            soup = BeautifulSoup(html_content, 'html.parser')
+                            page_text = soup.get_text()
+                            web_pages.append(page_text)
+                            metadatas.append({"source": url})
+                    except Exception as e:
+                        print(url)
+                        print(e)
+
                 return self.splitter.create_documents(web_pages, metadatas=metadatas)
             file_name = all_urls
         elif file_type == "git":

@@ -8,7 +8,7 @@ class VectorDB:
     def __init__(self, file_loader, embedding_function="hf"):
         self.file_loader = file_loader
         self.embedding_function = self.get_embed_func(embedding_function)
-        self.client = chromadb.PersistentClient()
+        self.client = chromadb.Client()
         self.vector_db = self.client.get_or_create_collection(name="my_collection", embedding_function=self.embedding_function, metadata={"hnsw:space": "cosine"})
 
     def query_db(self, query=None, k=5, distance_threshold=0.5):
@@ -19,11 +19,11 @@ class VectorDB:
         else:
             return self.vector_db.get()
 
-    def get_embed_func(self, type):
+    def get_embed_func(self, type, model_name="sentence-transformers/all-MiniLM-L6-v2"):
         if type == "hf":
             return embedding_functions.HuggingFaceEmbeddingFunction(
             api_key=os.getenv("HF_API_KEY"),
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
+            model_name=model_name
         )
         elif type == "openai":
             return embedding_functions.OpenAIEmbeddingFunction(
@@ -38,4 +38,4 @@ class VectorDB:
         ids = [hashlib.sha256(f"{source}-chunksize:{splitter_params['chunk_size']}-chunkoverlap:{splitter_params['chunk_overlap']}-{i}".encode()).hexdigest()
                for i, source in enumerate(sources)]
         sources = [{"source": i} for i in sources]
-        self.vector_db.add(ids=ids, documents=text_chunks, metadatas=sources)
+        self.vector_db.upsert(ids=ids, documents=text_chunks, metadatas=sources)

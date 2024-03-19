@@ -201,7 +201,7 @@ class Chatbot:
         elif self.family == "CHATGPT" or self.model_type == "PPLX":
             return OpenAI(**self.model_params)
         elif self.model_type == "GROQ":
-            return Groq(**self.model_params)
+            return Groq(**self.model_params)                   
         else:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
