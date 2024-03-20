@@ -23,7 +23,7 @@ class VectorDB:
         if type == "hf":
             return embedding_functions.HuggingFaceEmbeddingFunction(
             api_key=os.getenv("HF_API_KEY"),
-            model_name=model_name
+            model_name="sentence-transformers/use-cmlm-multilingual"
         )
         elif type == "openai":
             return embedding_functions.OpenAIEmbeddingFunction(

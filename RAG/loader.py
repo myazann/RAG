@@ -37,13 +37,16 @@ class FileLoader():
                 metadatas = []
                 for url in all_urls:
                     try:
-                        response = requests.get(url, timeout=3)
-                        if response.status_code == 200:
-                            html_content = response.text
-                            soup = BeautifulSoup(html_content, 'html.parser')
-                            page_text = soup.get_text()
-                            web_pages.append(page_text)
-                            metadatas.append({"source": url})
+                        response = requests.head(url)
+                        content_type = response.headers.get('Content-Type')
+                        if content_type != "application/pdf":
+                            response = requests.get(url, timeout=3)
+                            if response.status_code == 200:
+                                html_content = response.text
+                                soup = BeautifulSoup(html_content, 'html.parser')
+                                page_text = soup.get_text()
+                                web_pages.append(page_text)
+                                metadatas.append({"source": url})
                     except Exception as e:
                         print(url)
                         print(e)

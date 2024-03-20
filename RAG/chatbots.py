@@ -17,33 +17,38 @@ def get_model_cfg():
     return config
 
 def choose_bot(model_name=None, model_params=None, gen_params=None):
-    if model_name is None:
-        model_cfg = get_model_cfg()
-        models = model_cfg.sections()
-        model_families = dict({str(k): v for k, v in enumerate(sorted(set([model.split("-")[0] for model in models])))})
-        print("Here are the available model families, please choose one:\n")
-        for i, repo in model_families.items():
-            print(f"{i}: {repo}")  
-        while True:
-            model_family_id = input()
-            model_family = model_families.get(model_family_id)
-            if model_family is None:
-                print("Please select from one of the options!")
-            else:
-                break
-        num_repo = dict({str(k): v for k, v in enumerate([model for model in models if model_family in model])})
-        print("\nChoose a version:\n")
-        for i, repo in num_repo.items():
-            repo_name = repo.replace("_", "-")
-            print(f"{i}: {repo_name}")  
-        while True:
-            model_id = input()
-            model_name = num_repo.get(model_id)
-            if model_name is None:
-                print("Please select from one of the options!")
-            else:
-                break
-    return Chatbot(model_name, model_params, gen_params)
+    while True: 
+        if model_name is None:
+            model_cfg = get_model_cfg()
+            models = model_cfg.sections()
+            model_families = dict({str(k): v for k, v in enumerate(sorted(set([model.split("-")[0] for model in models])))})
+            print("Here are the available model families, please choose one:\n")
+            for i, repo in model_families.items():
+                print(f"{i}: {repo}")  
+            while True:
+                model_family_id = input()
+                model_family = model_families.get(model_family_id)
+                if model_family is None:
+                    print("Please select from one of the options!")
+                else:
+                    break
+            num_repo = dict({str(k): v for k, v in enumerate([model for model in models if model_family in model])})
+            print("\nChoose a version or type 'b' to return to the previous menu:\n")
+            for i, repo in num_repo.items():
+                repo_name = repo.replace("_", "-")
+                print(f"{i}: {repo_name}")  
+            while True:
+                model_id = input()
+                if model_id.lower() == 'b':
+                    print("Returning to model family selection...\n")
+                    break
+                model_name = num_repo.get(model_id)
+                if model_name is None:
+                    print("Please select from one of the options!")
+                else:
+                    return Chatbot(model_name, model_params, gen_params)
+        else:
+            return Chatbot(model_name, model_params, gen_params)
 
 class Chatbot:
 

@@ -115,7 +115,7 @@ def run_prompt(chatbot, prompt_type="conv_gen"):
         if prompt_type == "cust_analysis":
             prompt = prompter.amazon_cust_analysis_prompt(cust_hist=cust_hist.strip())
         elif prompt_type == "conv_gen":
-            prompt = prompter.amazon_np_pred_with_conv(cust_hist=cust_hist.strip())
+            prompt = prompter.amazon_np_pred_with_conv_claude(cust_hist=cust_hist.strip())
         if chatbot.count_tokens(prompt) < int(chatbot.context_length):
             user_analysis = chatbot.prompt_chatbot(prompt)
             print(user_analysis)

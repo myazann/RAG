@@ -15,8 +15,8 @@ args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
 chatbot = choose_bot()
-# mixtral_bot = choose_bot(model_name="MISTRAL-8x7B-v0.1-INSTRUCT-PPLX")
-mixtral_bot = choose_bot(model_name="CHATGPT-3.5")
+mixtral_bot = choose_bot(model_name="MISTRAL-8x7B-v0.1-INSTRUCT-PPLX")
+# mixtral_bot = choose_bot(model_name="CHATGPT-3.5")
 prompter = Prompter()
 db = VectorDB(file_loader)
 
