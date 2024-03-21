@@ -88,7 +88,19 @@ class Prompter():
                 "content": strip_all(f"""Here is the customer's purchase history:\n<purchase_history>\n{cust_hist}</purchase_history>""")
             }
         ]
-    
+
+    def amazon_np_pred_with_conv_claude_cot(self, cust_hist, n=5):   
+        return [
+            {
+                "role": "system",
+                "content": strip_all(f"""First, carefully analyze the customer's purchase history to understand their preferences and conversation style. Pay attention to the products they have purchased, their reviews, and any patterns in their buying behavior.\nNext, generate a conversation between the customer and a digital assistant. The assistant should ask questions to better predict the type of product the customer would like. Keep the following in mind:\nStart the assistant's messages with "A:" and the customer's messages with "C:".\n-Generate each message in a new line.\n-Keep the messages concise, around 2-3 sentences each.\n-Use the customer's product reviews to replicate their conversation style in their messages.\n-Focus on describing the type of product the customer would like, rather than directly recommending a specific product.\n-Limit the conversation to {n} turns.\n-After the conversation ends, provide a brief description of the product type the assistant recommended, using less than 10 words.\nWrite the conversation and the description inside tags.\nUse the Chain-of-Thought style to generate the conversation, showing your reasoning and thought process.\nYour output should be in the following format:\n<Chain-of-Thought Reasoning>\n</Chain-of-Thought Reasoning>\n<conversation>\n</conversation>\n<description>\n</description>""")
+            },
+            {
+                "role": "user",
+                "content": strip_all(f"""Here is the customer's purchase history:\n<purchase_history>\n{cust_hist}</purchase_history>""")
+            }
+        ]
+       
     def eval_qa_prompt(self, question, solution, answer):
         return [
             {
@@ -148,14 +160,14 @@ class Prompter():
         return [
             {
                 "role": "system",
-                "content": strip_all("""Your task is to transform the user message into a web search query. Follow these steps:\n1. If the user message is ambiguous or unclear because it references something from the earlier messages, use the chat history to resolve the ambiguity and make the query clear and specific.\n2. However, if the user message is not connected to the earlier chat history, do not try to use the history to modify it. And if the user message is already in the format of a clear search query, output it as-is without any changes.\n3. There are a few situations where you should output only "NO QUERY" instead of transforming the message into a search query:\n- If the user is asking a direct question to you as the assistant\n- If the user message consists of only a single common word like a number or object name\n4. Output ONLY the final search query inside <query> tags. Do not provide any additional explanation or commentary.""")
+                "content": strip_all("""Your task is to transform the user message into a web search query. Follow these steps:\n1. If the user message is ambiguous or unclear because it references something from the earlier messages, use the chat history to resolve the ambiguity and make the query clear and specific.\n2. However, if the user message is not connected to the earlier chat history, do not try to use the history to modify it. And if the user message is already in the format of a clear search query, output it as-is without any changes.\n3. There are a few situations where you should output only "NO QUERY" instead of transforming the message into a search query:\n- If the user is asking a direct question to you as the assistant\n- If the user message consists of only a single common word like a number or object name\n4. Output ONLY the final search query. Do not provide any additional explanation or commentary.""")
             }, 
             {
                 "role": "user",
                 "content": strip_all(f"""Here is the chat history:\n<chat_history>:\n{chat_history}\n</chat_history>
                                         And here is the most recent user message:\n<user_message>\n{user_input}\n</user_message>""")
             }]
-    
+
     def query_gen_prompt(self, chat_history, user_input):
         return [
             {

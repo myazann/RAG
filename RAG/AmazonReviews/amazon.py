@@ -28,6 +28,7 @@ def download_datasets(category):
         response = requests.get(meta_link)
         with open(meta_save_loc, 'wb') as f:
             f.write(response.content)    
+            
 def parse(path):
   g = gzip.open(path, 'rb')
   for l in g:
@@ -115,7 +116,7 @@ def run_prompt(chatbot, prompt_type="conv_gen"):
         if prompt_type == "cust_analysis":
             prompt = prompter.amazon_cust_analysis_prompt(cust_hist=cust_hist.strip())
         elif prompt_type == "conv_gen":
-            prompt = prompter.amazon_np_pred_with_conv_claude(cust_hist=cust_hist.strip())
+            prompt = prompter.amazon_np_pred_with_conv_claude_cot(cust_hist=cust_hist.strip())
         if chatbot.count_tokens(prompt) < int(chatbot.context_length):
             user_analysis = chatbot.prompt_chatbot(prompt)
             print(user_analysis)
@@ -131,5 +132,5 @@ download_datasets(category)
 df, df_meta = get_dfs(category)
 all_user_data = create_user_data(df, df_meta, category)
 
-chatbot = choose_bot()
+chatbot = choose_bot(gen_params={"max_tokens": 1024})
 run_prompt(chatbot)

@@ -10,13 +10,11 @@ from RAG.loader import FileLoader
 from RAG.prompter import Prompter
 from RAG.output_formatter import query_reform_formatter
 
-# huggingface_hub.login(new_session=False)
 args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
 chatbot = choose_bot()
 mixtral_bot = choose_bot(model_name="MISTRAL-8x7B-v0.1-INSTRUCT-PPLX")
-# mixtral_bot = choose_bot(model_name="CHATGPT-3.5")
 prompter = Prompter()
 db = VectorDB(file_loader)
 
@@ -26,7 +24,7 @@ while True:
   print("User: ")
   query = input().strip()
   hist_to_str = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in chatbot.trunc_chat_history(chat_history)])
-  QUERY_GEN_PROMPT = prompter.query_gen_prompt(chat_history=hist_to_str, user_input=query)
+  QUERY_GEN_PROMPT = prompter.query_gen_prompt_claude(chat_history=hist_to_str, user_input=query)
   if query == "0":
     print("Bye!")
     break
@@ -54,7 +52,6 @@ while True:
     all_db_docs = db.query_db()["documents"]
     if all_db_docs:
       # k = chatbot.find_best_k(all_db_docs)
-      # print(k)
       k = 10
       if reform_query == "":
         reform_query = query_reform_formatter(mixtral_bot.prompt_chatbot(QUERY_GEN_PROMPT).strip())

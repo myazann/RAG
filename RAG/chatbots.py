@@ -151,18 +151,20 @@ class Chatbot:
             return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
             
     def get_gen_params(self, gen_params):
-        if self.model_type in ["PPLX", "GROQ", "proprietary"]:
-            name_token_var = "max_tokens"
-        else:
-            name_token_var = "max_new_tokens"
+        # Determine the correct parameter name based on the model type
+        name_token_var = "max_tokens" if self.model_type in ["PPLX", "GROQ", "proprietary"] else "max_new_tokens"
+        
+        # If no parameters were provided, return the default
         if gen_params is None:
-            return {
-            name_token_var: 512,
-            #"temperature": 0.7,
-            }
-        elif "max_new_tokens" in gen_params.keys():
-            value = gen_params.pop("max_new_tokens")
-            gen_params[name_token_var] = value
+            return {name_token_var: 512}
+        
+        # Ensure the parameter names match the model's expectation
+        if "max_new_tokens" in gen_params and name_token_var != "max_new_tokens":
+            gen_params[name_token_var] = gen_params.pop("max_new_tokens")
+        elif "max_tokens" in gen_params and name_token_var != "max_tokens":
+            gen_params[name_token_var] = gen_params.pop("max_tokens")
+        
+        # Return the possibly modified parameters
         return gen_params
     
     def default_model_params(self):
