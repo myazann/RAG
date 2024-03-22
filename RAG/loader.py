@@ -6,7 +6,6 @@ import validators
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from git import Repo
-from googlesearch import search
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader, TextLoader, GitLoader
@@ -127,10 +126,23 @@ class FileLoader():
             page.page_content = re.sub(r'\s{2,}', ' ', page.page_content)
         return doc
     
-    def web_search(self, queries, num_results=3, lang="en"):
+    def web_search(self, queries, num_results=3):
+        url = 'https://www.googleapis.com/customsearch/v1'
         all_links = []
         for query in queries:
-            all_links.extend(list(search(query, num_results=num_results, lang=lang)))
+            try:
+                params = {
+                    "key": os.getenv("GOOGLE_API_KEY"),
+                    "cx": os.getenv("GOOGLE_CX_ID"),
+                    "q": query,
+                    "num": num_results
+                }
+                response = requests.get(url, params=params)
+                if response.status_code == 200:
+                    results = response.json()
+                    all_links.extend([item["link"] for item in results.get('items', [])])
+            except Exception as e:
+                print(e)
         return list(set(all_links))
     
     def get_processed_texts(self, file):
