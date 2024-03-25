@@ -107,24 +107,30 @@ def run_prompt(chatbot, prompt_type="conv_gen"):
     all_analysis = {}
     print(f"Total number of customers: {len(all_user_data.keys())}")
     for user in all_user_data.keys():
+        all_prods = []
         cust_hist = ""
-        for prod in all_user_data[user]["History"]:
+        for prod in  all_user_data[user]["History"]:
             all_cats = "\n".join(prod["Categories"]).strip()
             all_descs = "\n".join(prod["Descriptions"]).strip()
             prod_desc = f"Product Title:\n{prod['Name']}\nProduct Categories:\n{all_cats}\nProduct Descriptions:\n{all_descs}\nCustomer Review:\n{prod['Review']}\nCustomer Score:\n{prod['Score']}\n"
-            cust_hist = f"{cust_hist}\n{prod_desc}"
-        if prompt_type == "cust_analysis":
-            prompt = prompter.amazon_cust_analysis_prompt(cust_hist=cust_hist.strip())
-        elif prompt_type == "conv_gen":
-            prompt = prompter.amazon_np_pred_with_conv_claude_cot(cust_hist=cust_hist.strip())
-        if chatbot.count_tokens(prompt) < int(chatbot.context_length):
-            user_analysis = chatbot.prompt_chatbot(prompt)
-            print(user_analysis)
-            print()
-            all_analysis[user] = user_analysis
-        else:
-            print("User has a very long history!")
-            print(chatbot.count_tokens(prompt))
+            all_prods.append(prod_desc)
+        all_prods.reverse()
+        cust_hist = "\n".join(all_prods)
+        while True:
+            if prompt_type == "cust_analysis":
+                prompt = prompter.amazon_cust_analysis_prompt(cust_hist=cust_hist)
+            elif prompt_type == "conv_gen":
+                prompt = prompter.amazon_np_pred_with_conv_claude_cot(cust_hist=cust_hist)
+            if chatbot.count_tokens(prompt) > int(chatbot.context_length) - max_tokens:
+                all_prods = all_prods[:-1]
+                cust_hist = "\n".join(all_prods)
+            else: 
+                break
+        print(chatbot.count_tokens(cust_hist))
+        user_analysis = chatbot.prompt_chatbot(prompt)
+        print(user_analysis)
+        print()
+        all_analysis[user] = user_analysis
     return all_analysis
 
 category = "All_Beauty"
@@ -132,5 +138,6 @@ download_datasets(category)
 df, df_meta = get_dfs(category)
 all_user_data = create_user_data(df, df_meta, category)
 
-chatbot = choose_bot(gen_params={"max_tokens": 1024})
+max_tokens = 1024
+chatbot = choose_bot(gen_params={"max_tokens": max_tokens})
 run_prompt(chatbot)

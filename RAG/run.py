@@ -63,8 +63,7 @@ while True:
     info = ""
     while True:
       if retr_docs:
-        for i, doc in enumerate(retr_docs):
-          info = "\n".join([doc for doc in retr_docs])
+        info = "\n".join([doc for doc in retr_docs])
       CONV_CHAIN_PROMPT = prompter.conv_agent_prompt(user_input=query, info=info)
       if chatbot.count_tokens(CONV_CHAIN_PROMPT) > int(chatbot.context_length):
         print("Context exceeds context window, removing one document!")
