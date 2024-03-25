@@ -77,11 +77,11 @@ class Prompter():
             }
         ]
 
-    def amazon_np_pred_with_conv_claude(self, cust_hist, n=5):   
+    def amazon_np_pred_with_conv_claude(self, cust_hist, n_turns=5):   
         return [
             {
                 "role": "system",
-                "content": strip_all(f"""Carefully analyze the customer's purchase history to understand their product preferences and conversation style. Pay attention to the products they have purchased, their reviews, and the language they use.\nStart a conversation with the customer, asking questions to better understand what type of product they are looking for. Keep your messages concise, around 2-3 sentences each. Start each of your messages with "A:".\nGenerate the customer's responses based on the conversation style you observed in their purchase history. Keep their messages short and start each one with "C:".\nLimit the conversation to {n} turns.\nAfter the conversation ends, provide a brief (less than 10 words) description of the type of product you would recommend for the customer based on the conversation and their purchase history. Format this description as JSON, like this:\n<product_description>\n{{"product_type": "your description here"}}\n</product_description>\nRemember, do not directly recommend a specific product. Instead, describe the type of product that would best suit the customer's needs and preferences.""")
+                "content": strip_all(f"""Carefully analyze the customer's purchase history to understand their product preferences and conversation style. Pay attention to the products they have purchased, their reviews, and the language they use.\nStart a conversation with the customer, asking questions to better understand what type of product they are looking for. Keep your messages concise, around 2-3 sentences each. Start each of your messages with "A:".\nGenerate the customer's responses based on the conversation style you observed in their purchase history. Keep their messages short and start each one with "C:".\nLimit the conversation to {n_turns} turns.\nAfter the conversation ends, provide a brief (less than 10 words) description of the type of product you would recommend for the customer based on the conversation and their purchase history. Format this description as JSON, like this:\n<product_description>\n{{"product_type": "your description here"}}\n</product_description>\nRemember, do not directly recommend a specific product. Instead, describe the type of product that would best suit the customer's needs and preferences.""")
             },
             {
                 "role": "user",

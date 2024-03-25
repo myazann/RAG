@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import sys
 import time
+import huggingface_hub
 
 import tiktoken
 import numpy as np
@@ -53,6 +54,7 @@ def choose_bot(model_name=None, model_params=None, gen_params=None):
 class Chatbot:
 
     def __init__(self, model_name, model_params=None, gen_params=None) -> None:
+        huggingface_hub.login(token=os.getenv("HF_API_KEY"), new_session=False)
         self.cfg = get_model_cfg()[model_name]
         self.model_name = model_name
         self.family = model_name.split("-")[0]
