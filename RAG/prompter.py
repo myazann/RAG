@@ -89,6 +89,18 @@ class Prompter():
             }
         ]
 
+    def amazon_review_gen(self, cust_hist, prod_name):
+        return [
+            {
+                "role": "system",
+                "content": strip_all(f"""Your task is to generate a review for a product in the style of a customer. The customer's purchase history and the product metadata is going to be provided. Looking at their previous reviews and the name of the current product, generate the review in a way that captures the customer's style. Only output the review without giving explanations, and do not give a prediction about the product score. Your output should be in this format:\n <Review>\ngenerated review\n</Review>""")
+            },
+            {
+                "role": "user",
+                "content": strip_all(f"""Here is the customer's purchase history:\n<purchase_history>\n{cust_hist}</purchase_history>\nHere is the name of the product:\n{prod_name}""")
+            }
+        ]
+       
     def amazon_np_pred_with_conv_claude_cot(self, cust_hist, n=5):   
         return [
             {

@@ -37,7 +37,7 @@ def getDF(path):
   for d in parse(path):
     df[i] = d
     i += 1
-  return pd.DataFrame.from_dict(df, orient='index')
+  return pd.DataFrame.from_dict(df, orient="index")
 
 def get_dfs(category, process=True):
     df = getDF(os.path.join("datasets", f"{category}.json.gz"))
@@ -45,9 +45,9 @@ def get_dfs(category, process=True):
     if process:
         df = df[~df["reviewerName"].str.contains("ustomer", na=False)]
         df = df.drop_duplicates(["reviewerID", "unixReviewTime"])
-        df = df[df["reviewerID"].isin(df.value_counts("reviewerID")[(df.value_counts("reviewerID") > 5)].index)]
-        up_lim = df["reviewerID"].value_counts().quantile(q=0.99)
-        df = df[df["reviewerID"].isin(df.value_counts("reviewerID")[(df.value_counts("reviewerID") < up_lim)].index)]
+        df = df[df["reviewerID"].isin(df.value_counts("reviewerID")[(df.value_counts("reviewerID") > 1)].index)]
+        # up_lim = df["reviewerID"].value_counts().quantile(q=0.99)
+        # df = df[df["reviewerID"].isin(df.value_counts("reviewerID")[(df.value_counts("reviewerID") < up_lim)].index)]
         df_meta = df_meta.drop_duplicates("asin")
     return df, df_meta
 
