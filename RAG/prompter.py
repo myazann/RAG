@@ -89,15 +89,15 @@ class Prompter():
             }
         ]
 
-    def amazon_review_gen(self, cust_hist, prod_name):
+    def amazon_review_gen(self, cust_hist, prod_name, rating):
         return [
             {
                 "role": "system",
-                "content": strip_all(f"""Your task is to generate a review for a product in the style of a customer. The customer's purchase history and the product metadata is going to be provided. Looking at their previous reviews and the name of the current product, generate the review in a way that captures the customer's style. Only output the review without giving explanations, and do not give a prediction about the product score. Your output should be in this format:\n <Review>\ngenerated review\n</Review>""")
+                "content": strip_all(f"""Please carefully analyze the customer's previous reviews in their purchase history to understand their preferences, opinions, and writing style.\nThen, imagine you are this customer and write a review for {prod_name} in a style that sounds natural coming from them. The review should align with the {rating} star rating they provided.\nWrite out the full text of the review the customer would write for this product. Do not explain your reasoning or predict what you think the star rating should be. Simply output the generated customer review text inside <Review> tags, like this:\n<Review>\nGenerated review text here\n</Review>""")
             },
             {
                 "role": "user",
-                "content": strip_all(f"""Here is the customer's purchase history:\n<purchase_history>\n{cust_hist}</purchase_history>\nHere is the name of the product:\n{prod_name}""")
+                "content": strip_all(f"""Here is the customer's purchase history:\n<purchase_history>\n{cust_hist}</purchase_history>\nThe customer purchased the following product:\n<product_name>\n{prod_name}\n</product_name>\nThey gave this product a rating of {rating} out of 5 stars.""")
             }
         ]
        

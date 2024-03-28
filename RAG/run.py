@@ -47,6 +47,7 @@ while True:
         if "NO QUERY" not in reform_query:
           all_web_queries = mixtral_bot.prompt_chatbot(prompter.multi_query_prompt(question=reform_query)).strip()
           search_urls = file_loader.web_search(all_web_queries.split("\n"))
+          print(search_urls)
           db.add_file_to_db(search_urls)
           print(f"Time passed in web search: {round(time.time()-start_time, 2)} secs")
     all_db_docs = db.query_db()["documents"]

@@ -69,6 +69,8 @@ def create_user_data(df, df_meta, category):
     for num_user, user_id in enumerate(all_users[start_idx:]):
         sample_user = df[df["reviewerID"] == user_id].sort_values("unixReviewTime")
         sample_user = sample_user.merge(right=df_meta[["asin", "brand", "title", "category", "description"]], on="asin", how="inner")
+        if len(sample_user) == 1:
+            continue
         user_data = {}
         i = 1
         user_history = []

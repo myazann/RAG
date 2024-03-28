@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+import time
 import pandas as pd
 
 from RAG.chatbots import choose_bot
@@ -11,7 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--cat", default="All_Beauty", type=str)
 parser.add_argument("-q", "--quant", default=None, type=str)
 parser.add_argument("-t", "--task", default="review", type=str)
-parser.add_argument("-mt","--max_tokens", default=1024, type=int)
+parser.add_argument("-mt","--max_tokens", default=512, type=int)
 parser.add_argument("-n","--n_turns", default=7, type=int)
 args = parser.parse_args()
 
@@ -29,7 +30,7 @@ prompter = Prompter()
 print(f"Total number of customers: {len(all_user_data.keys())}")
 
 all_analysis = {}
-chatbots = ["LLAMA2-7B", "OPENCHAT-3.5", "MISTRAL-7B-v0.2-INSTRUCT", "MISTRAL-8x7B-v0.1-INSTRUCT", "LLAMA2-13B", "LLAMA2-70B"]
+chatbots = ["MISTRAL-7B-v0.2-INSTRUCT", "MISTRAL-8x7B-v0.1-INSTRUCT", "LLAMA2-70B"]
 if q_type is not None:
     chatbots = [f"{bot}-{q_type}" for bot in chatbots]
 for bot in chatbots:
@@ -50,13 +51,15 @@ for bot in chatbots:
             if task == "data_gen":
                 prompt = prompter.amazon_np_pred_with_conv_claude_cot(cust_hist=cust_hist)
             elif task == "review":
-                prompt = prompter.amazon_review_gen(cust_hist=cust_hist, prod_name=all_user_data[user]["Product"]["Name"])
+                prompt = prompter.amazon_review_gen(cust_hist=cust_hist, prod_name=all_user_data[user]["Product"]["Name"], rating=all_user_data[user]["Product"]["Score"])
             if chatbot.count_tokens(prompt) > int(chatbot.context_length) - max_tokens:
                 all_prods = all_prods[:-1]
                 cust_hist = "\n".join(all_prods)
             else: 
                 break
+        start_time = time.time()
         response = chatbot.prompt_chatbot(prompt)
+        print(f"Took {time.time()-start_time} secs.")
         print()
         print(response)
         print()

@@ -49,7 +49,6 @@ class FileLoader():
                     except Exception as e:
                         print(url)
                         print(e)
-
                 return self.splitter.create_documents(web_pages, metadatas=metadatas)
             file_name = all_urls
         elif file_type == "git":
