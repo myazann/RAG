@@ -1,5 +1,6 @@
 import argparse
 import os
+import random
 from configparser import ConfigParser
 
 import GPUtil
@@ -41,11 +42,6 @@ def get_args():
    return args
 
 def add_line_breaks(text, max_length):
-   """
-   If a line is too long, splits into shorter lines.
-   Courtesy of Claude 2.0 :)
-   """
-
    lines = text.split('\n')
    for i, line in enumerate(lines):
       if len(line) > max_length:
@@ -69,3 +65,11 @@ def list_files_in_directory(root_dir):
         for file in files:
             file_list.append(os.path.join(root, file))
     return file_list
+
+def shuffle_lists(list1, list2):
+   zipped_list = list(zip(list1, list2))
+   random.shuffle(zipped_list)
+   list1_shuffled, list2_shuffled = zip(*zipped_list)
+   list1_shuffled = list(list1_shuffled)
+   list2_shuffled = list(list2_shuffled)
+   return list1_shuffled, list2_shuffled

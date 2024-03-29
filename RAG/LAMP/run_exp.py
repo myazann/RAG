@@ -7,7 +7,7 @@ import torch
 
 from RAG.prompter import Prompter
 from RAG.chatbots import choose_bot
-from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset, get_profvar_names
+from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset, get_profvar_names, shuffle_lists
 
 args = get_lamp_args()
 q_type = args.quant
@@ -101,6 +101,8 @@ for chatbot_name in chatbot_names:
                 doc_k = int(doc_k)
             retr_texts = [prof_texts[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
             retr_gts = [prof_gts[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
+            if k.endswith("shuffle"):
+                retr_texts, retr_gts = shuffle_lists(retr_texts, retr_gts)
             for text, gt in zip(retr_texts, retr_gts):
                 example = f"""{prof_prompt_name.capitalize()}:\n{text}\n{prof_gt_name.capitalize()}:\n{gt}\n"""  
                 lamp_prompt = prompter.lamp_prompt(dataset_num, prof_text=queries[i], examples=example_pairs)
