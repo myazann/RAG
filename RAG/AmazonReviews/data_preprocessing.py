@@ -79,7 +79,7 @@ def create_user_data(df, df_meta, category):
             formatted_date = date_time.strftime("%Y-%m-%d %H:%M:%S")
             prod_info = {
                 "Name": row['title'],
-                "Categories": row["category"],
+                "Categories": row["category"] ,
                 "Descriptions": row["description"],
                 "Review": row["reviewText"],
                 "Score": row["overall"],

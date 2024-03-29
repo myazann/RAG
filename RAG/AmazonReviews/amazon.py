@@ -2,7 +2,6 @@ import argparse
 import os
 import json
 import time
-import pandas as pd
 
 from RAG.chatbots import choose_bot
 from RAG.prompter import Prompter
@@ -10,7 +9,7 @@ from RAG.AmazonReviews.data_preprocessing import download_datasets, get_dfs, cre
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--cat", default="All_Beauty", type=str)
-parser.add_argument("-q", "--quant", default=None, type=str)
+parser.add_argument("-q", "--quant", default="AWQ", type=str)
 parser.add_argument("-t", "--task", default="review", type=str)
 parser.add_argument("-mt","--max_tokens", default=512, type=int)
 parser.add_argument("-n","--n_turns", default=7, type=int)
@@ -25,7 +24,6 @@ q_type = args.quant
 download_datasets(category)
 df, df_meta = get_dfs(category)
 all_user_data = create_user_data(df, df_meta, category)
-print(pd.Series([len(all_user_data[u]["History"]) for u in all_user_data.keys()]).value_counts())
 prompter = Prompter()
 print(f"Total number of customers: {len(all_user_data.keys())}")
 
@@ -41,8 +39,8 @@ for bot in chatbots:
         all_prods = []
         cust_hist = ""
         for prod in  all_user_data[user]["History"]:
-            all_cats = "\n".join(prod["Categories"]).strip()
-            all_descs = "\n".join(prod["Descriptions"]).strip()
+            all_cats = ",".join(prod["Categories"]).strip()
+            all_descs = ",".join(prod["Descriptions"]).strip()
             prod_desc = f"Product Title:\n{prod['Name']}\nProduct Categories:\n{all_cats}\nProduct Descriptions:\n{all_descs}\nCustomer Review:\n{prod['Review']}\nCustomer Score:\n{prod['Score']}\n"
             all_prods.append(prod_desc)
         all_prods.reverse()
@@ -63,8 +61,8 @@ for bot in chatbots:
         print()
         print(response)
         print()
-        if task == "review":
-            print(f"Ground Truth:\n{all_user_data[user]['Product']['Review']}")
+        # if task == "review":
+            # print(f"Ground Truth:\n{all_user_data[user]['Product']['Review']}")
         all_analysis[user] = response
     os.makedirs("Results", exist_ok=True)
     target_path = os.path.join("Results", f"{chatbot.model_name}_{category}_Reviews.json")

@@ -11,7 +11,6 @@ from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_
 
 args = get_lamp_args()
 q_type = args.quant
-q_bits = args.q_bits
 dataset_num = args.dataset_num
 dataset_split = args.dataset_split
 k = args.k
@@ -33,9 +32,9 @@ MAX_NEW_TOKENS = 64
 data, out_gts = get_lamp_dataset(dataset_num)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "ZEPHYR-7B-BETA", "OPENCHAT-3.5", "STARLING-7B-ALPHA",
-                 "MISTRAL-7B-v0.1-INSTRUCT", "MISTRAL-8x7B-v0.1-INSTRUCT", "VICUNA-7B-16K-v1.5", "SOLAR-10.7B-INSTRUCT-1.0",
-                 "LLAMA2-13B", "VICUNA-13B-16K-v1.5", "YI-34B-CHAT", "LLAMA2-70B"]
+chatbot_names = ["OPENCHAT-3.5", "LLAMA2-7B",
+                 "MISTRAL-7B-v0.2-INSTRUCT", "MISTRAL-8x7B-v0.1-INSTRUCT", 
+                 "LLAMA2-13B", "LLAMA2-70B"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 else:
@@ -47,9 +46,6 @@ for chatbot_name in chatbot_names:
         if q_type is None:
             print("This model cannot be run unquantized!") 
             continue
-        elif q_type == "GGUF" and int(q_bits) > 4:
-            print("This model can only be run in 4-bits (or less)!")
-            continue
         elif q_type == "GPTQ":
             print("GPTQ implementation of this model is not stable!")
             continue
@@ -58,19 +54,16 @@ for chatbot_name in chatbot_names:
     else:
         test_name = f"LAMP_D{dataset_num}_{dataset_split}_K{k}_{retriever}"
     if q_type is not None:
-        chatbot = choose_bot(model_name=f"{chatbot_name}-{q_type}", gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=q_bits)
+        chatbot = choose_bot(model_name=f"{chatbot_name}-{q_type}", gen_params={"max_new_tokens": MAX_NEW_TOKENS})
     else:
-        chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS}, q_bits=q_bits)
+        chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS})
     if k == "max" and int(chatbot.context_length) > int(max_context_length):
         exp_window = int(int(max_context_length)/1000)
         chatbot_name = f"{chatbot_name}-{exp_window}K"
         chatbot.context_length = max_context_length
     if q_type is not None:
         chatbot_name = f"{chatbot_name}-{q_type}"
-    if q_type == "GGUF":
-        chatbot_name = f"{chatbot_name}-{q_bits}_bits"
     print(chatbot_name)
-    os.environ["LANGCHAIN_PROJECT"] = f"{test_name}_{chatbot_name}"
     file_out_path = f"{out_dir}/{chatbot_name}.pkl"
     if os.path.exists(file_out_path):
         with open(file_out_path, "rb") as f:
@@ -124,4 +117,3 @@ for chatbot_name in chatbot_names:
                 pickle.dump(all_res, f)
     end_time = time.time()
     print(f"Took {(end_time-start_time)/3600} hours!")
-    # run.finish()

@@ -15,7 +15,6 @@ from contriever.src.contriever import Contriever
 def get_lamp_args():
    parser = argparse.ArgumentParser()
    parser.add_argument("-q", "--quant", default=None, type=str)
-   parser.add_argument("-b","--q_bits", default=5, type=int)
    parser.add_argument("-dn", "--dataset_num", default=5, type=int)
    parser.add_argument("-ds", "--dataset_split", default="train_dev", type=str)
    parser.add_argument("-k", "--k", default="3", type=str)
