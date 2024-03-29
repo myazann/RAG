@@ -7,7 +7,8 @@ import torch
 
 from RAG.prompter import Prompter
 from RAG.chatbots import choose_bot
-from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset, get_profvar_names, shuffle_lists
+from RAG.utils import shuffle_lists
+from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset, get_profvar_names
 
 args = get_lamp_args()
 q_type = args.quant
@@ -86,9 +87,10 @@ for chatbot_name in chatbot_names:
     sys.stdout.flush()
     skip_k = 0
     doc_k = k
-    if "skip" in k:
+    if "_" in k:
         doc_k = k.split("_")[0]
-        skip_k = int(k.split("_")[-1])
+        if "skip" in k:
+            skip_k = int(k[k.find("skip_")+len("skip_")])
     for i in range(len(queries)):
         if k == "0":
             lamp_prompt = prompter.lamp_prompt(dataset_num, prof_text=queries[i])     
@@ -111,6 +113,7 @@ for chatbot_name in chatbot_names:
                     example_pairs = example_pairs + "\n" + example   
                 else:
                     break   
+        # print(lamp_prompt[1]["content"])
         res = chatbot.prompt_chatbot(lamp_prompt)
         all_res.append(res)
         torch.cuda.empty_cache()
