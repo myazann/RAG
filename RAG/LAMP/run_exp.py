@@ -30,12 +30,12 @@ FINAL_DB_SIZE = {
 }
 MAX_NEW_TOKENS = 64
 
+## 5 models, 
+## retr exps: 0, 1, 1_skip_1, 1_skip_2, 3, 3_skip_1, 3_skip_2, 3_shuffle, 3_skip_1_shuffle, 3_skip_2_shuffle, 5, 7 (5 ve 7 ayni 3 gibi olacak)
 data, out_gts = get_lamp_dataset(dataset_num)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
-chatbot_names = ["OPENCHAT-3.5", "LLAMA2-7B",
-                 "MISTRAL-7B-v0.2-INSTRUCT", "MISTRAL-8x7B-v0.1-INSTRUCT", 
-                 "LLAMA2-13B", "LLAMA2-70B"]
+chatbot_names = ["LLAMA2-7B", "MISTRAL-7B-v0.2-INSTRUCT", "OPENCHAT-3.5", "GEMMA-7B-IT"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 else:
