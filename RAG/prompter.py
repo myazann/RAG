@@ -52,7 +52,19 @@ class Prompter():
                         "content": strip_all(f"""Abstract: {prof_text}
                                                  Title:""")
                     }]
-            
+    
+    def amazon_kg_construct(self, cust_hist):
+         return [
+            {
+                "role": "system",
+                "content": strip_all("""Your task is to construct a knowledge graph from this purchase history. The goal of the graph is to better understand the customer in order to make improved product recommendations for them in the future.\nThe graph should include the following types of nodes:\n- Products\n- Customer\n\nThe graph should include the following types of relationships:\n- Relationships between the customer and products indicating purchase events and the customer's sentiment towards the product (based on their rating and review)\n- Relationships between products and their attributes\n- Relationships between the customer and their attributes\n\nWhen extracting personal information about the customer from the reviews, do not include the full text of the reviews. Instead, identify the most salient points that capture important customer attributes and preferences.\nConstruct the knowledge graph and output the nodes and relationships using the following format:\nNodes\n'<entity1>'\n'<entity2>'\n...\nRelationships\n'<entity1>' -[:RELATIONSHIP_TYPE]-> '<entity2>'\n'<entity1>' -[:RELATIONSHIP_TYPE {attribute: value}]-> '<entity2>'\n...\n\nSome additional notes:\n- Aim to keep each node name concise while still being descriptive.\n- For relationships, include key attributes or details in brackets when relevant.\n- Ensure that all relationships are directed, specifying the start and end node.\n- Do not output anything besides the nodes and the relationship.\n- Capture the key characteristics of the customer such as personal information.\nAnalyze the customer's purchase history carefully to construct a knowledge graph that provides a comprehensive view of the customer and their purchasing behavior and preferences. The graph should enable a better understanding of the customer to drive more relevant product recommendations.""")
+            },
+            {
+                "role": "user",
+                "content": strip_all(f"Here is the customer purchase history:\n\n{cust_hist}")
+            }
+        ]
+           
     def amazon_cust_analysis_prompt(self, cust_hist):
         return [
             {
