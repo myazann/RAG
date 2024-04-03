@@ -113,7 +113,6 @@ for chatbot_name in chatbot_names:
                     example_pairs = example_pairs + "\n" + example   
                 else:
                     break   
-        # print(lamp_prompt[1]["content"])
         res = chatbot.prompt_chatbot(lamp_prompt)
         all_res.append(res)
         torch.cuda.empty_cache()

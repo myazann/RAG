@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--cat", default="All_Beauty", type=str)
 parser.add_argument("-q", "--quant", default="AWQ", type=str)
 parser.add_argument("-t", "--task", default="review", type=str)
-parser.add_argument("-mt","--max_tokens", default=512, type=int)
+parser.add_argument("-mt","--max_tokens", default=2048, type=int)
 parser.add_argument("-n","--n_turns", default=7, type=int)
 args = parser.parse_args()
 
@@ -35,13 +35,13 @@ for bot in chatbots:
     print(bot)
     chatbot = choose_bot(model_name=bot, gen_params={"max_tokens": max_tokens})
     for i, user in enumerate(all_user_data.keys()):
-        print(i)
         all_prods = []
         cust_hist = ""
         for prod in  all_user_data[user]["History"]:
-            all_cats = ",".join(prod["Categories"]).strip()
+            # all_cats = ",".join(prod["Categories"]).strip()
             all_descs = ",".join(prod["Descriptions"]).strip()
-            prod_desc = f"Product Title:\n{prod['Name']}\nProduct Categories:\n{all_cats}\nProduct Descriptions:\n{all_descs}\nCustomer Review:\n{prod['Review']}\nCustomer Score:\n{prod['Score']}\n"
+            all_details = str(prod["Details"]).strip()
+            prod_desc = f"Product Title:\n{prod['Name']}\nProduct Descriptions:\n{all_descs}\nProduct Details:{all_details}\nCustomer Review:\n{prod['Review']}\nCustomer Score:\n{prod['Score']}\n"
             all_prods.append(prod_desc)
         all_prods.reverse()
         cust_hist = "\n".join(all_prods)
@@ -50,11 +50,14 @@ for bot in chatbots:
                 prompt = prompter.amazon_np_pred_with_conv_claude_cot(cust_hist=cust_hist)
             elif task == "review":
                 prompt = prompter.amazon_review_gen(cust_hist=cust_hist, prod_name=all_user_data[user]["Product"]["Name"], rating=all_user_data[user]["Product"]["Score"])
+            elif task == "kg":
+                prompt = prompter.amazon_kg_construct(cust_hist=cust_hist)
             if chatbot.count_tokens(prompt) > int(chatbot.context_length) - max_tokens:
                 all_prods = all_prods[:-1]
                 cust_hist = "\n".join(all_prods)
             else: 
                 break
+        print(cust_hist)
         start_time = time.time()
         response = chatbot.prompt_chatbot(prompt)
         print(f"Took {time.time()-start_time} secs.")
@@ -64,7 +67,9 @@ for bot in chatbots:
         # if task == "review":
             # print(f"Ground Truth:\n{all_user_data[user]['Product']['Review']}")
         all_analysis[user] = response
+        if i+1 % 1000 == 0:
+            print(i)
     os.makedirs("Results", exist_ok=True)
-    target_path = os.path.join("Results", f"{chatbot.model_name}_{category}_Reviews.json")
+    target_path = os.path.join("Results", f"{chatbot.model_name}_{category}_{task}.json")
     with open(target_path, "w") as f:
         json.dump(all_analysis, f)

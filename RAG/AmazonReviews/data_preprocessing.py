@@ -7,8 +7,8 @@ import datetime
 
 def download_datasets(category):
     os.makedirs("datasets", exist_ok=True)
-    review_link = f"https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_v2/categoryFiles/{category}.json.gz"
-    review_save_loc = os.path.join("datasets", f"{category}.json.gz")
+    review_link = f"https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023/raw/review_categories/{category}.jsonl.gz" 
+    review_save_loc = os.path.join("datasets", f"{category}.jsonl.gz")
     if os.path.exists(review_save_loc):
         print("Reviews for this category already exists!")
     else:
@@ -16,8 +16,8 @@ def download_datasets(category):
         response = requests.get(review_link)
         with open(review_save_loc, 'wb') as f:
             f.write(response.content)
-    meta_link = f"https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_v2/metaFiles2/meta_{category}.json.gz"
-    meta_save_loc = os.path.join("datasets", f"{category}_meta.json.gz")
+    meta_link = f"https://datarepo.eng.ucsd.edu/mcauley_group/data/amazon_2023/raw/meta_categories/meta_{category}.jsonl.gz"
+    meta_save_loc = os.path.join("datasets", f"{category}_meta.jsonl.gz")
     if os.path.exists(meta_save_loc):
         print("Metadata for this category already exists!")
     else:
@@ -40,20 +40,20 @@ def getDF(path):
   return pd.DataFrame.from_dict(df, orient="index")
 
 def get_dfs(category, process=True):
-    df = getDF(os.path.join("datasets", f"{category}.json.gz"))
-    df_meta = getDF(os.path.join("datasets", f"{category}_meta.json.gz"))
+    df = getDF(os.path.join("datasets", f"{category}.jsonl.gz"))
+    df_meta = getDF(os.path.join("datasets", f"{category}_meta.jsonl.gz"))
     if process:
-        df = df[~df["reviewerName"].str.contains("ustomer", na=False)]
-        df = df.drop_duplicates(["reviewerID", "unixReviewTime"])
-        df = df[df["reviewerID"].isin(df.value_counts("reviewerID")[(df.value_counts("reviewerID") > 1)].index)]
+        # df = df[~df["reviewerName"].str.contains("ustomer", na=False)]
+        df = df.drop_duplicates(["user_id", "timestamp"])
+        df = df[df["user_id"].isin(df.value_counts("user_id")[(df.value_counts("user_id") > 2)].index)]
         # up_lim = df["reviewerID"].value_counts().quantile(q=0.99)
         # df = df[df["reviewerID"].isin(df.value_counts("reviewerID")[(df.value_counts("reviewerID") < up_lim)].index)]
-        df_meta = df_meta.drop_duplicates("asin")
+        df_meta = df_meta.drop_duplicates("parent_asin")
     return df, df_meta
 
 def create_user_data(df, df_meta, category):
     data_path = os.path.join("datasets", f"{category}_user_data.json")
-    all_users = df["reviewerID"].unique()
+    all_users = df["user_id"].unique()
     if not os.path.exists(data_path):
         all_user_data = {}
         start_idx = 0
@@ -67,22 +67,24 @@ def create_user_data(df, df_meta, category):
                 start_idx = len(all_user_data)
     print("Processing user data...")
     for num_user, user_id in enumerate(all_users[start_idx:]):
-        sample_user = df[df["reviewerID"] == user_id].sort_values("unixReviewTime")
-        sample_user = sample_user.merge(right=df_meta[["asin", "brand", "title", "category", "description"]], on="asin", how="inner")
+        sample_user = df[df["user_id"] == user_id].sort_values("timestamp").rename(columns={"title": "reviewTitle", "text": "reviewText"})
+        sample_user = sample_user.merge(right=df_meta[["parent_asin", "store", "title", "categories", "description", "details"]], on="parent_asin", how="inner")
+        sample_user = sample_user.rename(columns={"title": "productTitle"})
         if len(sample_user) == 1:
             continue
         user_data = {}
         i = 1
         user_history = []
         for _, row in sample_user.iterrows():
-            date_time = datetime.datetime.fromtimestamp(row["unixReviewTime"])
+            date_time = datetime.datetime.fromtimestamp(timestamp=row["timestamp"]/1000)
             formatted_date = date_time.strftime("%Y-%m-%d %H:%M:%S")
             prod_info = {
-                "Name": row['title'],
-                "Categories": row["category"] ,
+                "Name": row["productTitle"],
+                # "Categories": row["categories"] ,
                 "Descriptions": row["description"],
+                "Details": row["details"],
                 "Review": row["reviewText"],
-                "Score": row["overall"],
+                "Score": row["rating"],
                 "Review Time": formatted_date
             }
             if i == len(sample_user):
