@@ -2,8 +2,8 @@ import os
 import time
 import pickle
 import sys
-
 import torch 
+import subprocess
 
 from RAG.prompter import Prompter
 from RAG.chatbots import choose_bot
@@ -83,6 +83,7 @@ for chatbot_name in chatbot_names:
         retr_doc_idxs = retrieved_idx(prof_texts, queries, dataset_num, dataset_split, retriever)
         retr_doc_idxs = retr_doc_idxs[len(all_res):]
     print(f"Starting from sample no. {len(all_res)}")
+    subprocess.run("gpustat")
     start_time = time.time()
     sys.stdout.flush()
     skip_k = 0
@@ -113,12 +114,13 @@ for chatbot_name in chatbot_names:
                     example_pairs = example_pairs + "\n" + example   
                 else:
                     break   
-        # print(lamp_prompt[1]["content"])
         res = chatbot.prompt_chatbot(lamp_prompt)
         all_res.append(res)
-        torch.cuda.empty_cache()
         if (i+1)%500==0 or (i+1)==len(queries):
+            print(i)
             with open(file_out_path, "wb") as f:
                 pickle.dump(all_res, f)
+        sys.stdout.flush()
+    torch.cuda.empty_cache()
     end_time = time.time()
     print(f"Took {(end_time-start_time)/3600} hours!")
