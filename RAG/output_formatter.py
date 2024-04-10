@@ -15,10 +15,6 @@ def lamp_output_formatter(output, dataset_num, model_name):
             nl_index = substring.find("\n")
             if nl_index != -1:
                 substring = substring[:nl_index]
-        if "GEMMA-7B-IT" in model_name:
-            st_match = re.search( r'\*\*(.*?)\*\*', substring)
-            if st_match:
-                substring = st_match.group(1)
         title_index = substring.find("Title:")
         if title_index != -1:
             substring = substring[title_index + len("Title:"):]

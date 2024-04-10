@@ -57,7 +57,6 @@ for bot in chatbots:
                 cust_hist = "\n".join(all_prods)
             else: 
                 break
-        print(cust_hist)
         start_time = time.time()
         response = chatbot.prompt_chatbot(prompt)
         print(f"Took {time.time()-start_time} secs.")
