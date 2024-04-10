@@ -59,7 +59,6 @@ while True:
       if "NO QUERY" not in reform_query:
         retr_docs, distances, metadatas = db.query_db(query=reform_query, k=k, distance_threshold=0.75)
         print(distances)
-        print(metadatas)
         print(f"Time passed in retrieval: {round(time.time()-start_time, 2)} secs")
     info = ""
     while True:
