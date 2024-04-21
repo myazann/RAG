@@ -1,13 +1,15 @@
 import hashlib
 import os
 
+from sentence_transformers import SentenceTransformer
 import chromadb
+from chromadb import Documents, EmbeddingFunction, Embeddings
 import chromadb.utils.embedding_functions as embedding_functions
 
 class VectorDB:
-    def __init__(self, file_loader, embedding_function="hf"):
+    def __init__(self, file_loader, embed_type="hf", hf_embed_model="sentence-transformers/all-MiniLM-L6-v2"):
         self.file_loader = file_loader
-        self.embedding_function = self.get_embed_func(embedding_function)
+        self.embedding_function = self.get_embed_func(embed_type, hf_embed_model)
         self.client = chromadb.Client()
         self.vector_db = self.client.get_or_create_collection(name="my_collection", embedding_function=self.embedding_function, metadata={"hnsw:space": "cosine"})
 
@@ -19,17 +21,19 @@ class VectorDB:
         else:
             return self.vector_db.get()
 
-    def get_embed_func(self, type, model_name="sentence-transformers/all-MiniLM-L6-v2"):
-        if type == "hf":
+    def get_embed_func(self, embed_type, hf_embed_model):
+        if embed_type == "hf":
             return embedding_functions.HuggingFaceEmbeddingFunction(
             api_key=os.getenv("HF_API_KEY"),
-            model_name=model_name
+            model_name=hf_embed_model
         )
-        elif type == "openai":
+        elif embed_type == "openai":
             return embedding_functions.OpenAIEmbeddingFunction(
                 api_key=os.getenv("OPENAI_API_KEY"),
-                model_name="text-embedding-ada-002"
+                model_name="text-embedding-3-large"
             )
+        elif embed_type == "turkish":
+            return TurkishEmbeddings()
 
     def add_file_to_db(self, file_name):
         files = self.file_loader.load(file_name)
@@ -39,3 +43,10 @@ class VectorDB:
                for i, source in enumerate(sources)]
         sources = [{"source": i} for i in sources]
         self.vector_db.upsert(ids=ids, documents=text_chunks, metadatas=sources)
+
+class TurkishEmbeddings(EmbeddingFunction):
+    def __call__(self, input: Documents) -> Embeddings:
+        model = SentenceTransformer("emrecan/bert-base-turkish-cased-mean-nli-stsb-tr")
+        embeddings = model.encode(input)
+        embeddings_as_list = [embedding.tolist() for embedding in embeddings]
+        return embeddings_as_list
