@@ -238,4 +238,4 @@ class Chatbot:
         if is_q_count > threshold:
             return "NO QUERY"
         else:
-            return [q for q in is_query if "NO QUERY" not in q]       
+            return list(set([q for q in is_query if "NO QUERY" not in q]))

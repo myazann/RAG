@@ -17,7 +17,7 @@ query_bot = choose_bot(model_name="LLAMA3-70B-PPLX")
 prompter = Prompter()
 db = VectorDB(file_loader)
 
-print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nPress -1 if you want to switch the chatbot!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
+print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nPress -1 if you want to switch the chatbot!\nPress 1 if you want to clear chat history!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
 chat_history = []
 while True:
   print("User: ")
@@ -29,6 +29,9 @@ while True:
     break
   if query == "-1":
     chatbot = choose_bot()
+  if query == "1":
+    chat_history = []
+    print("History cleared!")
   else:
     reform_query = ""
     retr_docs = []
