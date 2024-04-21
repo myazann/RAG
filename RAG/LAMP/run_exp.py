@@ -3,6 +3,7 @@ import time
 import pickle
 import sys
 import torch 
+import subprocess
 
 from RAG.prompter import Prompter
 from RAG.chatbots import choose_bot
@@ -32,7 +33,7 @@ MAX_NEW_TOKENS = 64
 data, out_gts = get_lamp_dataset(dataset_num)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA2-7B", "MISTRAL-7B-v0.2-INSTRUCT", "ZEPHYR-7B-BETA", "STARLING-7B-ALPHA", "OPENCHAT-3.5"]
+chatbot_names = ["LLAMA3-8B", "LLAMA2-7B", "MISTRAL-7B-v0.2-INSTRUCT", "ZEPHYR-7B-BETA", "STARLING-7B-ALPHA", "OPENCHAT-3.5"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 else:
@@ -61,6 +62,7 @@ for chatbot_name in chatbot_names:
         chatbot.context_length = max_context_length
     if q_type is not None:
         chatbot_name = f"{chatbot_name}-{q_type}"
+    print(subprocess.run("gpustat"))
     print(chatbot_name)
     file_out_path = f"{out_dir}/{chatbot_name}.pkl"
     if os.path.exists(file_out_path):
