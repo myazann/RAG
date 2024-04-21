@@ -12,6 +12,8 @@ from openai import OpenAI
 from groq import Groq
 from anthropic import Anthropic
 
+from RAG.output_formatter import query_reform_formatter
+
 def get_model_cfg():
     config = configparser.ConfigParser()
     config.read(os.path.join(Path(__file__).absolute().parent, "model_config.cfg"))
@@ -74,26 +76,39 @@ class Chatbot:
                 prompt = [
                     {
                         "role": "user",
-                        "content": f"{prompt[0]['content']}\n{prompt[1]['content']}"
+                        "content": f"{self.get_bot_info()}\n{prompt[0]['content']}\n{prompt[1]['content']}"
                     },
                     ]
                 message = chat_history + prompt
             else:
-                message = [prompt[0]] + chat_history + [prompt[1]]
+                self_info = [
+                    {
+                        "role": "system",
+                        "content": f"{self.get_bot_info()}"
+                    },
+                    ]
+                message = self_info + [prompt[0]] + chat_history + [prompt[1]]
             pipe = pipeline("conversational", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
             return pipe(message).messages[-1]["content"]
         elif self.model_type in ["PPLX", "GROQ"] or self.family == "CHATGPT":
-            message = [prompt[0]] + chat_history + [prompt[1]]
+            self_info = [
+                    {
+                        "role": "system",
+                        "content": f"{self.get_bot_info()}"
+                    },
+                    ]
+            message = self_info + [prompt[0]] + chat_history + [prompt[1]]
             response = self.model.chat.completions.create(model=self.repo_id, messages=message, **self.gen_params)
             return response.choices[0].message.content
         elif self.family == "CLAUDE":
+            sys_msg = f"{self.get_bot_info()}\nprompt[0]['content']"
             message = chat_history + [
                     {
                         "role": "user",
                         "content": f"{prompt[1]['content']}"
                     },
                     ]
-            response = self.model.messages.create(model=self.repo_id, messages=message, system=prompt[0]['content'], **self.gen_params)
+            response = self.model.messages.create(model=self.repo_id, messages=message, system=sys_msg, **self.gen_params)
             return response.content[0].text
     
     def stream_output(self, output):
@@ -113,6 +128,9 @@ class Chatbot:
         else:
             return len(self.tokenizer(prompt).input_ids)
 
+    def get_bot_info(self):
+        return f"Your name is {self.family.capitalize()}. You are named after the AI model that powers you."
+    
     def trunc_chat_history(self, chat_history):
         hist_dedic_space = int(self.context_length)//8
         total_hist_tokens = sum(self.count_tokens(tm['content']) for tm in chat_history)
@@ -210,3 +228,14 @@ class Chatbot:
                     **self.model_params,
                     low_cpu_mem_usage=True,
                     device_map="auto")
+        
+    def decide_on_query(self, prompt, num_iter=3):
+        is_query = []
+        threshold = (num_iter//2)+1 
+        for _ in range(num_iter):
+            is_query.append(query_reform_formatter(self.prompt_chatbot(prompt).strip()))
+        is_q_count = len([q for q in is_query if "NO QUERY" in q])
+        if is_q_count > threshold:
+            return "NO QUERY"
+        else:
+            return [q for q in is_query if "NO QUERY" not in q]       

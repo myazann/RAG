@@ -170,7 +170,7 @@ class Prompter():
         return [
             {
                 "role": "system",
-                "content": strip_all("You are a friendly conversational agent that helps users. Information related to the user input is going to be provided to you during the conversation to help you give more plausible answers. Do not mention that you used the provided information in your output. Sometimes, the information may be unrelated or may not contain the answer the user is looking for. For those cases, you do not have to use the provided information. If you do not know the answer, or if the user question is ambigous, ask the user for clarification.")
+                "content": strip_all("You are a friendly conversational agent. Your task is to help users with their questions. Information related to the user input is going to be provided to you during the conversation to help you give more plausible answers. Do not mention that you used the provided information in your output. Sometimes, the information may be unrelated or may not contain the answer the user is looking for. For those cases, you do not have to use the provided information. If you do not know the answer, or if the user question is ambigous, ask the user for clarification.")
             }, 
             {
                 "role": "user",
@@ -184,7 +184,7 @@ class Prompter():
         return [
             {
                 "role": "system",
-                "content": strip_all("""Your task is to transform the user message into a web search query. Follow these steps:\n1. If the user message is ambiguous or unclear because it references something from the earlier messages, use the chat history to resolve the ambiguity and make the query clear and specific.\n2. However, if the user message is not connected to the earlier chat history, do not try to use the history to modify it. And if the user message is already in the format of a clear search query, output it as-is without any changes.\n3. There are a few situations where you should output only "NO QUERY" instead of transforming the message into a search query:\n- If the user is asking a direct question to you as the assistant\n- If the user message consists of only a single common word like a number or object name\n4. Output ONLY the final search query. Do not provide any additional explanation or commentary.""")
+                "content": strip_all("""Your task is to transform the user message into a web search query. Follow these steps:\n1. If the user message is ambiguous or unclear because it references something from the earlier messages, use the chat history to resolve the ambiguity and make the query clear and specific.\n2. However, if the user message is not connected to the earlier chat history, do not try to use the history to modify it. And if the user message is already in the format of a clear search query, output it as-is without any changes.\n3. There are a few situations where you should output only "NO QUERY" instead of transforming the message into a search query:\n- If the user is asking a question about you\n- If the user message consists of only a single common word like a number or object name\n4. Output ONLY the final search query. Do not provide any additional explanation or commentary.""")
             }, 
             {
                 "role": "user",

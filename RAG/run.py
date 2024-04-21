@@ -8,17 +8,16 @@ from RAG.utils import get_args
 from RAG.vectordb import VectorDB
 from RAG.loader import FileLoader
 from RAG.prompter import Prompter
-from RAG.output_formatter import query_reform_formatter
 
 args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
 chatbot = choose_bot()
-mixtral_bot = choose_bot(model_name="MISTRAL-8x7B-v0.1-INSTRUCT-PPLX")
+query_bot = choose_bot(model_name="LLAMA3-70B-PPLX")
 prompter = Prompter()
 db = VectorDB(file_loader)
 
-print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
+print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nPress -1 if you want to switch the chatbot!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
 chat_history = []
 while True:
   print("User: ")
@@ -28,6 +27,8 @@ while True:
   if query == "0":
     print("Bye!")
     break
+  if query == "-1":
+    chatbot = choose_bot()
   else:
     reform_query = ""
     retr_docs = []
@@ -41,12 +42,11 @@ while True:
       reform_query = query
       print(f"Time passed processing file: {round(time.time()-start_time, 2)} secs")
     else:
-      reform_query = query_reform_formatter(mixtral_bot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
-      print(reform_query)
       if web_search:
-        if "NO QUERY" not in reform_query:
-          all_web_queries = mixtral_bot.prompt_chatbot(prompter.multi_query_prompt(question=reform_query)).strip()
-          search_urls = file_loader.web_search(all_web_queries.split("\n"))
+        reform_query = query_bot.decide_on_query(QUERY_GEN_PROMPT)
+        print(reform_query)
+        if reform_query != "NO QUERY":
+          search_urls = file_loader.web_search(reform_query)
           print(search_urls)
           db.add_file_to_db(search_urls)
           print(f"Time passed in web search: {round(time.time()-start_time, 2)} secs")
@@ -55,8 +55,8 @@ while True:
       # k = chatbot.find_best_k(all_db_docs)
       k = 10
       if reform_query == "":
-        reform_query = query_reform_formatter(mixtral_bot.prompt_chatbot(QUERY_GEN_PROMPT).strip())
-      if "NO QUERY" not in reform_query:
+        reform_query = query_bot.decide_on_query(QUERY_GEN_PROMPT)
+      if reform_query != "NO QUERY":
         retr_docs, distances, metadatas = db.query_db(query=reform_query, k=k, distance_threshold=0.75)
         print(distances)
         print(f"Time passed in retrieval: {round(time.time()-start_time, 2)} secs")
