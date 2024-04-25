@@ -8,23 +8,30 @@ class Prompter():
                 return [
                     {
                         "role": "system",
-                        "content": strip_all("""Your task is to give a score between [1, 2, 3, 4, 5] to a user review by utilizing the provided review-score pairs from the same user. Only output the score and nothing else.""")
+                        "content": ""
                     },
                     {
                         "role": "user", 
-                        "content": strip_all(f"""{examples}
-                                                Review: {prof_text}
+                        "content": strip_all(f"""Here are a couple of review-rating pairs of a user. 
+                                                <EXAMPLES>
+                                                {examples}
+                                                </EXAMPLES>
+                                                With the given examples, give a score between [1, 2, 3, 4, 5] to the following review by the same user. Only output the score and nothing else.
+                                                Review: 
+                                                {prof_text}
                                                 Score:""")
                     }]
             else:
                 return [
                     {
                         "role": "system",
-                        "content": strip_all("Give a score between [1, 2, 3, 4, 5] to the following review. Only output the score and nothing else.")
+                        "content": ""
                     },
                     {
                         "role": "user",
-                        "content": strip_all(f"""Review: {prof_text}
+                        "content": strip_all(f"""Give a score between [1, 2, 3, 4, 5] to the following review. Only output the score and nothing else.
+                                                Review: 
+                                                {prof_text}
                                                 Score:""")
                     }]
         elif dataset == 5:
@@ -32,24 +39,31 @@ class Prompter():
                 return [
                     {
                         "role": "system",
-                        "content": strip_all("""Your task is to generate a title for the given abstract by utilizing the provided abstract-title pairs from the same author. Only output the title and nothing else.""")
+                        "content": "")
                     },
                     {
                         "role": "user",
-                        "content": strip_all(f"""{examples}
-                                                Abstract: {prof_text}
+                        "content": strip_all(f"""Here are a couple of abstract-title pairs of an author:
+                                                <EXAMPLES>
+                                                {examples}
+                                                </EXAMPLES>
+                                                With the given examples, generate a title for the given abstract by the same author. Only output the title and nothing else:
+                                                Abstract:
+                                                {prof_text}
                                                 Title:""")
                     }]
             else:
                 return [
                     {
                         "role": "system",
-                        "content": strip_all("Your task is to generate a title for the given abstract. You will only output the title and nothing else.")
+                        "content": ""
 
                     },
                     {
                         "role": "user",
-                        "content": strip_all(f"""Abstract: {prof_text}
+                        "content": strip_all(f"""Your task is to generate a title for the given abstract. You will only output the title and nothing else.
+                                                 Abstract:
+                                                 {prof_text}
                                                  Title:""")
                     }]
     
