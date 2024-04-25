@@ -39,7 +39,7 @@ class Prompter():
                 return [
                     {
                         "role": "system",
-                        "content": "")
+                        "content": ""
                     },
                     {
                         "role": "user",

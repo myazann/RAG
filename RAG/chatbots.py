@@ -76,32 +76,20 @@ class Chatbot:
                 prompt = [
                     {
                         "role": "user",
-                        "content": f"{self.get_bot_info()}\n{prompt[0]['content']}\n{prompt[1]['content']}"
+                        "content": f"{prompt[0]['content']}\n{prompt[1]['content']}"
                     },
                     ]
                 message = chat_history + prompt
             else:
-                self_info = [
-                    {
-                        "role": "system",
-                        "content": f"{self.get_bot_info()}"
-                    },
-                    ]
-                message = self_info + [prompt[0]] + chat_history + [prompt[1]]
+                message = [prompt[0]] + chat_history + [prompt[1]]
             pipe = pipeline("conversational", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
             return pipe(message).messages[-1]["content"]
         elif self.model_type in ["PPLX", "GROQ"] or self.family == "CHATGPT":
-            self_info = [
-                    {
-                        "role": "system",
-                        "content": f"{self.get_bot_info()}"
-                    },
-                    ]
-            message = self_info + [prompt[0]] + chat_history + [prompt[1]]
+            message = [prompt[0]] + chat_history + [prompt[1]]
             response = self.model.chat.completions.create(model=self.repo_id, messages=message, **self.gen_params)
             return response.choices[0].message.content
         elif self.family == "CLAUDE":
-            sys_msg = f"{self.get_bot_info()}\nprompt[0]['content']"
+            sys_msg = f"{prompt[0]['content']}"
             message = chat_history + [
                     {
                         "role": "user",
