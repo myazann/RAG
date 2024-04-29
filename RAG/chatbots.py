@@ -7,7 +7,9 @@ import huggingface_hub
 
 import tiktoken
 import numpy as np
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, logging
+logging.set_verbosity_error()
+
 from openai import OpenAI
 from groq import Groq
 from anthropic import Anthropic

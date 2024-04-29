@@ -104,6 +104,9 @@ for chatbot_name in chatbot_names:
             retr_gts = [prof_gts[i][doc_id] for doc_id in retr_docs[skip_k: (doc_k+skip_k)]]
             if k.endswith("shuffle"):
                 retr_texts, retr_gts = shuffle_lists(retr_texts, retr_gts)
+            if k.endswith("reverse"):
+                retr_texts = retr_texts[::-1]
+                retr_gts = retr_gts[::-1]
             for text, gt in zip(retr_texts, retr_gts):
                 example = f"""{prof_prompt_name.capitalize()}:\n{text}\n{prof_gt_name.capitalize()}:\n{gt}\n"""  
                 lamp_prompt = prompter.lamp_prompt(dataset_num, prof_text=queries[i], examples=example_pairs)
@@ -114,7 +117,6 @@ for chatbot_name in chatbot_names:
                     break   
         res = chatbot.prompt_chatbot(lamp_prompt)
         all_res.append(res)
-        torch.cuda.empty_cache()
         if (i+1)%500==0 or (i+1)==len(queries):
             print(i)
             with open(file_out_path, "wb") as f:
@@ -122,3 +124,6 @@ for chatbot_name in chatbot_names:
         sys.stdout.flush()
     end_time = time.time()
     print(f"Took {(end_time-start_time)/3600} hours!")
+    del chatbot
+    chatbot = []
+    torch.cuda.empty_cache()
