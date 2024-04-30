@@ -1,5 +1,4 @@
 import pickle
-
 import pandas as pd
 from evaluate import load
 from sklearn.metrics import f1_score, mean_absolute_error, mean_squared_error
@@ -23,6 +22,7 @@ if dataset_num > 3:
 else:
     cols.extend(["acc", "f1_macro", "mae", "rmse"])
 for file in all_res_files:
+    print(file)
     with open(file, "rb") as f:
         preds = pickle.load(f)
     if len(preds) != len(out_gts):

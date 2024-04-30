@@ -73,33 +73,35 @@ class Chatbot:
     def prompt_chatbot(self, prompt, chat_history=[]):
         if chat_history:
             chat_history = self.trunc_chat_history(chat_history)
-        if self.model_type in ["default", "AWQ", "GPTQ"]:
-            if self.family in ["MISTRAL", "GEMMA"]:
-                prompt = [
-                    {
-                        "role": "user",
-                        "content": f"{prompt[0]['content']}\n{prompt[1]['content']}"
-                    },
-                    ]
-                message = chat_history + prompt
-            else:
+        if self.model_type in ["PPLX", "GROQ"] or self.family == "CHATGPT":
+            if len(prompt) > 1:
                 message = [prompt[0]] + chat_history + [prompt[1]]
-            pipe = pipeline("conversational", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
-            return pipe(message).messages[-1]["content"]
-        elif self.model_type in ["PPLX", "GROQ"] or self.family == "CHATGPT":
-            message = [prompt[0]] + chat_history + [prompt[1]]
+            else:
+                message = chat_history + prompt
             response = self.model.chat.completions.create(model=self.repo_id, messages=message, **self.gen_params)
             return response.choices[0].message.content
         elif self.family == "CLAUDE":
-            sys_msg = f"{prompt[0]['content']}"
-            message = chat_history + [
-                    {
-                        "role": "user",
-                        "content": f"{prompt[1]['content']}"
-                    },
-                    ]
-            response = self.model.messages.create(model=self.repo_id, messages=message, system=sys_msg, **self.gen_params)
-            return response.content[0].text
+            if len(prompt) > 1:
+                sys_msg = prompt[0]["content"]
+                message = chat_history + [prompt[1]]
+                response = self.model.messages.create(model=self.repo_id, messages=message, system=sys_msg, **self.gen_params)
+            else:
+                message = chat_history + prompt
+                response = self.model.messages.create(model=self.repo_id, messages=message, **self.gen_params)
+            return response.content[0].text        
+        else:
+            if self.family in ["MISTRAL", "GEMMA"]:
+                if len(prompt) > 1:
+                    message = chat_history + [{"role": "user", "content": "\n".join([turn["content"] for turn in prompt])}]
+                else:
+                    message = chat_history + prompt
+            else:
+                if len(prompt) > 1:
+                    message = [prompt[0]] + chat_history + [prompt[1]]
+                else:
+                    message = chat_history + prompt
+            pipe = pipeline("conversational", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
+            return pipe(message).messages[-1]["content"]
     
     def stream_output(self, output):
         for char in output:
@@ -109,7 +111,7 @@ class Chatbot:
     
     def count_tokens(self, prompt):
         if isinstance(prompt, list):
-            prompt = f"{prompt[0]['content']}\n{prompt[1]['content']}"
+            prompt = "\n".join([turn["content"] for turn in prompt])
         if self.family == "CHATGPT":
             encoding = tiktoken.encoding_for_model(self.repo_id)
             return len(encoding.encode(prompt))

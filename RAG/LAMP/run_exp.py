@@ -48,10 +48,6 @@ for chatbot_name in chatbot_names:
         elif q_type == "GPTQ":
             print("GPTQ implementation of this model is not stable!")
             continue
-    if k == "0":
-        test_name = f"LAMP_D{dataset_num}_{dataset_split}_K{k}"   
-    else:
-        test_name = f"LAMP_D{dataset_num}_{dataset_split}_K{k}_{retriever}"
     if q_type is not None:
         chatbot = choose_bot(model_name=f"{chatbot_name}-{q_type}", gen_params={"max_new_tokens": MAX_NEW_TOKENS})
     else:
@@ -115,6 +111,7 @@ for chatbot_name in chatbot_names:
                     example_pairs = example_pairs + "\n" + example   
                 else:
                     break   
+            lamp_prompt = prompter.lamp_prompt(dataset_num, prof_text=queries[i], examples=example_pairs)
         res = chatbot.prompt_chatbot(lamp_prompt)
         all_res.append(res)
         if (i+1)%500==0 or (i+1)==len(queries):
