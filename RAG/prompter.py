@@ -54,10 +54,10 @@ class Prompter():
                     }]
             else:
                 return [
-                    # {
-                    #     "role": "system",
-                    #    "content": ""
-                    #},
+                    {
+                         "role": "system",
+                        "content": ""
+                    },
                     {
                         "role": "user",
                         "content": strip_all(f"""Your task is to generate a title for the given abstract. You will only output the title and nothing else.
