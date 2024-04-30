@@ -1,7 +1,7 @@
 import difflib
 import re
 
-def lamp_output_formatter(output, dataset_num, model_name):
+def lamp_output_formatter(output, dataset_num):
     if dataset_num == 3:
         substring = "0"
         for c in output:
@@ -10,11 +10,12 @@ def lamp_output_formatter(output, dataset_num, model_name):
                     substring = c
                     break
     elif dataset_num == 5:
-        substring = output
-        if "MISTRAL-7B-v0.2-INSTRUCT" in model_name:
-            nl_index = substring.find("\n")
-            if nl_index != -1:
-                substring = substring[:nl_index]
+        dq_match = re.search(r'"([^"]*)"', output)
+        if dq_match:
+            substring = dq_match.group(0)
+        else:
+            substring = output
+        substring = substring.strip('"')
         title_index = substring.find("Title:")
         if title_index != -1:
             substring = substring[title_index + len("Title:"):]
@@ -34,9 +35,8 @@ def lamp_output_formatter(output, dataset_num, model_name):
         nl_index = substring.find("\n")
         if nl_index != -1:
             substring = substring[nl_index:]
-        if substring[0] == '"' and substring[-1] == '"':
-            substring = substring[1:-1]
     return substring.strip()
+
 
 def query_reform_formatter(query):
     query = query.strip('"')

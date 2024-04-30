@@ -37,7 +37,7 @@ for file in all_res_files:
     model_name = file.split("/")[-1][:-4]
     models.append(model_name)
     print(k, retriever, model_name)
-    preds = [lamp_output_formatter(pred, dataset_num, model_name) for pred in preds]
+    preds = [lamp_output_formatter(pred, dataset_num) for pred in preds]
     if dataset_num > 3:
         rouge_results = rouge.compute(predictions=preds, references=out_gts)
         rouge_results["k"] = k
