@@ -1,5 +1,6 @@
 import hashlib
 import os
+import time
 
 from sentence_transformers import SentenceTransformer
 import chromadb
@@ -7,11 +8,13 @@ from chromadb import Documents, EmbeddingFunction, Embeddings
 import chromadb.utils.embedding_functions as embedding_functions
 
 class VectorDB:
-    def __init__(self, file_loader, embed_type="hf", hf_embed_model="sentence-transformers/all-MiniLM-L6-v2"):
+    def __init__(self, file_loader, collection_name=None, embed_type="hf", hf_embed_model="sentence-transformers/all-MiniLM-L6-v2"):
         self.file_loader = file_loader
         self.embedding_function = self.get_embed_func(embed_type, hf_embed_model)
         self.client = chromadb.Client()
-        self.vector_db = self.client.get_or_create_collection(name="my_collection", embedding_function=self.embedding_function, metadata={"hnsw:space": "cosine"})
+        collection_name = collection_name if collection_name is not None else f"c_{round(time.time())}"
+        print(collection_name)
+        self.vector_db = self.client.get_or_create_collection(name=collection_name, embedding_function=self.embedding_function, metadata={"hnsw:space": "cosine"})
 
     def query_db(self, query=None, k=5, distance_threshold=0.5):
         if query:
