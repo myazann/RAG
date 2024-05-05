@@ -52,7 +52,7 @@ for chatbot_name in chatbot_names:
         chatbot = choose_bot(model_name=f"{chatbot_name}-{q_type}", gen_params={"max_new_tokens": MAX_NEW_TOKENS})
     else:
         chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS})
-    if k == "max" and int(chatbot.context_length) > int(max_context_length):
+    if "max" in k and int(chatbot.context_length) > int(max_context_length):
         exp_window = int(int(max_context_length)/1000)
         chatbot_name = f"{chatbot_name}-{exp_window}K"
         chatbot.context_length = max_context_length
