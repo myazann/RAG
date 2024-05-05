@@ -5,10 +5,14 @@ def lamp_output_formatter(output, dataset_num):
     if dataset_num == 3:
         substring = "0"
         for c in output:
-            if c.isdigit():
-                if 0 < int(c) and int(c) < 6:
-                    substring = c
-                    break
+            try:
+                if c.isdigit():
+                    if 0 < int(c) and int(c) < 6:
+                        substring = c
+                        break
+            except Exception as e:
+                print(e)
+                substring = "0"
     elif dataset_num == 5:
         dq_match = re.search(r'"([^"]*)"', output)
         if dq_match:
