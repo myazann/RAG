@@ -128,6 +128,9 @@ class FileLoader():
     def web_search(self, queries, num_results=3):
         url = 'https://www.googleapis.com/customsearch/v1'
         all_links = []
+        if isinstance(queries, str):
+            num_results *= 2
+            queries = [queries]
         for query in queries:
             try:
                 params = {

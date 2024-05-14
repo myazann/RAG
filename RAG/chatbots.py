@@ -226,8 +226,8 @@ class Chatbot:
         threshold = (num_iter//2)+1 
         for _ in range(num_iter):
             is_query.append(query_reform_formatter(self.prompt_chatbot(prompt).strip()))
-        is_q_count = len([q for q in is_query if "NO QUERY" in q])
-        if is_q_count > threshold:
-            return "NO QUERY"
+        no_q_count = len([q for q in is_query if "NO QUERY" in q])
+        if no_q_count > threshold:
+            return None
         else:
-            return list(set([q for q in is_query if "NO QUERY" not in q]))
+            return list(set([q for q in is_query if "NO QUERY" not in q]))[0]

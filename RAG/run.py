@@ -48,7 +48,7 @@ while True:
       if web_search:
         reform_query = query_bot.decide_on_query(QUERY_GEN_PROMPT)
         print(reform_query)
-        if reform_query != "NO QUERY":
+        if reform_query:
           search_urls = file_loader.web_search(reform_query)
           print(search_urls)
           db.add_file_to_db(search_urls)
