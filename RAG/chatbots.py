@@ -13,6 +13,7 @@ logging.set_verbosity_error()
 from openai import OpenAI
 from groq import Groq
 from anthropic import Anthropic
+import google.generativeai as genai
 
 from RAG.output_formatter import query_reform_formatter
 
@@ -88,9 +89,23 @@ class Chatbot:
             else:
                 message = chat_history + prompt
                 response = self.model.messages.create(model=self.repo_id, messages=message, **self.gen_params)
-            return response.content[0].text        
+            return response.content[0].text   
+        elif self.family == "GEMINI":
+            if len(prompt) > 1:
+                message = [prompt[0]] + chat_history + [prompt[1]]
+            else:
+                message = chat_history + prompt
+            messages = []
+            for turn in message:
+                role = "user" if turn["role"] in ["user", "system"] else "model"
+                messages.append({
+                    "role": role,
+                    "parts": [turn["content"]]
+                })
+            response = self.model.generate_content(messages, generation_config=genai.types.GenerationConfig(**self.gen_params))
+            return response.text     
         else:
-            if self.family in ["MISTRAL", "GEMMA"]:
+            if self.family in ["MISTRAL", "GEMMA", "GEMINI"]:
                 if len(prompt) > 1:
                     message = chat_history + [{"role": "user", "content": "\n".join([turn["content"] for turn in prompt])}]
                 else:
@@ -115,6 +130,8 @@ class Chatbot:
         if self.family == "CHATGPT":
             encoding = tiktoken.encoding_for_model(self.repo_id)
             return len(encoding.encode(prompt))
+        elif self.family == "GEMINI":
+            return self.model.count_tokens(prompt).total_tokens
         elif self.family == "CLAUDE":
             return self.model.count_tokens(prompt)
         else:
@@ -149,7 +166,7 @@ class Chatbot:
             return "PPLX"
         elif self.model_name.endswith("GROQ"):
             return "GROQ"
-        elif self.family in ["CLAUDE", "CHATGPT"]:
+        elif self.family in ["CLAUDE", "CHATGPT", "GEMINI"]:
             return "proprietary"
         else:
             return "default"
@@ -163,13 +180,20 @@ class Chatbot:
             return AutoTokenizer.from_pretrained(self.repo_id, use_fast=True)
             
     def get_gen_params(self, gen_params):
-        name_token_var = "max_tokens" if self.model_type in ["PPLX", "GROQ", "proprietary"] else "max_new_tokens"
+        if self.family == "GEMINI":
+            name_token_var = "max_output_tokens"
+        elif self.model_type in ["PPLX", "GROQ", "proprietary"]:
+            name_token_var = "max_tokens"
+        else:
+            name_token_var = "max_new_tokens"
         if gen_params is None:
             return {name_token_var: 512}
         if "max_new_tokens" in gen_params and name_token_var != "max_new_tokens":
             gen_params[name_token_var] = gen_params.pop("max_new_tokens")
         elif "max_tokens" in gen_params and name_token_var != "max_tokens":
             gen_params[name_token_var] = gen_params.pop("max_tokens")
+        elif "max_output_tokens" in gen_params and name_token_var != "max_output_tokens":
+            gen_params[name_token_var] = gen_params.pop("max_output_tokens")
         return gen_params
     
     def default_model_params(self):
@@ -202,6 +226,11 @@ class Chatbot:
                 return {
                     "api_key": os.getenv("OPENAI_API_KEY")
                 }
+            
+            elif self.family == "GEMINI":
+                return {
+                    "api_key": os.getenv("GOOGLE_API_KEY")
+                }
             else:
                 return self.default_model_params()
         else:
@@ -213,7 +242,10 @@ class Chatbot:
         elif self.family == "CHATGPT" or self.model_type == "PPLX":
             return OpenAI(**self.model_params)
         elif self.model_type == "GROQ":
-            return Groq(**self.model_params)                   
+            return Groq(**self.model_params)         
+        elif self.family == "GEMINI":
+            genai.configure(**self.model_params)
+            return genai.GenerativeModel(self.repo_id)       
         else:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,

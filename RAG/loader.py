@@ -36,9 +36,9 @@ class FileLoader():
                 metadatas = []
                 for url in all_urls:
                     try:
-                        response = requests.head(url)
+                        response = requests.head(url, timeout=5)
                         content_type = response.headers.get('Content-Type')
-                        if content_type != "application/pdf":
+                        if "text/html" in content_type:
                             response = requests.get(url, timeout=3)
                             if response.status_code == 200:
                                 html_content = response.text

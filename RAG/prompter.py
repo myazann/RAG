@@ -197,12 +197,11 @@ class Prompter():
         return [
             {
                 "role": "system",
-                "content": strip_all("""Your task is to transform the user message into a web search query. Follow these steps:\n1. If the user message is ambiguous or unclear because it references something from the earlier messages, use the chat history to resolve the ambiguity and make the query clear and specific.\n2. However, if the user message is not connected to the earlier chat history, do not try to use the history to modify it. And if the user message is already in the format of a clear search query, output it as-is without any changes.\n3. There are a few situations where you should output only "NO QUERY" instead of transforming the message into a search query:\n- If the user is asking a question about you\n- If the user message consists of only a single common word like a number or object name\n4. Output ONLY the final search query. Do not provide any additional explanation or commentary.""")
+                "content": strip_all("""Your task is to transform the user message into a web search query. Follow these steps:\n1. If the user message is ambiguous or unclear because it references something from the earlier messages, use the chat history to resolve the ambiguity and make the query clear and specific.\n2. However, if the user message is not connected to the earlier chat history, do not try to use the history to modify it. If the user message is already in the format of a clear search query, output it as-is without any changes.\n3. There are a few situations where you should output only "NO QUERY" instead of transforming the message into a search query:\n- If the user is asking a question about you\n- If the user message consists of only a single common word like a number or object name\n4. Output ONLY the final search query. Your output should be concise and should not have any ambiguity. Do not provide any additional explanation or commentary.""")
             }, 
             {
                 "role": "user",
-                "content": strip_all(f"""Here is the chat history:\n<chat_history>:\n{chat_history}\n</chat_history>
-                                        And here is the most recent user message:\n<user_message>\n{user_input}\n</user_message>""")
+                "content": strip_all(f"""Here is the chat history:\n<chat_history>:\n{chat_history}\n</chat_history>.\n Here is the most recent user message:\n<user_message>\n{user_input}\n</user_message>""")
             }]
 
     def query_gen_prompt(self, chat_history, user_input):

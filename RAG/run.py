@@ -32,6 +32,7 @@ while True:
   if query == "1":
     chat_history = []
     print("History cleared!")
+    db = VectorDB(file_loader)
   else:
     reform_query = ""
     retr_docs = []
@@ -59,7 +60,7 @@ while True:
       k = 10
       if reform_query == "":
         reform_query = query_bot.decide_on_query(QUERY_GEN_PROMPT)
-      if reform_query != "NO QUERY":
+      if reform_query:
         retr_docs, distances, metadatas = db.query_db(query=reform_query, k=k, distance_threshold=0.75)
         print(distances)
         print(f"Time passed in retrieval: {round(time.time()-start_time, 2)} secs")
