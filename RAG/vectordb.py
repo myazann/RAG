@@ -13,7 +13,6 @@ class VectorDB:
         self.embedding_function = self.get_embed_func(embed_type, hf_embed_model)
         self.client = chromadb.Client()
         collection_name = collection_name if collection_name is not None else f"c_{round(time.time())}"
-        print(collection_name)
         self.vector_db = self.client.get_or_create_collection(name=collection_name, embedding_function=self.embedding_function, metadata={"hnsw:space": "cosine"})
 
     def query_db(self, query=None, k=5, distance_threshold=0.5):

@@ -138,7 +138,7 @@ class Prompter():
             }
         ]
        
-    def eval_qa_prompt(self, question, solution, answer):
+    def eval_qa_prompt(self, query, solution, answer):
         return [
             {
                 "role": "system",
@@ -156,30 +156,14 @@ class Prompter():
             {
                 "role": "user",
                 "content": strip_all(f"""Question: 
-                                        {question}
+                                        {query}
                                         Solution: 
                                         {solution}
                                         Answer:
                                         {answer}""")
             }]
-
-    def qa_prompt(self, context, chat_history, question):
-        return [
-            {
-                "role": "system",
-                "content": strip_all("Your job is to give an answer to the user input at the end. You can use the pieces of context and the chat history to give an answer. The context and chat history are to help you give a satisfactory answer to the user input, but if the user input is irrelevant to the context and history, you don't have to use them to answer it. If you don't know the answer to the input, don't try to make up an answer."),
-            }, 
-            {
-                "role": "user",
-                "content": strip_all(f"""Context:
-                                        {context}
-                                        Chat History:
-                                        {chat_history}                     
-                                        User Input:
-                                        {question}""")
-            }]
     
-    def conv_agent_prompt(self, info, user_input):
+    def conv_agent_prompt(self, query, context):
         return [
             {
                 "role": "system",
@@ -188,12 +172,12 @@ class Prompter():
             {
                 "role": "user",
                 "content": strip_all(f"""Related information:
-                                        {info}
+                                        {context}
                                         User input:
-                                        {user_input}""")
+                                        {query}""")
             }]
 
-    def query_gen_prompt_claude(self, chat_history, user_input):
+    def query_gen_prompt_claude(self, query, chat_history):
         return [
             {
                 "role": "system",
@@ -201,10 +185,10 @@ class Prompter():
             }, 
             {
                 "role": "user",
-                "content": strip_all(f"""Here is the chat history:\n<chat_history>:\n{chat_history}\n</chat_history>.\n Here is the most recent user message:\n<user_message>\n{user_input}\n</user_message>""")
+                "content": strip_all(f"""Here is the chat history:\n<chat_history>:\n{chat_history}\n</chat_history>.\n Here is the most recent user message:\n<user_message>\n{query}\n</user_message>""")
             }]
 
-    def query_gen_prompt(self, chat_history, user_input):
+    def query_gen_prompt(self, query, chat_history):
         return [
             {
                 "role": "system",
@@ -214,7 +198,7 @@ class Prompter():
             {
                 "role": "user",
                 "content": strip_all(f"""Chat History: {chat_history}
-                                        User: {user_input}
+                                        User: {query}
                                         Query:""")
             }]
     
@@ -233,7 +217,7 @@ class Prompter():
                                         New summary:""")
             }]
       
-    def multi_query_prompt(self, question, n=3):
+    def multi_query_prompt(self, query, n=3):
         return [
             {
                 "role": "system",
@@ -241,5 +225,5 @@ class Prompter():
             }, 
             {
                 "role": "user",
-                "content": strip_all(f"Question: {question}")
+                "content": strip_all(f"Question: {query}")
             }]

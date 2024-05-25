@@ -59,12 +59,11 @@ def choose_bot(model_name=None, model_params=None, gen_params=None):
 class Chatbot:
 
     def __init__(self, model_name, model_params=None, gen_params=None) -> None:
-        huggingface_hub.login(token=os.getenv("HF_API_KEY"), new_session=False)
         self.cfg = get_model_cfg()[model_name]
         self.model_name = model_name
         self.family = model_name.split("-")[0]
         self.repo_id = self.cfg.get("repo_id")
-        self.context_length = self.cfg.get("context_length")
+        self.context_length = int(self.cfg.get("context_length"))
         self.model_type = self.get_model_type()
         self.tokenizer = self.init_tokenizer()
         self.model_params = self.get_model_params(model_params)
@@ -74,6 +73,9 @@ class Chatbot:
     def prompt_chatbot(self, prompt, chat_history=[]):
         if chat_history:
             chat_history = self.trunc_chat_history(chat_history)
+        avail_space = self.get_avail_space(prompt + chat_history)
+        if not avail_space:
+            return "Sorry, I can't process that much text at the same time. Can you please shorten your message?"
         if self.model_type in ["PPLX", "GROQ"] or self.family == "CHATGPT":
             if len(prompt) > 1:
                 message = [prompt[0]] + chat_history + [prompt[1]]
@@ -156,6 +158,26 @@ class Chatbot:
         elif strategy == "optim":
             avail_space /= 2
         return int(np.floor(avail_space/avg_chunk_len))
+    
+    def get_avail_space(self, prompt):
+        avail_space = self.context_length - self.gen_params[self.name_token_var] - self.count_tokens(prompt)
+        if avail_space <= 0:
+            return None
+        else:
+            return avail_space 
+
+    def prep_context(self, prompt, context, chat_history=[]):
+        if chat_history:
+            chat_history = self.trunc_chat_history(chat_history)
+        avail_space = self.get_avail_space(prompt + chat_history)            
+        while True:
+            info = "\n".join([doc for doc in context])
+            if self.count_tokens(info) > avail_space:
+                print("Context exceeds context window, removing one document!")
+                context = context[:-1]
+            else:
+                break
+        return info
 
     def get_model_type(self):
         if self.model_name.endswith("GPTQ"):
@@ -181,19 +203,19 @@ class Chatbot:
             
     def get_gen_params(self, gen_params):
         if self.family == "GEMINI":
-            name_token_var = "max_output_tokens"
+            self.name_token_var = "max_output_tokens"
         elif self.model_type in ["PPLX", "GROQ", "proprietary"]:
-            name_token_var = "max_tokens"
+            self.name_token_var = "max_tokens"
         else:
-            name_token_var = "max_new_tokens"
+            self.name_token_var = "max_new_tokens"
         if gen_params is None:
-            return {name_token_var: 512}
-        if "max_new_tokens" in gen_params and name_token_var != "max_new_tokens":
-            gen_params[name_token_var] = gen_params.pop("max_new_tokens")
-        elif "max_tokens" in gen_params and name_token_var != "max_tokens":
-            gen_params[name_token_var] = gen_params.pop("max_tokens")
-        elif "max_output_tokens" in gen_params and name_token_var != "max_output_tokens":
-            gen_params[name_token_var] = gen_params.pop("max_output_tokens")
+            return {self.name_token_var: 512}
+        if "max_new_tokens" in gen_params and self.name_token_var != "max_new_tokens":
+            gen_params[self.name_token_var] = gen_params.pop("max_new_tokens")
+        elif "max_tokens" in gen_params and self.name_token_var != "max_tokens":
+            gen_params[self.name_token_var] = gen_params.pop("max_tokens")
+        elif "max_output_tokens" in gen_params and self.name_token_var != "max_output_tokens":
+            gen_params[self.name_token_var] = gen_params.pop("max_output_tokens")
         return gen_params
     
     def default_model_params(self):
@@ -247,6 +269,7 @@ class Chatbot:
             genai.configure(**self.model_params)
             return genai.GenerativeModel(self.repo_id)       
         else:
+            huggingface_hub.login(token=os.getenv("HF_API_KEY"), new_session=False)
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
                     **self.model_params,

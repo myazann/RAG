@@ -23,16 +23,18 @@ while True:
   print("User: ")
   query = input().strip()
   hist_to_str = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in chatbot.trunc_chat_history(chat_history)])
-  QUERY_GEN_PROMPT = prompter.query_gen_prompt_claude(chat_history=hist_to_str, user_input=query)
+  QUERY_GEN_PROMPT = prompter.query_gen_prompt_claude(query=query, chat_history=hist_to_str)
   if query == "0":
     print("Bye!")
     break
   if query == "-1":
     chatbot = choose_bot()
+    continue
   if query == "1":
     chat_history = []
     print("History cleared!")
     db = VectorDB(file_loader)
+    continue
   else:
     reform_query = ""
     retr_docs = []
@@ -48,8 +50,8 @@ while True:
     else:
       if web_search:
         reform_query = query_bot.decide_on_query(QUERY_GEN_PROMPT)
-        print(reform_query)
         if reform_query:
+          print(reform_query)
           search_urls = file_loader.web_search(reform_query)
           print(search_urls)
           db.add_file_to_db(search_urls)
@@ -65,15 +67,10 @@ while True:
         print(distances)
         print(f"Time passed in retrieval: {round(time.time()-start_time, 2)} secs")
     info = ""
-    while True:
-      if retr_docs:
-        info = "\n".join([doc for doc in retr_docs])
-      CONV_CHAIN_PROMPT = prompter.conv_agent_prompt(user_input=query, info=info)
-      if chatbot.count_tokens(CONV_CHAIN_PROMPT) > int(chatbot.context_length):
-        print("Context exceeds context window, removing one document!")
-        retr_docs = retr_docs[:-1]
-      else:
-        break
+    CONV_CHAIN_PROMPT = prompter.conv_agent_prompt(query=query, context=info)
+    if retr_docs:
+      info = chatbot.prep_context(CONV_CHAIN_PROMPT, retr_docs, chat_history)
+    CONV_CHAIN_PROMPT = prompter.conv_agent_prompt(query=query, context=info)
     print(f"Time passed until generation: {round(time.time()-start_time, 2)} secs!")
     answer = chatbot.prompt_chatbot(CONV_CHAIN_PROMPT, chat_history)
     print("\nChatbot:")
