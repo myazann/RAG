@@ -44,7 +44,8 @@ class VectorDB:
         ids = [hashlib.sha256(f"{source}-chunksize:{splitter_params['chunk_size']}-chunkoverlap:{splitter_params['chunk_overlap']}-{i}".encode()).hexdigest()
                for i, source in enumerate(sources)]
         sources = [{"source": i} for i in sources]
-        self.vector_db.upsert(ids=ids, documents=text_chunks, metadatas=sources)
+        if ids:
+            self.vector_db.upsert(ids=ids, documents=text_chunks, metadatas=sources)
 
 class TurkishEmbeddings(EmbeddingFunction):
     def __call__(self, input: Documents) -> Embeddings:
