@@ -2,6 +2,7 @@ import time
 import warnings
 warnings.filterwarnings("ignore")
 import os
+from transformers import BitsAndBytesConfig
 
 from RAG.chatbots import choose_bot
 from RAG.utils import get_args
@@ -12,7 +13,7 @@ from RAG.prompter import Prompter
 args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
-chatbot = choose_bot()
+chatbot = choose_bot(model_params={"quantization_config": BitsAndBytesConfig(load_in_4bit=True)})
 query_bot = choose_bot(model_name="LLAMA3-70B-PPLX")
 prompter = Prompter()
 db = VectorDB(file_loader)

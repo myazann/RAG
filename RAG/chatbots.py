@@ -117,8 +117,9 @@ class Chatbot:
                     message = [prompt[0]] + chat_history + [prompt[1]]
                 else:
                     message = chat_history + prompt
-            pipe = pipeline("conversational", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
-            return pipe(message).messages[-1]["content"]
+            pipe = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
+            print(pipe(message))
+            return pipe(message)[0]["generated_text"][-1]["content"]
     
     def stream_output(self, output):
         for char in output:
