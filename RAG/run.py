@@ -13,7 +13,8 @@ from RAG.prompter import Prompter
 args = get_args()
 web_search = args.web_search
 file_loader = FileLoader()
-chatbot = choose_bot(model_params={"quantization_config": BitsAndBytesConfig(load_in_4bit=True)})
+# model_params={"quantization_config": BitsAndBytesConfig(load_in_4bit=True)}
+chatbot = choose_bot()
 query_bot = choose_bot(model_name="LLAMA3-70B-PPLX")
 prompter = Prompter()
 db = VectorDB(file_loader)
@@ -73,7 +74,7 @@ while True:
       info = chatbot.prep_context(CONV_CHAIN_PROMPT, retr_docs, chat_history)
     CONV_CHAIN_PROMPT = prompter.conv_agent_prompt(query=query, context=info)
     print(f"Time passed until generation: {round(time.time()-start_time, 2)} secs!")
-    answer = chatbot.prompt_chatbot(CONV_CHAIN_PROMPT, chat_history)
+    answer = chatbot.prompt_chatbot(CONV_CHAIN_PROMPT, chat_history).strip()
     print("\nChatbot:")
     chatbot.stream_output(answer)
     end_time = time.time()

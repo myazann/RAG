@@ -3,14 +3,14 @@ import os
 from pathlib import Path
 import sys
 import time
-import huggingface_hub
+from huggingface_hub import hf_hub_download, login
 
 import tiktoken
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, logging
 logging.set_verbosity_error()
-
 from openai import OpenAI
+from llama_cpp import Llama
 from groq import Groq
 from anthropic import Anthropic
 import google.generativeai as genai
@@ -63,6 +63,7 @@ class Chatbot:
         self.model_name = model_name
         self.family = model_name.split("-")[0]
         self.repo_id = self.cfg.get("repo_id")
+        self.file_name = self.cfg.get("file_name", None)
         self.context_length = int(self.cfg.get("context_length"))
         self.model_type = self.get_model_type()
         self.tokenizer = self.init_tokenizer()
@@ -107,7 +108,7 @@ class Chatbot:
             response = self.model.generate_content(messages, generation_config=genai.types.GenerationConfig(**self.gen_params))
             return response.text     
         else:
-            if self.family in ["MISTRAL", "GEMMA", "GEMINI"]:
+            if self.family in ["MISTRAL", "GEMMA"]:
                 if len(prompt) > 1:
                     message = chat_history + [{"role": "user", "content": "\n".join([turn["content"] for turn in prompt])}]
                 else:
@@ -117,9 +118,12 @@ class Chatbot:
                     message = [prompt[0]] + chat_history + [prompt[1]]
                 else:
                     message = chat_history + prompt
-            pipe = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
-            print(pipe(message))
-            return pipe(message)[0]["generated_text"][-1]["content"]
+            if self.model_type == "GGUF":
+                response = self.model.create_chat_completion(message, **self.gen_params)
+                return response["choices"][-1]["message"]["content"]
+            else:
+                pipe = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
+                return pipe(message)[0]["generated_text"][-1]["content"]
     
     def stream_output(self, output):
         for char in output:
@@ -189,13 +193,15 @@ class Chatbot:
             return "PPLX"
         elif self.model_name.endswith("GROQ"):
             return "GROQ"
+        elif self.model_name.endswith("GGUF"):
+            return "GGUF"
         elif self.family in ["CLAUDE", "CHATGPT", "GEMINI"]:
             return "proprietary"
         else:
             return "default"
         
     def init_tokenizer(self):
-        if self.model_type in ["AWQ", "GPTQ", "PPLX", "GROQ"]:
+        if self.model_type in ["AWQ", "GPTQ", "PPLX", "GROQ", "GGUF"]:
             return AutoTokenizer.from_pretrained(self.cfg.get("tokenizer"), use_fast=True)
         elif self.model_type in ["proprietary"]:
             return None
@@ -205,7 +211,7 @@ class Chatbot:
     def get_gen_params(self, gen_params):
         if self.family == "GEMINI":
             self.name_token_var = "max_output_tokens"
-        elif self.model_type in ["PPLX", "GROQ", "proprietary"]:
+        elif self.model_type in ["PPLX", "GROQ", "GGUF", "proprietary"]:
             self.name_token_var = "max_tokens"
         else:
             self.name_token_var = "max_new_tokens"
@@ -218,17 +224,6 @@ class Chatbot:
         elif "max_output_tokens" in gen_params and self.name_token_var != "max_output_tokens":
             gen_params[self.name_token_var] = gen_params.pop("max_output_tokens")
         return gen_params
-    
-    def default_model_params(self):
-        if self.family == "LLAMA2":
-            return {
-                "trust_remote_code": True,
-                "pad_token_id": self.tokenizer.eos_token_id,
-                "eos_token_id": self.tokenizer.eos_token_id,
-                "token": True,
-                }
-        else:
-            return {}
     
     def get_model_params(self, model_params):
         if model_params is None:
@@ -254,8 +249,14 @@ class Chatbot:
                 return {
                     "api_key": os.getenv("GOOGLE_API_KEY")
                 }
+            elif self.model_type == "GGUF":
+                return {
+                    "n_gpu_layers": -1,
+                    "verbose": False,
+                    "n_ctx": self.context_length
+                }
             else:
-                return self.default_model_params()
+                return {}
         else:
             return model_params
     
@@ -269,8 +270,15 @@ class Chatbot:
         elif self.family == "GEMINI":
             genai.configure(**self.model_params)
             return genai.GenerativeModel(self.repo_id)       
+        elif self.model_type == "GGUF":
+            model_path = os.path.join("GGUF", self.file_name)
+            if not os.path.exists(model_path):
+                login(token=os.getenv("HF_API_KEY"), new_session=False)
+                os.makedirs("GGUF", exist_ok=True)
+                hf_hub_download(repo_id=self.repo_id, filename=self.file_name, local_dir="GGUF", local_dir_use_symlinks=False)
+            return Llama(model_path=model_path, **self.model_params)
         else:
-            huggingface_hub.login(token=os.getenv("HF_API_KEY"), new_session=False)
+            login(token=os.getenv("HF_API_KEY"), new_session=False)
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
                     **self.model_params,
