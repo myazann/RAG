@@ -59,6 +59,7 @@ def choose_bot(model_name=None, model_params=None, gen_params=None):
 class Chatbot:
 
     def __init__(self, model_name, model_params=None, gen_params=None) -> None:
+        login(token=os.getenv("HF_API_KEY"), new_session=False)
         self.cfg = get_model_cfg()[model_name]
         self.model_name = model_name
         self.family = model_name.split("-")[0]
@@ -271,14 +272,17 @@ class Chatbot:
             genai.configure(**self.model_params)
             return genai.GenerativeModel(self.repo_id)       
         elif self.model_type == "GGUF":
-            model_path = os.path.join("GGUF", self.file_name)
+            if os.getenv("HF_HOME") is None:
+                hf_cache_path = os.path.join(os.path.expanduser('~'), ".cache", "huggingface", "hub")
+            else:
+                hf_cache_path = os.getenv("HF_HOME")
+            model_path = os.path.join(hf_cache_path, self.file_name)
+            print(model_path)
             if not os.path.exists(model_path):
-                login(token=os.getenv("HF_API_KEY"), new_session=False)
-                os.makedirs("GGUF", exist_ok=True)
-                hf_hub_download(repo_id=self.repo_id, filename=self.file_name, local_dir="GGUF", local_dir_use_symlinks=False)
+                hf_hub_download(repo_id=self.repo_id, filename=self.file_name, local_dir=hf_cache_path)
             return Llama(model_path=model_path, **self.model_params)
         else:
-            login(token=os.getenv("HF_API_KEY"), new_session=False)
+            
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
                     **self.model_params,
