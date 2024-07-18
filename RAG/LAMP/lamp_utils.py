@@ -1,12 +1,10 @@
 import argparse
-from itertools import chain
 import os
 import pickle
 import json
 import urllib
 
 import numpy as np
-import pandas as pd
 import torch
 from rank_bm25 import BM25Okapi
 from transformers import AutoTokenizer, DPRQuestionEncoder, DPRQuestionEncoderTokenizer
@@ -25,26 +23,28 @@ def get_lamp_args():
 def get_lamp_dataset(dataset_num, mode="dev"):
     lamp_dataset_path = "datasets"
     os.makedirs(lamp_dataset_path, exist_ok=True)
-    data_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_{mode}_data.pkl")
+    data_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_{mode}_data.json")
+    gts = None
     if os.path.exists(data_path):
-        with open(data_path, "rb") as f:
-            data = pickle.load(f)
+        with open(data_path, "r") as f:
+            data = json.load(f)
     else:
         with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
             data = json.load(url)
             data = sorted(data, key=lambda x: int(x["id"]))
-        with open(data_path, "wb") as f:
-            pickle.dump(data, f)
-    gts_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_{mode}_gts.pkl")
-    if os.path.exists(gts_path):
-        with open(gts_path, "rb") as f:
-            gts = pickle.load(f)
-    else:
-        with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_outputs.json") as url:
-            gts = json.load(url)["golds"]
-            gts = sorted(gts, key=lambda x: int(x["id"]))
-        with open(gts_path, "wb") as f:
-            pickle.dump(gts, f)
+        with open(data_path, "w") as f:
+            json.dump(data, f)
+    if mode != "test":
+        gts_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_{mode}_gts.json")
+        if os.path.exists(gts_path):
+            with open(gts_path, "r") as f:
+                gts = json.load(f)
+        else:
+            with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_outputs.json") as url:
+                gts = json.load(url)["golds"]
+                gts = sorted(gts, key=lambda x: int(x["id"]))
+            with open(gts_path, "w") as f:
+                json.dump(gts, f)
     return data, gts
 
 def get_profvar_names(dataset_num):

@@ -1,6 +1,6 @@
 import os
 import time
-import pickle
+import json
 import sys
 import torch 
 import subprocess
@@ -28,15 +28,8 @@ if k == "0":
 else:
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}/{retriever}"
 os.makedirs(out_dir, exist_ok=True)
-print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever}")
+print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever} on {dataset_split} set")
 for chatbot_name in chatbot_names:
-    if chatbot_name in ["LLAMA2-70B", "YI-34B-CHAT", "MISTRAL-8x7B-v0.1-INSTRUCT"]:
-        if q_type is None:
-            print("This model cannot be run unquantized!") 
-            continue
-        elif q_type == "GPTQ":
-            print("GPTQ implementation of this model is not stable!")
-            continue
     if q_type is not None:
         chatbot = choose_bot(model_name=f"{chatbot_name}-{q_type}", gen_params={"max_new_tokens": MAX_NEW_TOKENS})
     else:
@@ -49,10 +42,10 @@ for chatbot_name in chatbot_names:
         chatbot_name = f"{chatbot_name}-{q_type}"
     print(subprocess.run("gpustat"))
     print(chatbot_name)
-    file_out_path = f"{out_dir}/{chatbot_name}.pkl"
+    file_out_path = f"{out_dir}/{chatbot_name}.json"
     if os.path.exists(file_out_path):
         with open(file_out_path, "rb") as f:
-             all_res = pickle.load(f)
+             all_res = json.load(f)["golds"]
     else:
         all_res = []
     if len(all_res) == len(data):
@@ -108,8 +101,8 @@ for chatbot_name in chatbot_names:
         })
         if (i+1)%500==0 or (i+1)==len(queries):
             print(i)
-            with open(file_out_path, "wb") as f:
-                pickle.dump({
+            with open(file_out_path, "w") as f:
+                json.dump({
                     "task": f"LaMP_{dataset_num}",
                     "golds": all_res
                 }, f)

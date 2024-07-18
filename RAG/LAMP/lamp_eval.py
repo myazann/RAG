@@ -1,18 +1,18 @@
-import pickle
+import json
 import pandas as pd
 from evaluate import load
 from sklearn.metrics import f1_score, mean_absolute_error, mean_squared_error
 
 from RAG.utils import list_files_in_directory
 from RAG.output_formatter import lamp_output_formatter
-from lamp_utils import get_lamp_args, create_retr_data, get_lamp_dataset
+from lamp_utils import get_lamp_args, get_lamp_dataset
 
 args = get_lamp_args()
 dataset_num = args.dataset_num
 dataset_split = args.dataset_split
 all_res_files = sorted(list_files_in_directory(f"res_pkls/D{dataset_num}/{dataset_split}"))
 data, out_gts = get_lamp_dataset(dataset_num)
-_, _, _, out_gts, _ = create_retr_data(data[dataset_split], out_gts[dataset_split], dataset_num)
+out_gts = [p["output"] for p in out_gts]
 all_res = []
 models = []
 cols = ["model", "retriever", "k"]
@@ -22,10 +22,11 @@ if dataset_num > 3:
 else:
     cols.extend(["acc", "f1_macro", "mae", "rmse"])
 for file in all_res_files:
-    with open(file, "rb") as f:
-        preds = pickle.load(f)
+    with open(file, "r") as f:
+        preds = json.load(f)["golds"]
     if len(preds) != len(out_gts):
         continue
+    preds = [p["output"] for p in preds]
     params = file.split("/")
     if len(params) == 5:
         k = "0"
@@ -33,7 +34,7 @@ for file in all_res_files:
     else:
         k = params[-3][1:] 
         retriever = file.split("/")[-2]
-    model_name = file.split("/")[-1][:-4]
+    model_name = file.split("/")[-1][:-5]
     models.append(model_name)
     print(k, retriever, model_name)
     preds = [lamp_output_formatter(pred, dataset_num) for pred in preds]
