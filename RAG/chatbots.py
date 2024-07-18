@@ -78,7 +78,7 @@ class Chatbot:
         avail_space = self.get_avail_space(prompt + chat_history)
         if not avail_space:
             return "Sorry, I can't process that much text at the same time. Can you please shorten your message?"
-        if self.model_type in ["PPLX", "GROQ", "TGTR"] or self.family == "CHATGPT":
+        if self.model_type in ["PPLX", "GROQ", "TGTR"] or self.family == "GPT":
             if len(prompt) > 1:
                 message = [prompt[0]] + chat_history + [prompt[1]]
             else:
@@ -135,7 +135,7 @@ class Chatbot:
     def count_tokens(self, prompt):
         if isinstance(prompt, list):
             prompt = "\n".join([turn["content"] for turn in prompt])
-        if self.family == "CHATGPT":
+        if self.family == "GPT":
             encoding = tiktoken.encoding_for_model(self.repo_id)
             return len(encoding.encode(prompt))
         elif self.family == "GEMINI":
@@ -201,7 +201,7 @@ class Chatbot:
             return "TGTR"
         elif self.model_name.endswith("GGUF"):
             return "GGUF"
-        elif self.family in ["CLAUDE", "CHATGPT", "GEMINI"]:
+        elif self.family in ["CLAUDE", "GPT", "GEMINI"]:
             return "proprietary"
         else:
             return "default"
@@ -251,7 +251,7 @@ class Chatbot:
                 return {
                     "api_key": os.getenv("ANTHROPIC_API_KEY")
                 }
-            elif self.family == "CHATGPT":
+            elif self.family == "GPT":
                 return {
                     "api_key": os.getenv("OPENAI_API_KEY")
                 }
@@ -273,7 +273,7 @@ class Chatbot:
     def init_model(self):
         if self.family == "CLAUDE":
             return Anthropic(**self.model_params)
-        elif self.family == "CHATGPT" or self.model_type in ["PPLX", "TGTR"]:
+        elif self.family == "GPT" or self.model_type in ["PPLX", "TGTR"]:
             return OpenAI(**self.model_params)
         elif self.model_type == "GROQ":
             return Groq(**self.model_params)         
