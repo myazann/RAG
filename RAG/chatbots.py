@@ -38,7 +38,7 @@ def choose_bot(model_name=None, model_params=None, gen_params=None):
                     print("Please select from one of the options!")
                 else:
                     break
-            num_repo = dict({str(k): v for k, v in enumerate([model for model in models if model_family in model])})
+            num_repo = dict({str(k): v for k, v in enumerate([model for model in models if model.startswith(model_family)])})
             print("\nChoose a version or type 'b' to return to the previous menu:\n")
             for i, repo in num_repo.items():
                 repo_name = repo.replace("_", "-")
