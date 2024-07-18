@@ -22,50 +22,30 @@ def get_lamp_args():
    parser.add_argument("-mcl", "--max_context_length", default=4096, type=int)
    return parser.parse_args()
 
-def get_lamp_dataset(dataset_num, modes="train_dev"):
-    all_data = {}
-    all_gts = {}
+def get_lamp_dataset(dataset_num, mode="dev"):
     lamp_dataset_path = "datasets"
     os.makedirs(lamp_dataset_path, exist_ok=True)
-    if modes == "train_dev":
-        all_modes = modes.split("_")
+    data_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_{mode}_data.pkl")
+    if os.path.exists(data_path):
+        with open(data_path, "rb") as f:
+            data = pickle.load(f)
     else:
-        all_modes = [modes]
-    for mode in all_modes:
-        data_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_{mode}_data.pkl")
-        if os.path.exists(data_path):
-            with open(data_path, "rb") as f:
-                data = pickle.load(f)
-        else:
-            with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
-                data = json.load(url)
-                data = sorted(data, key=lambda x: int(x["id"]))
-            with open(data_path, "wb") as f:
-                pickle.dump(data, f)
-        all_data[mode] = data
-        gts_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_{mode}_gts.pkl")
-        if os.path.exists(gts_path):
-            with open(gts_path, "rb") as f:
-                gts = pickle.load(f)
-        else:
-            with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_outputs.json") as url:
-                gts = json.load(url)["golds"]
-                gts = sorted(gts, key=lambda x: int(x["id"]))
-            with open(gts_path, "wb") as f:
-                pickle.dump(gts, f)
-        all_gts[mode] = gts
-    if modes == "train_dev":
-        train_dev_data = []
-        for _, value in all_data.items():
-            train_dev_data.extend(list(value))
-        all_data["train_dev"] = sorted(train_dev_data , key=lambda x: int(x["id"]))
-        train_dev_gts  = []
-        for _, value in all_gts.items():
-            train_dev_gts.extend(list(value))
-        all_gts["train_dev"] = sorted(train_dev_gts, key=lambda x: int(x["id"]))
-    for mode, gts in all_gts.items():
-        all_gts[mode] = [gt["output"] for gt in gts]
-    return all_data, all_gts
+        with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_questions.json") as url:
+            data = json.load(url)
+            data = sorted(data, key=lambda x: int(x["id"]))
+        with open(data_path, "wb") as f:
+            pickle.dump(data, f)
+    gts_path = os.path.join(lamp_dataset_path, f"lamp_{dataset_num}_{mode}_gts.pkl")
+    if os.path.exists(gts_path):
+        with open(gts_path, "rb") as f:
+            gts = pickle.load(f)
+    else:
+        with urllib.request.urlopen(f"https://ciir.cs.umass.edu/downloads/LaMP/LaMP_{dataset_num}/{mode}/{mode}_outputs.json") as url:
+            gts = json.load(url)["golds"]
+            gts = sorted(gts, key=lambda x: int(x["id"]))
+        with open(gts_path, "wb") as f:
+            pickle.dump(gts, f)
+    return data, gts
 
 def get_profvar_names(dataset_num):
     if dataset_num == 5:
@@ -78,7 +58,7 @@ def get_profvar_names(dataset_num):
         prof_prompt_name = "review"
     return prof_text_name, prof_gt_name, prof_prompt_name
 
-def create_retr_data(data, out_gts, dataset_num=5):
+def create_retr_data(data, dataset_num=5):
     queries = []
     profile_text = []
     profile_gts = []
@@ -88,6 +68,8 @@ def create_retr_data(data, out_gts, dataset_num=5):
         queries.append(sample["input"][text_idx:].strip())
         profile_gts.append([p[prof_gt_name] for p in sample["profile"]])
         profile_text.append([p[prof_text_name] for p in sample["profile"]])
+    return queries, profile_text, profile_gts
+    """
     query_lens = pd.Series([len(query.split(" ")) for query in queries])
     query_len_cutoff = query_lens.quantile(0.995)
     outgts_idx = []
@@ -109,6 +91,7 @@ def create_retr_data(data, out_gts, dataset_num=5):
         profile_text[ic] = [i for j, i in enumerate(profile_text[ic]) if j not in out_idx]
         profile_gts[ic] = [i for j, i in enumerate(profile_gts[ic]) if j not in out_idx]
     return queries, profile_text, profile_gts, out_gts, outgts_idx
+    """
 
 def retrieved_idx(prof_text, queries, dataset_num, dataset_split, model="bm25", device="cuda:0"):
     retr_path = f"retrievers/{dataset_num}/{dataset_split}"

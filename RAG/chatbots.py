@@ -78,7 +78,7 @@ class Chatbot:
         avail_space = self.get_avail_space(prompt + chat_history)
         if not avail_space:
             return "Sorry, I can't process that much text at the same time. Can you please shorten your message?"
-        if self.model_type in ["PPLX", "GROQ"] or self.family == "CHATGPT":
+        if self.model_type in ["PPLX", "GROQ", "TGTR"] or self.family == "CHATGPT":
             if len(prompt) > 1:
                 message = [prompt[0]] + chat_history + [prompt[1]]
             else:
@@ -175,15 +175,18 @@ class Chatbot:
     def prep_context(self, prompt, context, chat_history=[]):
         if chat_history:
             chat_history = self.trunc_chat_history(chat_history)
-        avail_space = self.get_avail_space(prompt + chat_history)            
-        while True:
-            info = "\n".join([doc for doc in context])
-            if self.count_tokens(info) > avail_space:
-                print("Context exceeds context window, removing one document!")
-                context = context[:-1]
-            else:
-                break
-        return info
+        avail_space = self.get_avail_space(prompt + chat_history)   
+        if avail_space:         
+            while True:
+                info = "\n".join([doc for doc in context])
+                if self.count_tokens(info) > avail_space:
+                    print("Context exceeds context window, removing one document!")
+                    context = context[:-1]
+                else:
+                    break
+            return info
+        else:
+            return -1
 
     def get_model_type(self):
         if self.model_name.endswith("GPTQ"):
@@ -194,6 +197,8 @@ class Chatbot:
             return "PPLX"
         elif self.model_name.endswith("GROQ"):
             return "GROQ"
+        elif self.model_name.endswith("TGTR"):
+            return "TGTR"
         elif self.model_name.endswith("GGUF"):
             return "GGUF"
         elif self.family in ["CLAUDE", "CHATGPT", "GEMINI"]:
@@ -202,7 +207,7 @@ class Chatbot:
             return "default"
         
     def init_tokenizer(self):
-        if self.model_type in ["AWQ", "GPTQ", "PPLX", "GROQ", "GGUF"]:
+        if self.model_type in ["AWQ", "GPTQ", "PPLX", "GROQ", "GGUF", "TGTR"]:
             return AutoTokenizer.from_pretrained(self.cfg.get("tokenizer"), use_fast=True)
         elif self.model_type in ["proprietary"]:
             return None
@@ -212,7 +217,7 @@ class Chatbot:
     def get_gen_params(self, gen_params):
         if self.family == "GEMINI":
             self.name_token_var = "max_output_tokens"
-        elif self.model_type in ["PPLX", "GROQ", "GGUF", "proprietary"]:
+        elif self.model_type in ["PPLX", "GROQ", "GGUF", "TGTR", "proprietary"]:
             self.name_token_var = "max_tokens"
         else:
             self.name_token_var = "max_new_tokens"
@@ -237,6 +242,11 @@ class Chatbot:
                 return {
                     "api_key": os.getenv("GROQ_API_KEY")
                 }
+            elif self.model_type == "TGTR":
+                return {
+                    "base_url": "https://api.together.xyz/v1",
+                    "api_key": os.getenv("TOGETHER_API_KEY")
+                }
             elif self.family == "CLAUDE":
                 return {
                     "api_key": os.getenv("ANTHROPIC_API_KEY")
@@ -245,7 +255,6 @@ class Chatbot:
                 return {
                     "api_key": os.getenv("OPENAI_API_KEY")
                 }
-            
             elif self.family == "GEMINI":
                 return {
                     "api_key": os.getenv("GOOGLE_API_KEY")
@@ -264,7 +273,7 @@ class Chatbot:
     def init_model(self):
         if self.family == "CLAUDE":
             return Anthropic(**self.model_params)
-        elif self.family == "CHATGPT" or self.model_type == "PPLX":
+        elif self.family == "CHATGPT" or self.model_type in ["PPLX", "TGTR"]:
             return OpenAI(**self.model_params)
         elif self.model_type == "GROQ":
             return Groq(**self.model_params)         
@@ -277,12 +286,10 @@ class Chatbot:
             else:
                 hf_cache_path = os.getenv("HF_HOME")
             model_path = os.path.join(hf_cache_path, self.file_name)
-            print(model_path)
             if not os.path.exists(model_path):
                 hf_hub_download(repo_id=self.repo_id, filename=self.file_name, local_dir=hf_cache_path)
             return Llama(model_path=model_path, **self.model_params)
-        else:
-            
+        else: 
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
                     **self.model_params,

@@ -17,23 +17,12 @@ dataset_split = args.dataset_split
 k = args.k
 retriever = args.retriever if k != 0 else None
 max_context_length = args.max_context_length
-
-FINAL_DB_SIZE = {
-    3: {
-        "train_dev": 22388,
-        "dev": 2487
-    },
-    5: {
-        "train_dev": 12121,
-        "dev": 2487
-    }  
-}
 MAX_NEW_TOKENS = 64
 
-data, out_gts = get_lamp_dataset(dataset_num)
+data, _ = get_lamp_dataset(dataset_num, dataset_split)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA3-70B-GGUF", "GEMMA-2-9B", "LLAMA3-8B", "LLAMA2-7B", "MISTRAL-7B-v0.1-INSTRUCT", "ZEPHYR-7B-BETA", "STARLING-7B-ALPHA", "OPENCHAT-3.5"]
+chatbot_names = ["LLAMA3-70B-GGUF", "GEMMA-2-27B", "GEMMA-2-9B", "LLAMA3-8B"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 else:
@@ -66,11 +55,11 @@ for chatbot_name in chatbot_names:
              all_res = pickle.load(f)
     else:
         all_res = []
-    if len(all_res) == FINAL_DB_SIZE[dataset_num][dataset_split]:
+    if len(all_res) == len(data):
         print("Experiment for this chatbot is already concluded!")
         continue
     else:
-        orig_queries, orig_prof_texts, orig_prof_gts, _, _ = create_retr_data(data[dataset_split], out_gts[dataset_split], dataset_num)
+        orig_queries, orig_prof_texts, orig_prof_gts = create_retr_data(data, dataset_num)
         queries = orig_queries[len(all_res):]
         prof_texts = orig_prof_texts[len(all_res):]
         prof_gts = orig_prof_gts[len(all_res):]
@@ -113,11 +102,17 @@ for chatbot_name in chatbot_names:
                     break   
             lamp_prompt = prompter.lamp_prompt(dataset_num, prof_text=queries[i], examples=example_pairs)
         res = chatbot.prompt_chatbot(lamp_prompt)
-        all_res.append(res)
+        all_res.append({
+            "id": data[i]["id"],
+            "output": res
+        })
         if (i+1)%500==0 or (i+1)==len(queries):
             print(i)
             with open(file_out_path, "wb") as f:
-                pickle.dump(all_res, f)
+                pickle.dump({
+                    "task": f"LaMP_{dataset_num}",
+                    "golds": all_res
+                }, f)
         sys.stdout.flush()
     end_time = time.time()
     print(f"Took {(end_time-start_time)/3600} hours!")
