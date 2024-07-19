@@ -8,15 +8,13 @@ class Prompter():
                 return [
                     {
                         "role": "system",
-                        "content": ""
+                        "content": "Using the past review-rating pairs of a user, give a score between [1, 2, 3, 4, 5] to the following review by the same user. Only output the score and nothing else."
                     },
                     {
                         "role": "user", 
-                        "content": strip_all(f"""Here are a couple of review-rating pairs of a user. 
-                                                <EXAMPLES>
+                        "content": strip_all(f"""<Past_Samples>
                                                 {examples}
-                                                </EXAMPLES>
-                                                With the given examples, give a score between [1, 2, 3, 4, 5] to the following review by the same user. Only output the score and nothing else.
+                                                </Past_Samples>
                                                 Review: 
                                                 {prof_text}
                                                 Score:""")
@@ -25,12 +23,11 @@ class Prompter():
                 return [
                     {
                          "role": "system",
-                        "content": ""
+                        "content": "Give a score between [1, 2, 3, 4, 5] to the following review. Only output the score and nothing else."
                     },
                     {
                         "role": "user",
-                        "content": strip_all(f"""Give a score between [1, 2, 3, 4, 5] to the following review. Only output the score and nothing else.
-                                                Review: 
+                        "content": strip_all(f"""Review: 
                                                 {prof_text}
                                                 Score:""")
                     }]
@@ -39,15 +36,13 @@ class Prompter():
                 return [
                     {
                         "role": "system",
-                        "content": ""
+                        "content": "Using the past abstract-title pairs of an author, generate a title for the given abstract by the same author. Only output the title and nothing else."
                     },
                     {
                         "role": "user",
-                        "content": strip_all(f"""Here are a couple of abstract-title pairs of an author:
-                                                <EXAMPLES>
+                        "content": strip_all(f"""<Past_Samples>
                                                 {examples}
-                                                </EXAMPLES>
-                                                With the given examples, generate a title for the given abstract by the same author. Only output the title and nothing else:
+                                                </Past_Samples>
                                                 Abstract:
                                                 {prof_text}
                                                 Title:""")

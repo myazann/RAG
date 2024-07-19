@@ -3,8 +3,10 @@ import os
 from pathlib import Path
 import sys
 import time
-from huggingface_hub import hf_hub_download, login
+import warnings
+warnings.filterwarnings("ignore")
 
+from huggingface_hub import hf_hub_download, login
 import tiktoken
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, logging
@@ -144,9 +146,6 @@ class Chatbot:
             return self.model.count_tokens(prompt)
         else:
             return len(self.tokenizer(prompt).input_ids)
-
-    def get_bot_info(self):
-        return f"Your name is {self.family.capitalize()}. You are named after the AI model that powers you."
     
     def trunc_chat_history(self, chat_history):
         hist_dedic_space = int(self.context_length)//8
@@ -189,9 +188,7 @@ class Chatbot:
             return -1
 
     def get_model_type(self):
-        if self.model_name.endswith("GPTQ"):
-            return "GPTQ"
-        elif self.model_name.endswith("AWQ"):
+        if self.model_name.endswith("AWQ"):
             return "AWQ"
         elif self.model_name.endswith("PPLX"):
             return "PPLX"
@@ -235,11 +232,12 @@ class Chatbot:
         if model_params is None:
             if self.model_type == "PPLX":
                 return {
-                        "base_url": "https://api.perplexity.ai",
-                        "api_key": os.getenv("PPLX_API_KEY")
+                    "base_url": "https://api.perplexity.ai",
+                    "api_key": os.getenv("PPLX_API_KEY")
                 }
             elif self.model_type == "GROQ":
                 return {
+                    "base_url": "https://api.groq.com/openai/v1",
                     "api_key": os.getenv("GROQ_API_KEY")
                 }
             elif self.model_type == "TGTR":
@@ -273,10 +271,8 @@ class Chatbot:
     def init_model(self):
         if self.family == "CLAUDE":
             return Anthropic(**self.model_params)
-        elif self.family == "GPT" or self.model_type in ["PPLX", "TGTR"]:
-            return OpenAI(**self.model_params)
-        elif self.model_type == "GROQ":
-            return Groq(**self.model_params)         
+        elif self.family == "GPT" or self.model_type in ["PPLX", "TGTR", "GROQ"]:
+            return OpenAI(**self.model_params)       
         elif self.family == "GEMINI":
             genai.configure(**self.model_params)
             return genai.GenerativeModel(self.repo_id)       

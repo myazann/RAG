@@ -4,7 +4,6 @@ from evaluate import load
 from sklearn.metrics import f1_score, mean_absolute_error, mean_squared_error
 
 from RAG.utils import list_files_in_directory
-from RAG.output_formatter import lamp_output_formatter
 from lamp_utils import get_lamp_args, get_lamp_dataset
 
 args = get_lamp_args()
@@ -37,7 +36,6 @@ for file in all_res_files:
     model_name = file.split("/")[-1][:-5]
     models.append(model_name)
     print(k, retriever, model_name)
-    preds = [lamp_output_formatter(pred, dataset_num) for pred in preds]
     if dataset_num > 3:
         rouge_results = rouge.compute(predictions=preds, references=out_gts)
         rouge_results["k"] = k
@@ -47,16 +45,11 @@ for file in all_res_files:
         f1_macro = f1_score(out_gts, preds, average="macro")
         mae = mean_absolute_error(list(map(int, out_gts)), list(map(int, preds)))
         rmse = mean_squared_error(list(map(int, out_gts)), list(map(int, preds)))
-        print(f"F1 Macro: {f1_macro}")
-        print(f"MAE: {mae}")
-        print(f"RMSE: {rmse}")
         cor_pred = 0
         for i in range(len(out_gts)):
             if str(out_gts[i]) == str(preds[i]):
                 cor_pred += 1
         acc = cor_pred/len(out_gts)
-        print(f"Accuracy: {acc}")
-        print()
         all_res.append({
             "k": k,
             "retriever": retriever,

@@ -8,7 +8,8 @@ import subprocess
 from RAG.prompter import Prompter
 from RAG.chatbots import choose_bot
 from RAG.utils import shuffle_lists
-from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset, get_profvar_names
+from RAG.output_formatter import lamp_output_formatter
+from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset, get_profvar_names, log_exp
 
 args = get_lamp_args()
 q_type = args.quant
@@ -16,42 +17,35 @@ dataset_num = args.dataset_num
 dataset_split = args.dataset_split
 k = args.k
 retriever = args.retriever if k != 0 else None
-max_context_length = args.max_context_length
 MAX_NEW_TOKENS = 64
 
 data, _ = get_lamp_dataset(dataset_num, dataset_split)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
-chatbot_names = ["LLAMA3-70B-GGUF", "GEMMA-2-27B", "GEMMA-2-9B", "LLAMA3-8B"]
+LLMs = ["LLAMA3-8B", "LLAMA3-70B", "GEMMA-2-9B", "GEMMA-2-27B"]
 if k == "0":
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 else:
     out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}/{retriever}"
 os.makedirs(out_dir, exist_ok=True)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever} on {dataset_split} set")
-for chatbot_name in chatbot_names:
+for model_name in LLMs:
     if q_type is not None:
-        chatbot = choose_bot(model_name=f"{chatbot_name}-{q_type}", gen_params={"max_new_tokens": MAX_NEW_TOKENS})
-    else:
-        chatbot = choose_bot(model_name=chatbot_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS})
-    if "max" in k and int(chatbot.context_length) > int(max_context_length):
-        exp_window = int(int(max_context_length)/1000)
-        chatbot_name = f"{chatbot_name}-{exp_window}K"
-        chatbot.context_length = max_context_length
-    if q_type is not None:
-        chatbot_name = f"{chatbot_name}-{q_type}"
-    print(subprocess.run("gpustat"))
-    print(chatbot_name)
-    file_out_path = f"{out_dir}/{chatbot_name}.json"
+        model_name = f"{model_name}-{q_type}"
+    file_out_path = f"{out_dir}/{model_name}.json"
     if os.path.exists(file_out_path):
         with open(file_out_path, "rb") as f:
              all_res = json.load(f)["golds"]
     else:
         all_res = []
+    print(model_name)   
     if len(all_res) == len(data):
-        print("Experiment for this chatbot is already concluded!")
+        print("Experiment for this llm is already concluded!")
         continue
     else:
+        llm = choose_bot(model_name=model_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS})
+        print(subprocess.run("gpustat"))    
+        exp_name = f"{dataset_split}_{dataset_num}_{model_name}_K{k}_{retriever}"
         orig_queries, orig_prof_texts, orig_prof_gts = create_retr_data(data, dataset_num)
         queries = orig_queries[len(all_res):]
         prof_texts = orig_prof_texts[len(all_res):]
@@ -88,17 +82,27 @@ for chatbot_name in chatbot_names:
             for text, gt in zip(retr_texts, retr_gts):
                 example = f"""{prof_prompt_name.capitalize()}:\n{text}\n{prof_gt_name.capitalize()}:\n{gt}\n"""  
                 lamp_prompt = prompter.lamp_prompt(dataset_num, prof_text=queries[i], examples=example_pairs)
-                avail_space = int(chatbot.context_length) - chatbot.count_tokens(lamp_prompt)
-                if chatbot.count_tokens(example_pairs + "\n" + example + queries[i]) < avail_space:
+                avail_space = int(llm.context_length) - llm.count_tokens(lamp_prompt)
+                if llm.count_tokens(example_pairs + "\n" + example + queries[i]) < avail_space:
                     example_pairs = example_pairs + "\n" + example   
                 else:
                     break   
             lamp_prompt = prompter.lamp_prompt(dataset_num, prof_text=queries[i], examples=example_pairs)
-        res = chatbot.prompt_chatbot(lamp_prompt)
+        start_bot_time = time.time()    
+        res = llm.prompt_chatbot(lamp_prompt)
+        end_bot_time = time.time()
+        formatted_res = lamp_output_formatter(res, dataset_num)
         all_res.append({
             "id": data[i]["id"],
-            "output": res
+            "output": formatted_res
         })
+        cur_iter_res = {
+            "prompt": lamp_prompt,
+            "output": res,
+            "formatted_output": formatted_res,
+            "model_inf_time": round(end_bot_time - start_bot_time, 2) 
+        }
+        log_exp(cur_iter_res, exp_name)
         if (i+1)%500==0 or (i+1)==len(queries):
             print(i)
             with open(file_out_path, "w") as f:
@@ -109,6 +113,6 @@ for chatbot_name in chatbot_names:
         sys.stdout.flush()
     end_time = time.time()
     print(f"Took {(end_time-start_time)/3600} hours!")
-    del chatbot
-    chatbot = []
+    del llm
+    llm = []
     torch.cuda.empty_cache()

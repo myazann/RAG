@@ -10,6 +10,18 @@ from rank_bm25 import BM25Okapi
 from transformers import AutoTokenizer, DPRQuestionEncoder, DPRQuestionEncoderTokenizer
 from contriever.src.contriever import Contriever
 
+def log_exp(cur_iter, exp_name):
+    os.makedirs("logs", exist_ok=True)
+    result_path = os.path.join("logs", f"{exp_name}.json")
+    if os.path.exists(result_path):
+        with open(result_path, "r") as f:
+            results = json.load(f)
+    else:
+        results = []
+    with open(result_path, "w") as f:
+        results.append(cur_iter)
+        json.dump(results, f)
+
 def get_lamp_args():
    parser = argparse.ArgumentParser()
    parser.add_argument("-q", "--quant", default=None, type=str)
@@ -17,7 +29,6 @@ def get_lamp_args():
    parser.add_argument("-ds", "--dataset_split", default="train_dev", type=str)
    parser.add_argument("-k", "--k", default="3", type=str)
    parser.add_argument("-r", "--retriever", default="bm25", type=str)
-   parser.add_argument("-mcl", "--max_context_length", default=4096, type=int)
    return parser.parse_args()
 
 def get_lamp_dataset(dataset_num, mode="dev"):
