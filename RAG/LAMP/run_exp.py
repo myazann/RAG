@@ -6,7 +6,7 @@ import torch
 import subprocess
 
 from RAG.prompter import Prompter
-from RAG.chatbots import choose_bot
+from RAG.chatbot import choose_bot
 from RAG.utils import shuffle_lists
 from RAG.output_formatter import lamp_output_formatter
 from lamp_utils import get_lamp_args, create_retr_data, retrieved_idx, get_lamp_dataset, get_profvar_names, log_exp
