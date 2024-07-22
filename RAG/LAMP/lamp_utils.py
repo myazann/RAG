@@ -19,17 +19,19 @@ def log_exp(cur_iter, exp_name):
     else:
         results = []
     with open(result_path, "w") as f:
-        results.append(cur_iter)
-        json.dump(results, f)
+        ids = [res["id"] for res in results]
+        if cur_iter["id"] not in ids:
+            results.append(cur_iter)
+            json.dump(results, f)
 
 def get_lamp_args():
-   parser = argparse.ArgumentParser()
-   parser.add_argument("-q", "--quant", default=None, type=str)
-   parser.add_argument("-dn", "--dataset_num", default=5, type=int)
-   parser.add_argument("-ds", "--dataset_split", default="train_dev", type=str)
-   parser.add_argument("-k", "--k", default="3", type=str)
-   parser.add_argument("-r", "--retriever", default="bm25", type=str)
-   return parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-q", "--quant", default=None, type=str)
+    parser.add_argument("-dn", "--dataset_num", default=5, type=int)
+    parser.add_argument("-ds", "--dataset_split", default="train_dev", type=str)
+    parser.add_argument("-k", "--k", default="3", type=str)
+    parser.add_argument("-r", "--retriever", default="bm25", type=str)
+    return parser.parse_args()
 
 def get_lamp_dataset(dataset_num, mode="dev"):
     lamp_dataset_path = "datasets"

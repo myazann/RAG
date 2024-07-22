@@ -22,11 +22,11 @@ MAX_NEW_TOKENS = 64
 data, _ = get_lamp_dataset(dataset_num, dataset_split)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
-LLMs = ["LLAMA3-8B", "LLAMA3-70B", "GEMMA-2-9B", "GEMMA-2-27B"]
-if k == "0":
-    out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
-else:
-    out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}/{retriever}"
+# "LLAMA3-70B"
+LLMs = ["LLAMA3-8B", "GEMMA-2-9B", "GEMMA-2-27B"]
+out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
+if k != "0":
+    out_dir = f"{out_dir}/{retriever}"
 os.makedirs(out_dir, exist_ok=True)
 print(f"Running experiments for the {dataset_num}th dataset with k={k} and {retriever} on {dataset_split} set")
 for model_name in LLMs:
@@ -44,8 +44,10 @@ for model_name in LLMs:
         continue
     else:
         llm = choose_bot(model_name=model_name, gen_params={"max_new_tokens": MAX_NEW_TOKENS})
-        print(subprocess.run("gpustat"))    
-        exp_name = f"{dataset_split}_{dataset_num}_{model_name}_K{k}_{retriever}"
+        print(subprocess.run("gpustat"))  
+        exp_name = f"{dataset_split}_{dataset_num}_{model_name}_K{k}"  
+        if k != "0":
+            exp_name = f"{exp_name}_{retriever}"
         orig_queries, orig_prof_texts, orig_prof_gts = create_retr_data(data, dataset_num)
         queries = orig_queries[len(all_res):]
         prof_texts = orig_prof_texts[len(all_res):]
@@ -97,6 +99,7 @@ for model_name in LLMs:
             "output": formatted_res
         })
         cur_iter_res = {
+            "id": data[i]["id"],
             "prompt": lamp_prompt,
             "output": res,
             "formatted_output": formatted_res,
