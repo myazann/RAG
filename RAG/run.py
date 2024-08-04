@@ -15,7 +15,7 @@ web_search = args.web_search
 file_loader = FileLoader()
 # model_params={"quantization_config": BitsAndBytesConfig(load_in_4bit=True)}
 chatbot = choose_bot()
-query_bot = choose_bot(model_name="LLAMA3-70B-PPLX")
+query_bot = choose_bot(model_name="LLAMA-3-70B-PPLX")
 prompter = Prompter()
 orchestrator = Orchestrator(query_bot)
 db = VectorDB(file_loader)
