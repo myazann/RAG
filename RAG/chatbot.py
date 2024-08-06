@@ -72,19 +72,16 @@ class Chatbot:
         self.gen_params = self.get_gen_params(gen_params)
         self.model = self.init_model()
 
-    def prompt_chatbot(self, prompt, chat_history=[]):
-        if chat_history:
-            chat_history = self.trunc_chat_history(chat_history)
-        avail_space = self.get_avail_space(prompt + chat_history)
-        if not avail_space:
-            return "Sorry, I can't process that much text at the same time. Can you please shorten your message?"
+    def prompt_chatbot(self, prompt, prompt_params=None, chat_history=[], stream=False):
+        prompt = self.prepare_prompt(prompt, prompt_params, chat_history)
+        
         if self.model_type in ["PPLX", "GROQ", "TGTR"] or self.family == "GPT":
             if len(prompt) > 1:
                 message = [prompt[0]] + chat_history + [prompt[1]]
             else:
                 message = chat_history + prompt
             response = self.model.chat.completions.create(model=self.repo_id, messages=message, **self.gen_params)
-            return response.choices[0].message.content
+            response = response.choices[0].message.content
         elif self.family == "CLAUDE":
             if len(prompt) > 1:
                 sys_msg = prompt[0]["content"]
@@ -93,7 +90,7 @@ class Chatbot:
             else:
                 message = chat_history + prompt
                 response = self.model.messages.create(model=self.repo_id, messages=message, **self.gen_params)
-            return response.content[0].text   
+            response = response.content[0].text   
         elif self.family == "GEMINI":
             if len(prompt) > 1:
                 message = [prompt[0]] + chat_history + [prompt[1]]
@@ -107,7 +104,7 @@ class Chatbot:
                     "parts": [turn["content"]]
                 })
             response = self.model.generate_content(messages, generation_config=genai.types.GenerationConfig(**self.gen_params))
-            return response.text     
+            response = response.text     
         else:
             if self.family in ["MISTRAL", "GEMMA"]:
                 if len(prompt) > 1:
@@ -121,10 +118,13 @@ class Chatbot:
                     message = chat_history + prompt
             if self.model_type == "GGUF":
                 response = self.model.create_chat_completion(message, **self.gen_params)
-                return response["choices"][-1]["message"]["content"]
+                response = response["choices"][-1]["message"]["content"]
             else:
                 pipe = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, **self.gen_params)
-                return pipe(message)[0]["generated_text"][-1]["content"]
+                response = pipe(message)[0]["generated_text"][-1]["content"]
+        if stream:
+            self.stream_output(response)
+        return response
     
     def stream_output(self, output):
         for char in output:
@@ -145,8 +145,8 @@ class Chatbot:
         else:
             return len(self.tokenizer(prompt).input_ids)
     
-    def trunc_chat_history(self, chat_history):
-        hist_dedic_space = int(self.context_length)//8
+    def trunc_chat_history(self, chat_history, hist_dedic_space=0.2):
+        hist_dedic_space = int(self.context_length*0.2)
         total_hist_tokens = sum(self.count_tokens(tm['content']) for tm in chat_history)
         while total_hist_tokens > hist_dedic_space:
             removed_message = chat_history.pop(0)
@@ -160,10 +160,15 @@ class Chatbot:
         else:
             return avail_space 
 
-    def prep_context(self, prompt, context, chat_history=[]):
+    def prepare_prompt(self, prompt, prompt_params, chat_history=[]):
         if chat_history:
             chat_history = self.trunc_chat_history(chat_history)
-        avail_space = self.get_avail_space(prompt + chat_history)   
+        prompt = prompt(**prompt_params) + chat_history
+        avail_space = self.get_avail_space(prompt)   
+        if not avail_space:
+            if "context" in prompt_params:
+                print("Too much context, removing ")
+            return "Sorry, I can't process that much text at the same time. Can you please shorten your message?"
         if avail_space:         
             while True:
                 info = "\n".join([doc for doc in context])
