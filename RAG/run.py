@@ -10,7 +10,7 @@ def main():
     args = get_args()
     chatbot = choose_bot()
     helper_llm = choose_bot(model_name="LLAMA-3.1-70B-PPLX")
-    orchestrator = Orchestrator(chatbot, helper_llm=helper_llm)
+    orchestrator = Orchestrator(helper_llm=helper_llm)
 
     print("\nHello! How may I assist you? \nPress 0 if you want to quit!\nPress -1 if you want to switch the chatbot!\nPress 1 if you want to clear chat history!\nIf you want to provide a document or a webpage to the chatbot, please only input the path to the file or the url without any other text!\n")
     chat_history = []
@@ -28,12 +28,13 @@ def main():
             chat_history = []
             print("History cleared!")
             continue
-
-        response = orchestrator.handle_query(query, chat_history, args)
+        print("\nChatbot:")
+        response = orchestrator.handle_query(chatbot, query, args, chat_history)
         chat_history.extend([
             {"role": "user", "content": query},
             {"role": "assistant", "content": response}
         ])
+        print()
 
 if __name__ == "__main__":
     main()

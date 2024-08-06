@@ -175,13 +175,13 @@ class Prompter:
                                                       {question}""")}
         ]
     
-    def conv_agent_prompt(self, info, user_input):
+    def conv_agent_prompt(self, query, context):
         return [
             {"role": "system", "content": strip_all("You are a friendly conversational agent. Your task is to help users with their questions. Information related to the user input is going to be provided to you during the conversation to help you give more plausible answers. Do not mention that you used the provided information in your output. Sometimes, the information may be unrelated or may not contain the answer the user is looking for. For those cases, you do not have to use the provided information. If you do not know the answer, or if the user question is ambigous, ask the user for clarification.")},
             {"role": "user", "content": strip_all(f"""Related information:
-                                                      {info}
+                                                      {context}
                                                       User input:
-                                                      {user_input}""")}
+                                                      {query}""")}
         ]
     
     def query_gen_prompt_claude(self, user_input):

@@ -72,9 +72,11 @@ class Chatbot:
         self.gen_params = self.get_gen_params(gen_params)
         self.model = self.init_model()
 
-    def prompt_chatbot(self, prompt, prompt_params=None, chat_history=[], stream=False):
-        prompt = self.prepare_prompt(prompt, prompt_params, chat_history)
-        
+    def prompt_chatbot(self, prompt, chat_history=[], stream=False):
+
+        avail_space = self.get_avail_space(prompt + chat_history)
+        if not avail_space:
+            return "Sorry, I can't process that much text at the same time. Can you please shorten your message?"
         if self.model_type in ["PPLX", "GROQ", "TGTR"] or self.family == "GPT":
             if len(prompt) > 1:
                 message = [prompt[0]] + chat_history + [prompt[1]]
@@ -131,7 +133,22 @@ class Chatbot:
             sys.stdout.write(char)
             sys.stdout.flush()
             time.sleep(0.005)
-    
+
+    def get_avail_space(self, prompt):
+        avail_space = self.context_length - self.gen_params[self.name_token_var] - self.count_tokens(prompt)
+        if avail_space <= 0:
+            return None
+        else:
+            return avail_space   
+        
+    def trunc_chat_history(self, chat_history, hist_dedic_space=0.2):
+        hist_dedic_space = int(self.context_length*0.2)
+        total_hist_tokens = sum(self.count_tokens(tm['content']) for tm in chat_history)
+        while total_hist_tokens > hist_dedic_space:
+            removed_message = chat_history.pop(0)
+            total_hist_tokens -= self.count_tokens(removed_message['content'])
+        return chat_history 
+       
     def count_tokens(self, prompt):
         if isinstance(prompt, list):
             prompt = "\n".join([turn["content"] for turn in prompt])
@@ -144,31 +161,11 @@ class Chatbot:
             return self.model.count_tokens(prompt)
         else:
             return len(self.tokenizer(prompt).input_ids)
-    
-    def trunc_chat_history(self, chat_history, hist_dedic_space=0.2):
-        hist_dedic_space = int(self.context_length*0.2)
-        total_hist_tokens = sum(self.count_tokens(tm['content']) for tm in chat_history)
-        while total_hist_tokens > hist_dedic_space:
-            removed_message = chat_history.pop(0)
-            total_hist_tokens -= self.count_tokens(removed_message['content'])
-        return chat_history
-    
-    def get_avail_space(self, prompt):
-        avail_space = self.context_length - self.gen_params[self.name_token_var] - self.count_tokens(prompt)
-        if avail_space <= 0:
-            return None
-        else:
-            return avail_space 
-
-    def prepare_prompt(self, prompt, prompt_params, chat_history=[]):
+        
+    def prepare_context(self, prompt, context, chat_history=[]):
         if chat_history:
             chat_history = self.trunc_chat_history(chat_history)
-        prompt = prompt(**prompt_params) + chat_history
-        avail_space = self.get_avail_space(prompt)   
-        if not avail_space:
-            if "context" in prompt_params:
-                print("Too much context, removing ")
-            return "Sorry, I can't process that much text at the same time. Can you please shorten your message?"
+        avail_space = self.get_avail_space(prompt + chat_history)   
         if avail_space:         
             while True:
                 info = "\n".join([doc for doc in context])
@@ -180,7 +177,7 @@ class Chatbot:
             return info
         else:
             return -1
-
+        
     def get_model_type(self):
         if self.model_name.endswith("AWQ"):
             return "AWQ"
