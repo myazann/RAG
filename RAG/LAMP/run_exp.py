@@ -23,7 +23,7 @@ data, _ = get_lamp_dataset(dataset_num, dataset_split)
 prof_text_name, prof_gt_name, prof_prompt_name = get_profvar_names(dataset_num)
 prompter = Prompter()
 # "LLAMA3-70B"
-LLMs = ["LLAMA-3.1-8B", "GEMMA-2-9B", "GEMMA-2-27B"]
+LLMs = ["GEMMA-2-2B", "LLAMA-3.1-8B", "GEMMA-2-9B"]
 out_dir = f"res_pkls/D{dataset_num}/{dataset_split}/K{k}"
 if k != "0":
     out_dir = f"{out_dir}/{retriever}"

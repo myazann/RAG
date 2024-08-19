@@ -68,6 +68,6 @@ class Orchestrator():
             
             if context:
                 context = llm.prepare_context(conv_agent_prompt, context, chat_history)
-                conv_agent_prompt = self.prompter.conv_agent_prompt(query=reform_query)
+                conv_agent_prompt = self.prompter.conv_agent_prompt(query=reform_query, context=context)
             response = llm.prompt_chatbot(conv_agent_prompt, chat_history, stream=True).strip()
             return response
