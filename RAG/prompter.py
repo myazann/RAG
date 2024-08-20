@@ -2,56 +2,6 @@ from RAG.output_formatter import strip_all
 
 class Prompter:
     
-    def lamp_prompt(self, dataset, prof_text, examples=None):
-        if dataset == 3:
-            return self._lamp_prompt_dataset_3(prof_text, examples)
-        elif dataset == 5:
-            return self._lamp_prompt_dataset_5(prof_text, examples)
-    
-    def _lamp_prompt_dataset_3(self, prof_text, examples):
-        if examples:
-            return [
-                {"role": "system", "content": ""},
-                {"role": "user", "content": strip_all(f"""Here are a couple of review-rating pairs of a user. 
-                                                          <EXAMPLES>
-                                                          {examples}
-                                                          </EXAMPLES>
-                                                          With the given examples, give a score between [1, 2, 3, 4, 5] to the following review by the same user. Only output the score and nothing else.
-                                                          Review: 
-                                                          {prof_text}
-                                                          Score:""")}
-            ]
-        else:
-            return [
-                {"role": "system", "content": ""},
-                {"role": "user", "content": strip_all(f"""Give a score between [1, 2, 3, 4, 5] to the following review. Only output the score and nothing else.
-                                                          Review: 
-                                                          {prof_text}
-                                                          Score:""")}
-            ]
-    
-    def _lamp_prompt_dataset_5(self, prof_text, examples):
-        if examples:
-            return [
-                {"role": "system", "content": ""},
-                {"role": "user", "content": strip_all(f"""Here are a couple of abstract-title pairs of an author:
-                                                          <EXAMPLES>
-                                                          {examples}
-                                                          </EXAMPLES>
-                                                          With the given examples, generate a title for the given abstract by the same author. Only output the title and nothing else:
-                                                          Abstract:
-                                                          {prof_text}
-                                                          Title:""")}
-            ]
-        else:
-            return [
-                {"role": "system", "content": ""},
-                {"role": "user", "content": strip_all(f"""Your task is to generate a title for the given abstract. You will only output the title and nothing else.
-                                                         Abstract:
-                                                         {prof_text}
-                                                         Title:""")}
-            ]
-    
     def amazon_kg_construct(self, cust_hist):
         return [
             {"role": "system", "content": strip_all("""Your task is to construct a knowledge graph from this purchase history. The goal of the graph is to better understand the customer in order to make improved product recommendations for them in the future.

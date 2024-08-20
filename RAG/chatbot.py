@@ -280,5 +280,5 @@ class Chatbot:
             return AutoModelForCausalLM.from_pretrained(
                     self.repo_id,
                     **self.model_params,
-                    low_cpu_mem_usage=True,
+                    # low_cpu_mem_usage=True,
                     device_map="auto")

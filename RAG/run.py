@@ -1,3 +1,4 @@
+import subprocess
 import warnings
 
 from RAG.chatbot import choose_bot
@@ -34,6 +35,7 @@ def main():
             {"role": "user", "content": query},
             {"role": "assistant", "content": response}
         ])
+        print(subprocess.run("gpustat"))
         print()
 
 if __name__ == "__main__":

@@ -1,47 +1,6 @@
 import difflib
 import re
 
-def lamp_output_formatter(output, dataset_num):
-    if dataset_num == 3:
-        substring = "0"
-        for c in output:
-            try:
-                if c.isdigit():
-                    if 0 < int(c) and int(c) < 6:
-                        substring = c
-                        break
-            except Exception as e:
-                print(e)
-                substring = "0"
-    elif dataset_num == 5:
-        dq_match = re.search(r'"([^"]*)"', output)
-        if dq_match:
-            substring = dq_match.group(0)
-        else:
-            substring = output
-        substring = substring.strip('"')
-        title_index = substring.find("Title:")
-        if title_index != -1:
-            substring = substring[title_index + len("Title:"):]
-        substring = substring.strip()
-        ex_index = substring.find("</EXAMPLES>")
-        if ex_index != -1:
-            substring = substring[:ex_index]
-        substring = substring.strip()
-        angle_b_index = substring.find("</s>")
-        if angle_b_index != -1:
-            substring = substring[:angle_b_index]
-        substring.strip()
-        note_index = substring.find("Note:")
-        if note_index != -1:
-            substring = substring[:note_index]
-        substring = substring.strip()
-        nl_index = substring.find("\n")
-        if nl_index != -1:
-            substring = substring[nl_index:]
-    return substring.strip()
-
-
 def query_reform_formatter(query):
     query = query.strip('"')
     if query.endswith("."):
